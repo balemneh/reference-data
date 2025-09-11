@@ -153,9 +153,9 @@
       <!-- Table -->
       <div *ngIf="!loading" class="cbp-table-wrapper">
         <table class="cbp-table">
-          <thead class="cbp-table-header">
+          <thead>
             <tr>
-              <th class="cbp-table-header__cell cbp-table-header__cell--checkbox">
+              <th class="cbp-table__select">
                 <input 
                   type="checkbox" 
                   class="cbp-checkbox"
@@ -164,38 +164,32 @@
                   [disabled]="changeRequests.length === 0"
                 />
               </th>
-              <th class="cbp-table-header__cell cbp-table-header__cell--sortable" 
-                  (click)="sort('changeType')">
+              <th class="cbp-table__sortable" (click)="sort('changeType')">
                 Change Type
               </th>
-              <th class="cbp-table-header__cell cbp-table-header__cell--sortable" 
-                  (click)="sort('entityType')">
+              <th class="cbp-table__sortable" (click)="sort('entityType')">
                 Entity Type
               </th>
-              <th class="cbp-table-header__cell cbp-table-header__cell--sortable" 
-                  (click)="sort('description')">
+              <th class="cbp-table__sortable" (click)="sort('description')">
                 Description
               </th>
-              <th class="cbp-table-header__cell cbp-table-header__cell--sortable" 
-                  (click)="sort('requestedBy')">
+              <th class="cbp-table__sortable" (click)="sort('requestedBy')">
                 Requested By
               </th>
-              <th class="cbp-table-header__cell cbp-table-header__cell--sortable" 
-                  (click)="sort('status')">
+              <th class="cbp-table__sortable" (click)="sort('status')">
                 Status
               </th>
-              <th class="cbp-table-header__cell cbp-table-header__cell--sortable" 
-                  (click)="sort('createdAt')">
+              <th class="cbp-table__sortable" (click)="sort('createdAt')">
                 Created
               </th>
-              <th class="cbp-table-header__cell cbp-table-header__cell--actions">Actions</th>
+              <th class="cbp-table__actions">Actions</th>
             </tr>
           </thead>
-          <tbody class="cbp-table-body">
-            <tr class="cbp-table-row cbp-table-row--data" 
+          <tbody>
+            <tr class="cbp-table__row" 
                 *ngFor="let request of changeRequests; let i = index" 
-                [class.cbp-table-row--selected]="request && isSelected(request.id)">
-              <td class="cbp-table-cell cbp-table-cell--checkbox">
+                [class.cbp-table__row--selected]="request && isSelected(request.id)">
+              <td class="cbp-table__select">
                 <input 
                   type="checkbox" 
                   class="cbp-checkbox"
@@ -203,32 +197,32 @@
                   (change)="toggleSelection(request?.id)"
                 />
               </td>
-              <td class="cbp-table-cell">
+              <td class="cbp-table__change-type">
                 <span class="cbp-badge cbp-badge--type cbp-badge--{{ request?.changeType?.toLowerCase() || 'unknown' }}">
                   {{ request?.changeType || 'N/A' }}
                 </span>
               </td>
-              <td class="cbp-table-cell">
+              <td class="cbp-table__entity-type">
                 <span class="cbp-entity-type">
                   <span class="cbp-entity-icon">•</span>
                   {{ request?.entityType || 'N/A' }}
                 </span>
               </td>
-              <td class="cbp-table-cell cbp-table-cell--description">
+              <td class="cbp-table__description">
                 {{ request?.description || 'No description' }}
               </td>
-              <td class="cbp-table-cell">
+              <td class="cbp-table__requester">
                 <span class="cbp-user">{{ request?.requestedBy || 'Unknown' }}</span>
               </td>
-              <td class="cbp-table-cell">
+              <td class="cbp-table__status">
                 <span class="cbp-status cbp-status--{{ request?.status?.toLowerCase() || 'unknown' }}">
                   {{ request?.status || 'UNKNOWN' }}
                 </span>
               </td>
-              <td class="cbp-table-cell">
+              <td class="cbp-table__created">
                 <span class="cbp-date">{{ formatDate(request?.createdAt) }}</span>
               </td>
-              <td class="cbp-table-cell cbp-table-cell--actions">
+              <td class="cbp-table__actions">
                 <div class="cbp-action-buttons">
                   <button 
                     class="cbp-action-button cbp-action-button--view"

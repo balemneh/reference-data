@@ -1,10 +1,16 @@
 /* CBP Change Requests Management - Modern Design System */
 
-// Grid container
+// Grid container - allow full height
 .grid-container {
   padding: 0 1rem;
   max-width: 100%;
   margin: 0 auto;
+  min-height: calc(100vh - 128px);
+  height: auto;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 // CSS Variables
@@ -294,6 +300,12 @@
 // Enhanced Table Styles
 .cbp-table-container {
   margin-bottom: var(--cbp-space-2xl);
+  overflow-x: auto;
+  overflow-y: visible;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .cbp-table-card {
@@ -301,7 +313,10 @@
   border-radius: var(--cbp-radius-xl);
   box-shadow: var(--cbp-shadow-md);
   border: 1px solid var(--cbp-neutral-200);
-  overflow: hidden;
+  overflow: visible;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .cbp-table-header {
@@ -389,65 +404,138 @@
 }
 
 .cbp-table-wrapper {
-  overflow-x: auto;
+  overflow-x: visible;
   overflow-y: visible;
   width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .cbp-table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: auto;
+  table-layout: fixed;
   background: white;
+  min-height: 0;
+  height: auto;
   
+  // Table header styles
+  thead {
+    background: linear-gradient(135deg, 
+      var(--cbp-neutral-50) 0%, 
+      rgba(255, 255, 255, 0.95) 100%);
+    backdrop-filter: blur(8px);
+    
+    tr {
+      border-bottom: 2px solid var(--cbp-neutral-200);
+    }
+  }
+  
+  // All table cells - both th and td
   th, td {
     padding: 0.75rem 1rem;
     text-align: left;
     vertical-align: middle;
+    font-size: 0.875rem;
   }
   
-  th:first-child,
-  td:first-child {
-    width: 50px;
+  // Header cells
+  th {
+    font-weight: 600;
+    color: var(--cbp-neutral-700);
+    white-space: nowrap;
+  }
+  
+  // Data cells
+  td {
+    border-bottom: 1px solid var(--cbp-neutral-100);
+  }
+  
+  // Column-specific widths - apply to both th and td
+  th.cbp-table__select,
+  td.cbp-table__select,
+  &__select {
+    width: 50px !important;
     text-align: center;
     padding: 0.75rem 0.5rem;
   }
   
+  th.cbp-table__sortable,
+  &__sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: all var(--cbp-transition-fast);
+    
+    &:hover {
+      background: rgba(0, 51, 102, 0.05);
+      color: var(--cbp-primary);
+    }
+  }
+  
+  // Apply same width to both th and td for each column
   th:nth-child(2),
-  td:nth-child(2) {
-    width: 120px;
+  td.cbp-table__change-type,
+  &__change-type {
+    width: 120px !important;
   }
   
   th:nth-child(3),
-  td:nth-child(3) {
-    width: 120px;
+  td.cbp-table__entity-type,
+  &__entity-type {
+    width: 120px !important;
   }
   
   th:nth-child(4),
-  td:nth-child(4) {
-    width: auto;
-    min-width: 200px;
+  td.cbp-table__description,
+  &__description {
+    width: auto !important;
+    min-width: 250px;
+    white-space: normal;
+    line-height: 1.4;
+    word-wrap: break-word;
   }
   
   th:nth-child(5),
-  td:nth-child(5) {
-    width: 180px;
+  td.cbp-table__requester,
+  &__requester {
+    width: 150px !important;
   }
   
   th:nth-child(6),
-  td:nth-child(6) {
-    width: 100px;
+  td.cbp-table__status,
+  &__status {
+    width: 120px !important;
   }
   
   th:nth-child(7),
-  td:nth-child(7) {
-    width: 140px;
+  td.cbp-table__created,
+  &__created {
+    width: 150px !important;
   }
   
-  th:last-child,
-  td:last-child {
-    width: 150px;
+  th.cbp-table__actions,
+  td.cbp-table__actions,
+  &__actions {
+    width: 150px !important;
     text-align: center;
+    white-space: nowrap;
+  }
+  
+  // Row styles
+  &__row {
+    transition: all var(--cbp-transition-fast);
+    
+    &:hover {
+      background: rgba(0, 51, 102, 0.02);
+    }
+    
+    &--selected {
+      background: linear-gradient(135deg, 
+        rgba(0, 51, 102, 0.05) 0%, 
+        rgba(0, 90, 156, 0.02) 100%
+      );
+      box-shadow: inset 4px 0 0 var(--cbp-primary);
+    }
   }
 }
 
@@ -457,47 +545,7 @@
   z-index: 10;
 }
 
-.cbp-table-header {
-  background: linear-gradient(135deg, 
-    var(--cbp-neutral-50) 0%, 
-    rgba(255, 255, 255, 0.95) 100%);
-  backdrop-filter: blur(8px);
-  
-  tr {
-    border-bottom: 2px solid var(--cbp-neutral-200);
-  }
-  
-  &__cell {
-    padding: 0.75rem 1rem;
-    text-align: left;
-    font-weight: 600;
-    color: var(--cbp-neutral-700);
-    font-size: 0.875rem;
-    white-space: nowrap;
-    
-    &--checkbox {
-      width: 50px;
-      text-align: center;
-      padding: 0.75rem 0.5rem;
-    }
-    
-    &--sortable {
-      cursor: pointer;
-      user-select: none;
-      transition: all var(--cbp-transition-fast);
-      
-      &:hover {
-        background: rgba(0, 51, 102, 0.05);
-        color: var(--cbp-primary);
-      }
-    }
-    
-    &--actions {
-      width: 180px;
-      text-align: center;
-    }
-  }
-}
+// Remove old cbp-table-header styles - now handled in .cbp-table
 
 .cbp-table-row {
   &--data {
@@ -522,60 +570,7 @@
   }
 }
 
-.cbp-table-cell {
-  padding: 0.75rem 1rem;
-  text-align: left;
-  vertical-align: middle;
-  font-size: 0.875rem;
-  border-bottom: 1px solid var(--cbp-neutral-100);
-
-  &--checkbox {
-    width: 50px;
-    text-align: center;
-    padding: 0.75rem 0.5rem;
-  }
-  
-  &--description {
-    white-space: normal;
-    line-height: 1.4;
-    word-wrap: break-word;
-  }
-
-  &--sortable {
-    cursor: pointer;
-    user-select: none;
-
-    &:hover {
-      background: rgba(0, 51, 102, 0.05);
-    }
-  }
-
-  &--primary {
-    font-weight: 600;
-  }
-
-  &--code {
-    font-family: var(--cbp-font-mono);
-    font-size: 0.8rem;
-  }
-
-  &--date {
-    color: var(--cbp-neutral-600);
-    font-size: 0.8rem;
-  }
-
-  &--actions {
-    min-width: 200px;
-    text-align: center;
-    white-space: nowrap;
-  }
-
-  &--loading,
-  &--empty {
-    text-align: center;
-    padding: var(--cbp-space-3xl);
-  }
-}
+// Remove old cbp-table-cell styles - now handled in .cbp-table
 
 .cbp-sort-header {
   display: flex;
@@ -1131,7 +1126,8 @@
   }
 
   .cbp-table-wrapper {
-    max-height: 60vh;
+    height: auto;
+    overflow-y: visible;
   }
 
   .cbp-table-cell {

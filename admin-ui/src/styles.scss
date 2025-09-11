@@ -219,7 +219,7 @@ svg.cbp-icon,
 // Layout container
 .app-container {
   display: flex;
-  min-height: 100vh;
+  min-height: auto;
   padding-top: 128px; // Account for banner (25px) + header (103px)
 }
 
@@ -228,7 +228,7 @@ svg.cbp-icon,
   width: 260px;
   background: white;
   border-right: 1px solid #dee2e6;
-  height: calc(100vh - 128px); // Account for banner + header
+  min-height: calc(100vh - 128px); // Account for banner + header
   position: fixed;
   left: 0;
   top: 128px; // Position below banner + header
@@ -247,7 +247,8 @@ svg.cbp-icon,
   margin-left: 260px;
   padding: 1.5rem 2rem;
   background: #f9fafb;
-  min-height: calc(100vh - 128px); // Account for banner + header
+  min-height: auto;
+  height: auto;
   transition: margin-left 0.3s ease;
 
   &.sidebar-collapsed {
@@ -609,28 +610,31 @@ svg.cbp-icon,
   width: 100%;
   background: white;
   border-radius: 0.5rem;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .cbp-table table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: auto;
 }
 
 .cbp-table th {
   background: #f8f9fa;
   font-weight: 600;
   text-align: left;
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   border-bottom: 2px solid #dee2e6;
   color: #495057;
+  white-space: nowrap;
 }
 
 .cbp-table td {
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid #dee2e6;
   color: #202124;
+  vertical-align: middle;
 }
 
 .cbp-table tbody tr:hover {
@@ -787,6 +791,32 @@ svg.cbp-icon,
 .p-1 { padding: 0.5rem; }
 .p-2 { padding: 1rem; }
 .p-3 { padding: 1.5rem; }
+
+// Table container - allow full height for pagination
+.cbp-table-container {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+}
+
+// Ensure content area respects boundaries
+.cbp-content,
+.cbp-page-content {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+// Grid container for page content
+.grid-container {
+  width: 100%;
+  height: auto;
+  min-height: auto;
+  padding: 0;
+  margin: 0;
+}
 
 // Mobile menu toggle
 .cbp-menu-toggle {

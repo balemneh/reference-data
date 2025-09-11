@@ -35,14 +35,14 @@ export class SidebarComponent implements OnInit {
     {
       id: 'dashboard',
       label: 'Dashboard',
-      icon: 'dashboard',
+      icon: 'insights',
       path: '/dashboard',
       type: 'navigation'
     },
     {
       id: 'reference-data',
       label: 'Reference Data',
-      icon: 'dataset',
+      icon: 'folder_open',
       type: 'category',
       expanded: true,
       children: [
@@ -56,7 +56,7 @@ export class SidebarComponent implements OnInit {
         {
           id: 'port-codes',
           label: 'Port Codes',
-          icon: 'anchor',
+          icon: 'location_on',
           path: '/ports',
           type: 'navigation'
         },
@@ -72,14 +72,14 @@ export class SidebarComponent implements OnInit {
     {
       id: 'operations',
       label: 'Operations',
-      icon: 'construction',
+      icon: 'build',
       type: 'category',
       expanded: false,
       children: [
         {
           id: 'change-requests',
           label: 'Change Requests',
-          icon: 'assignment',
+          icon: 'edit',
           path: '/change-requests',
           type: 'navigation',
           badge: 0
@@ -94,7 +94,7 @@ export class SidebarComponent implements OnInit {
         {
           id: 'import-export',
           label: 'Import/Export',
-          icon: 'import_export',
+          icon: 'file_upload',
           path: '/import-export',
           type: 'navigation'
         }
@@ -103,14 +103,14 @@ export class SidebarComponent implements OnInit {
     {
       id: 'reports-analytics',
       label: 'Reports & Analytics',
-      icon: 'analytics',
+      icon: 'assessment',
       type: 'category',
       expanded: false,
       children: [
         {
           id: 'reports',
           label: 'Reports',
-          icon: 'description',
+          icon: 'report',
           path: '/reports',
           type: 'navigation'
         },
@@ -126,7 +126,7 @@ export class SidebarComponent implements OnInit {
     {
       id: 'administration',
       label: 'Administration',
-      icon: 'admin_panel_settings',
+      icon: 'security',
       type: 'category',
       expanded: false,
       children: [
@@ -140,14 +140,14 @@ export class SidebarComponent implements OnInit {
         {
           id: 'user-management',
           label: 'User Management',
-          icon: 'group',
+          icon: 'groups',
           path: '/users',
           type: 'navigation'
         },
         {
           id: 'system-config',
           label: 'System Configuration',
-          icon: 'tune',
+          icon: 'settings',
           path: '/system-config',
           type: 'navigation'
         }

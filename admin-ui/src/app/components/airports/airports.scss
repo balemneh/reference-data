@@ -86,13 +86,18 @@
     rgba(255, 194, 0, 0.1) 100%
   );
   color: #7d2d00;
-  padding: 0.25rem 0.6rem;
+  padding: 0.25rem 0.5rem;
   border-radius: var(--cbp-radius-lg);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   border: 1px solid rgba(255, 194, 0, 0.3);
+  white-space: nowrap;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 // Status Badge Extensions
@@ -444,16 +449,31 @@
   }
 }
 
+// Table wrapper specific for airports - ensure full height for 20 rows
+.cbp-table-wrapper {
+  width: 100%;
+  min-height: auto;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.cbp-table-container {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+}
+
 // Enhanced Table Cell Spacing for Airports
 .cbp-table-cell {
   &:nth-child(1) { width: 40px; }   // Checkbox
   &:nth-child(2) { width: 80px; }   // IATA
   &:nth-child(3) { width: 90px; }   // ICAO
-  &:nth-child(4) { min-width: 200px; } // Name
-  &:nth-child(5) { width: 120px; }  // City
-  &:nth-child(6) { width: 80px; }   // Country
-  &:nth-child(7) { width: 100px; }  // Type
-  &:nth-child(8) { width: 100px; }  // Hub Size
+  &:nth-child(4) { min-width: 180px; } // Name
+  &:nth-child(5) { width: 100px; }  // City
+  &:nth-child(6) { width: 60px; }   // Country
+  &:nth-child(7) { width: 110px; }  // Type
+  &:nth-child(8) { width: 130px; }  // Hub Size - increased width
   &:nth-child(9) { width: 90px; }   // Status
   &:nth-child(10) { width: 80px; }  // Customs
   &:nth-child(11) { width: 120px; } // Actions
