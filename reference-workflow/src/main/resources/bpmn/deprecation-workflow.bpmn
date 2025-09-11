@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_2"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+  
+  <bpmn:process id="deprecationWorkflow" name="Deprecation Workflow" isExecutable="true">
+    
+    <bpmn:startEvent id="StartEvent_Deprecation" name="Deprecation Requested">
+      <bpmn:outgoing>Flow_D1</bpmn:outgoing>
+    </bpmn:startEvent>
+    
+    <bpmn:serviceTask id="Task_IdentifyImpact" name="Identify Impact" 
+                      camunda:delegateExpression="${identifyImpactDelegate}">
+      <bpmn:incoming>Flow_D1</bpmn:incoming>
+      <bpmn:outgoing>Flow_D2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:userTask id="Task_ReviewImpact" name="Review Impact Analysis" 
+                   camunda:candidateGroups="data_stewards">
+      <bpmn:documentation>Review the impact analysis and approve deprecation timeline</bpmn:documentation>
+      <bpmn:incoming>Flow_D2</bpmn:incoming>
+      <bpmn:outgoing>Flow_D3</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="approveDeprecation" label="Approve Deprecation?" type="boolean" />
+          <camunda:formField id="deprecationDate" label="Deprecation Date" type="date" />
+          <camunda:formField id="migrationPath" label="Migration Path" type="string" />
+          <camunda:formField id="notificationPeriodDays" label="Notification Period (days)" type="long" />
+        </camunda:formData>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    
+    <bpmn:exclusiveGateway id="Gateway_DeprecationDecision" name="Deprecation Approved?">
+      <bpmn:incoming>Flow_D3</bpmn:incoming>
+      <bpmn:outgoing>Flow_Approved_Dep</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Rejected_Dep</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:serviceTask id="Task_NotifyConsumers" name="Notify Consumers" 
+                      camunda:delegateExpression="${notifyConsumersDelegate}">
+      <bpmn:incoming>Flow_Approved_Dep</bpmn:incoming>
+      <bpmn:outgoing>Flow_D4</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:intermediateCatchEvent id="Timer_WaitForDeprecation" name="Wait for Deprecation Date">
+      <bpmn:incoming>Flow_D4</bpmn:incoming>
+      <bpmn:outgoing>Flow_D5</bpmn:outgoing>
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDate>${deprecationDate}</bpmn:timeDate>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    
+    <bpmn:serviceTask id="Task_ApplyDeprecation" name="Apply Deprecation" 
+                      camunda:delegateExpression="${applyDeprecationDelegate}">
+      <bpmn:incoming>Flow_D5</bpmn:incoming>
+      <bpmn:outgoing>Flow_D6</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:serviceTask id="Task_FinalNotification" name="Send Final Notification" 
+                      camunda:delegateExpression="${finalNotificationDelegate}">
+      <bpmn:incoming>Flow_D6</bpmn:incoming>
+      <bpmn:incoming>Flow_Rejected_Dep</bpmn:incoming>
+      <bpmn:outgoing>Flow_D7</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:endEvent id="EndEvent_Deprecation" name="Deprecation Complete">
+      <bpmn:incoming>Flow_D7</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <!-- Flow definitions -->
+    <bpmn:sequenceFlow id="Flow_D1" sourceRef="StartEvent_Deprecation" targetRef="Task_IdentifyImpact" />
+    <bpmn:sequenceFlow id="Flow_D2" sourceRef="Task_IdentifyImpact" targetRef="Task_ReviewImpact" />
+    <bpmn:sequenceFlow id="Flow_D3" sourceRef="Task_ReviewImpact" targetRef="Gateway_DeprecationDecision" />
+    <bpmn:sequenceFlow id="Flow_Approved_Dep" name="Yes" sourceRef="Gateway_DeprecationDecision" targetRef="Task_NotifyConsumers">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approveDeprecation == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Rejected_Dep" name="No" sourceRef="Gateway_DeprecationDecision" targetRef="Task_FinalNotification">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approveDeprecation == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_D4" sourceRef="Task_NotifyConsumers" targetRef="Timer_WaitForDeprecation" />
+    <bpmn:sequenceFlow id="Flow_D5" sourceRef="Timer_WaitForDeprecation" targetRef="Task_ApplyDeprecation" />
+    <bpmn:sequenceFlow id="Flow_D6" sourceRef="Task_ApplyDeprecation" targetRef="Task_FinalNotification" />
+    <bpmn:sequenceFlow id="Flow_D7" sourceRef="Task_FinalNotification" targetRef="EndEvent_Deprecation" />
+    
+  </bpmn:process>
+  
+</bpmn:definitions>

@@ -1,0 +1,110 @@
+{
+  "type": "record",
+  "name": "CarrierEvent",
+  "namespace": "gov.dhs.cbp.reference.events.avro",
+  "fields": [
+    {
+      "name": "eventId",
+      "type": "string",
+      "doc": "Unique identifier for this event"
+    },
+    {
+      "name": "eventType",
+      "type": {
+        "type": "enum",
+        "name": "EventType",
+        "symbols": ["CREATED", "UPDATED", "DELETED", "DEPRECATED"]
+      },
+      "doc": "Type of event"
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "logicalType": "timestamp-millis",
+      "doc": "When the event occurred"
+    },
+    {
+      "name": "carrierId",
+      "type": "string",
+      "doc": "UUID of the carrier"
+    },
+    {
+      "name": "carrierCode",
+      "type": "string",
+      "doc": "Carrier code"
+    },
+    {
+      "name": "carrierName",
+      "type": "string",
+      "doc": "Carrier name"
+    },
+    {
+      "name": "codeSystem",
+      "type": "string",
+      "doc": "Code system (e.g., IATA, ICAO, SCAC)"
+    },
+    {
+      "name": "iataCode",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "IATA airline code"
+    },
+    {
+      "name": "icaoCode",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "ICAO airline code"
+    },
+    {
+      "name": "scacCode",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "SCAC carrier code"
+    },
+    {
+      "name": "carrierType",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Type of carrier (airline, vessel, truck, rail)"
+    },
+    {
+      "name": "operatingMode",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Operating mode (air, sea, land)"
+    },
+    {
+      "name": "countryCode",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Country of registration"
+    },
+    {
+      "name": "validFrom",
+      "type": "string",
+      "doc": "Start of validity period (ISO date)"
+    },
+    {
+      "name": "validTo",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "End of validity period (ISO date)"
+    },
+    {
+      "name": "version",
+      "type": "long",
+      "doc": "Version number"
+    },
+    {
+      "name": "changeRequestId",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Associated change request"
+    },
+    {
+      "name": "recordedBy",
+      "type": "string",
+      "doc": "User who recorded this change"
+    }
+  ]
+}

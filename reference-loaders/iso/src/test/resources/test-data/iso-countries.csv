@@ -1,0 +1,11 @@
+name,alpha2Code,alpha3Code,numericCode,region,subRegion
+United States,US,USA,840,Americas,Northern America
+Canada,CA,CAN,124,Americas,Northern America
+Mexico,MX,MEX,484,Americas,Central America
+Brazil,BR,BRA,076,Americas,South America
+United Kingdom,GB,GBR,826,Europe,Northern Europe
+France,FR,FRA,250,Europe,Western Europe
+Germany,DE,DEU,276,Europe,Western Europe
+Japan,JP,JPN,392,Asia,Eastern Asia
+China,CN,CHN,156,Asia,Eastern Asia
+Australia,AU,AUS,036,Oceania,Australia and New Zealand

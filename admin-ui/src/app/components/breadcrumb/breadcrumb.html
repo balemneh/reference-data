@@ -1,0 +1,54 @@
+<nav class="breadcrumb" role="navigation" aria-label="Breadcrumb" *ngIf="shouldShowBreadcrumb()">
+  <div class="breadcrumb__container">
+    <ol class="breadcrumb__list" role="list">
+      <li 
+        class="breadcrumb__item"
+        *ngFor="let item of breadcrumbs; let isLast = last"
+        [class.breadcrumb__item--active]="item.isActive"
+        role="listitem"
+      >
+        <a 
+          *ngIf="item.url && !item.isActive"
+          [routerLink]="item.url"
+          class="breadcrumb__link"
+          [attr.aria-label]="'Navigate to ' + item.label"
+        >
+          <svg 
+            *ngIf="item.icon" 
+            class="usa-icon breadcrumb__icon" 
+            aria-hidden="true" 
+            role="img"
+          >
+            <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + item.icon"></use>
+          </svg>
+          <span class="breadcrumb__text">{{ item.label }}</span>
+        </a>
+        
+        <span 
+          *ngIf="!item.url || item.isActive"
+          class="breadcrumb__current"
+          [attr.aria-current]="item.isActive ? 'page' : null"
+        >
+          <svg 
+            *ngIf="item.icon" 
+            class="usa-icon breadcrumb__icon" 
+            aria-hidden="true" 
+            role="img"
+          >
+            <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + item.icon"></use>
+          </svg>
+          <span class="breadcrumb__text">{{ item.label }}</span>
+        </span>
+        
+        <svg 
+          *ngIf="!isLast"
+          class="usa-icon breadcrumb__separator" 
+          aria-hidden="true" 
+          role="img"
+        >
+          <use xlink:href="/assets/uswds/img/sprite.svg#chevron_right"></use>
+        </svg>
+      </li>
+    </ol>
+  </div>
+</nav>

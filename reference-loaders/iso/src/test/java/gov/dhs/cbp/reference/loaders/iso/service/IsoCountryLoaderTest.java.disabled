@@ -1,0 +1,280 @@
+package gov.dhs.cbp.reference.loaders.iso.service;
+
+import gov.dhs.cbp.reference.core.entity.CodeSystem;
+import gov.dhs.cbp.reference.core.entity.Country;
+import gov.dhs.cbp.reference.core.repository.CodeSystemRepository;
+import gov.dhs.cbp.reference.core.repository.CountryRepository;
+import gov.dhs.cbp.reference.core.repository.OutboxEventRepository;
+import gov.dhs.cbp.reference.loader.common.*;
+import gov.dhs.cbp.reference.loaders.iso.entity.IsoCountryStaging;
+import gov.dhs.cbp.reference.loaders.iso.model.IsoCountryData;
+import gov.dhs.cbp.reference.loaders.iso.repository.IsoCountryStagingRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.web.client.RestTemplate;
+
+import jakarta.validation.Validator;
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class IsoCountryLoaderTest {
+    
+    @Mock
+    private IsoCountryStagingRepository stagingRepository;
+    
+    @Mock
+    private CountryRepository countryRepository;
+    
+    @Mock
+    private CodeSystemRepository codeSystemRepository;
+    
+    @Mock
+    private OutboxEventRepository outboxEventRepository;
+    
+    @Mock
+    private RestTemplate restTemplate;
+    
+    @Mock
+    private JobLauncher jobLauncher;
+    
+    @Mock
+    private JobRepository jobRepository;
+    
+    @Mock
+    private PlatformTransactionManager transactionManager;
+    
+    @Mock
+    private LoaderConfiguration configuration;
+    
+    @Mock
+    private Validator validator;
+    
+    @InjectMocks
+    private IsoCountryLoader isoCountryLoader;
+    
+    private CodeSystem isoCodeSystem;
+    
+    @BeforeEach
+    void setUp() {
+        isoCodeSystem = new CodeSystem();
+        isoCodeSystem.setCode("ISO3166-1");
+        isoCodeSystem.setName("ISO Country Codes");
+        
+        ReflectionTestUtils.setField(isoCountryLoader, "useLocalFile", true);
+        ReflectionTestUtils.setField(isoCountryLoader, "localFile", "classpath:data/iso-countries.csv");
+        
+        when(configuration.getBatchSize()).thenReturn(100);
+        when(configuration.isAutoApplyChanges()).thenReturn(false);
+        when(configuration.isPublishEvents()).thenReturn(true);
+    }
+    
+    @Test
+    void testGetLoaderName() {
+        assertEquals("ISO-3166 Country Loader", isoCountryLoader.getLoaderName());
+    }
+    
+    @Test
+    void testTransformToStaging() {
+        IsoCountryData sourceData = new IsoCountryData();
+        sourceData.setName("United States");
+        sourceData.setAlpha2Code("US");
+        sourceData.setAlpha3Code("USA");
+        sourceData.setNumericCode("840");
+        sourceData.setRegion("Americas");
+        sourceData.setCapital("Washington D.C.");
+        
+        ValidationResult validationResult = new ValidationResult();
+        
+        List<IsoCountryStaging> stagingList = isoCountryLoader.transformToStaging(
+            Arrays.asList(sourceData), validationResult
+        );
+        
+        assertEquals(1, stagingList.size());
+        IsoCountryStaging staging = stagingList.get(0);
+        assertEquals("United States", staging.getCountryName());
+        assertEquals("US", staging.getAlpha2Code());
+        assertEquals("USA", staging.getAlpha3Code());
+        assertEquals("840", staging.getNumericCode());
+        assertNotNull(staging.getSourceHash());
+    }
+    
+    @Test
+    void testTransformToEntity() {
+        IsoCountryStaging staging = new IsoCountryStaging();
+        staging.setCountryName("Canada");
+        staging.setAlpha2Code("CA");
+        staging.setAlpha3Code("CAN");
+        staging.setNumericCode("124");
+        staging.setCapital("Ottawa");
+        staging.setRegion("Americas");
+        staging.setIsIndependent(true);
+        
+        when(codeSystemRepository.findByCode("ISO3166-1"))
+            .thenReturn(Optional.of(isoCodeSystem));
+        
+        Country country = isoCountryLoader.transformToEntity(staging);
+        
+        assertEquals("CAN", country.getCountryCode());
+        assertEquals("Canada", country.getCountryName());
+        assertEquals("CA", country.getIso2Code());
+        assertEquals("CAN", country.getIso3Code());
+        assertEquals("124", country.getNumericCode());
+        assertTrue(country.getIsActive());
+        assertNotNull(country.getMetadata());
+        assertTrue(country.getMetadata().contains("Ottawa"));
+    }
+    
+    @Test
+    void testUpdateEntity() {
+        Country current = new Country();
+        current.setId(UUID.randomUUID());
+        current.setCountryCode("USA");
+        current.setCountryName("United States");
+        current.setVersion(1L);
+        
+        IsoCountryStaging staged = new IsoCountryStaging();
+        staged.setCountryName("United States of America");
+        staged.setAlpha2Code("US");
+        staged.setAlpha3Code("USA");
+        staged.setNumericCode("840");
+        
+        when(codeSystemRepository.findByCode("ISO3166-1"))
+            .thenReturn(Optional.of(isoCodeSystem));
+        
+        Country updated = isoCountryLoader.updateEntity(current, staged);
+        
+        assertNull(updated.getId()); // New version gets new ID
+        assertEquals("USA", updated.getCountryCode());
+        assertEquals("United States of America", updated.getCountryName());
+        assertEquals(2L, updated.getVersion());
+        assertEquals(LocalDate.now(), updated.getValidFrom());
+    }
+    
+    @Test
+    void testSaveEntity() {
+        Country country = new Country();
+        country.setCountryCode("MEX");
+        country.setCountryName("Mexico");
+        
+        LoaderContext context = new LoaderContext();
+        context.setChangeRequestId("CR-001");
+        
+        isoCountryLoader.saveEntity(country, context);
+        
+        assertEquals("CR-001", country.getChangeRequestId());
+        verify(countryRepository).save(country);
+    }
+    
+    @Test
+    void testMarkAsDeleted() {
+        Country country = new Country();
+        country.setCountryCode("DDR");
+        country.setCountryName("East Germany");
+        country.setIsActive(true);
+        
+        LoaderContext context = new LoaderContext();
+        
+        isoCountryLoader.markAsDeleted(country, context);
+        
+        assertEquals(LocalDate.now(), country.getValidTo());
+        assertFalse(country.getIsActive());
+        verify(countryRepository).save(country);
+    }
+    
+    @Test
+    void testGetCurrentProductionData() {
+        List<Country> countries = Arrays.asList(
+            createCountry("USA", "United States"),
+            createCountry("CAN", "Canada")
+        );
+        
+        when(countryRepository.findByCodeSystemCode("ISO3166-1"))
+            .thenReturn(countries);
+        
+        List<Country> result = isoCountryLoader.getCurrentProductionData();
+        
+        assertEquals(2, result.size());
+        verify(countryRepository).findByCodeSystemCode("ISO3166-1");
+    }
+    
+    @Test
+    void testSaveStagingBatch() {
+        List<IsoCountryStaging> batch = Arrays.asList(
+            new IsoCountryStaging(),
+            new IsoCountryStaging()
+        );
+        
+        isoCountryLoader.saveStagingBatch(batch);
+        
+        verify(stagingRepository).saveAll(batch);
+    }
+    
+    @Test
+    void testClearStagingTables() {
+        isoCountryLoader.clearStagingTables();
+        
+        verify(stagingRepository).deleteAll();
+    }
+    
+    @Test
+    void testCreateChangeRequest() {
+        DiffResult<IsoCountryStaging, Country> diffResult = new DiffResult<>();
+        diffResult.addAddition(new IsoCountryStaging());
+        
+        LoaderContext context = new LoaderContext();
+        
+        String changeRequestId = isoCountryLoader.createChangeRequest(diffResult, context);
+        
+        assertNotNull(changeRequestId);
+        assertTrue(changeRequestId.startsWith("CR-ISO-"));
+    }
+    
+    @Test
+    void testPublishEvents() {
+        IsoCountryStaging staging = new IsoCountryStaging();
+        staging.setAlpha2Code("US");
+        staging.setAlpha3Code("USA");
+        staging.setCountryName("United States");
+        
+        DiffResult<IsoCountryStaging, Country> diffResult = new DiffResult<>();
+        diffResult.addAddition(staging);
+        
+        isoCountryLoader.publishEvents(diffResult, "exec-123");
+        
+        verify(outboxEventRepository, times(1)).save(any());
+    }
+    
+    @Test
+    void testScheduledLoadDisabled() {
+        when(configuration.isEnableScheduling()).thenReturn(false);
+        
+        isoCountryLoader.scheduledLoad();
+        
+        verify(configuration).isEnableScheduling();
+        verifyNoMoreInteractions(jobLauncher);
+    }
+    
+    private Country createCountry(String code, String name) {
+        Country country = new Country();
+        country.setCountryCode(code);
+        country.setCountryName(name);
+        country.setCodeSystem(isoCodeSystem);
+        return country;
+    }
+}

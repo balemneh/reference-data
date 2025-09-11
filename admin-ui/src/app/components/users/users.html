@@ -1,0 +1,1176 @@
+<div class="grid-container">
+  <!-- Enhanced Header Section -->
+  <div class="cbp-page-header cbp-fade-in">
+    <div class="cbp-page-header__content">
+      <div class="cbp-page-header__text">
+        <h1 class="cbp-page-header__title cbp-text-gradient">User Management</h1>
+        <p class="cbp-page-header__subtitle">Manage users, roles, permissions, and access controls across the reference data system</p>
+      </div>
+      <div class="cbp-page-header__actions">
+        <button class="cbp-button cbp-button--secondary" (click)="exportSelected()" [disabled]="!hasSelectedItems">
+          <svg class="cbp-button__icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#file_download"></use>
+          </svg>
+          Export Users
+        </button>
+        <button class="cbp-button cbp-button--primary" (click)="addUser()">
+          <svg class="cbp-button__icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#person_add"></use>
+          </svg>
+          Add User
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enhanced Alert Messages -->
+  <div *ngIf="successMessage" class="cbp-alert cbp-alert--success cbp-slide-up margin-bottom-3" role="alert">
+    <div class="cbp-alert__content">
+      <svg class="cbp-alert__icon" aria-hidden="true">
+        <use xlink:href="/assets/uswds/img/sprite.svg#check_circle"></use>
+      </svg>
+      <div class="cbp-alert__body">
+        <h4 class="cbp-alert__title">Success</h4>
+        <p class="cbp-alert__text">{{ successMessage }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="cbp-alert cbp-alert--error cbp-slide-up margin-bottom-3" role="alert">
+    <div class="cbp-alert__content">
+      <svg class="cbp-alert__icon" aria-hidden="true">
+        <use xlink:href="/assets/uswds/img/sprite.svg#error"></use>
+      </svg>
+      <div class="cbp-alert__body">
+        <h4 class="cbp-alert__title">Error</h4>
+        <p class="cbp-alert__text">{{ error }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enhanced Filters and Actions Bar -->
+  <div class="cbp-filters-container cbp-slide-up">
+    <div class="cbp-filters-card">
+      <div class="cbp-filters-header">
+        <div class="cbp-filters-title">
+          <svg class="cbp-filters-icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#filter_list"></use>
+          </svg>
+          <h3>Filter & Search Users</h3>
+        </div>
+        <div class="cbp-filters-count" *ngIf="users.length > 0">
+          <span class="cbp-count-badge">{{ users.length }}</span> of {{ totalElements }} users
+        </div>
+      </div>
+      
+      <div class="cbp-filters-content">
+        <!-- Enhanced Search -->
+        <div class="cbp-search-field">
+          <label class="cbp-field-label" for="search-users">
+            <svg class="cbp-label-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#search"></use>
+            </svg>
+            Search Users
+          </label>
+          <div class="cbp-search-input">
+            <input
+              #searchInput
+              class="cbp-input cbp-input--search"
+              id="search-users"
+              type="search"
+              placeholder="Search by name, username, email, or department..."
+              (input)="onSearchInput($event)"
+              [value]="searchTerm"
+            />
+            <button 
+              class="cbp-search-clear" 
+              type="button" 
+              *ngIf="searchTerm" 
+              (click)="clearSearch()"
+              aria-label="Clear search"
+            >
+              <svg class="cbp-search-clear-icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#close"></use>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="cbp-filters-row">
+          <!-- Role Filter -->
+          <div class="cbp-filter-field">
+            <label class="cbp-field-label" for="role-filter">
+              <svg class="cbp-label-icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#admin_panel_settings"></use>
+              </svg>
+              Role
+            </label>
+            <select 
+              class="cbp-select" 
+              id="role-filter" 
+              [(ngModel)]="selectedRole" 
+              (change)="onFilterChange()"
+            >
+              <option value="ALL">All Roles</option>
+              <option *ngFor="let role of availableRoles" [value]="role">{{ getRoleDisplayName(role) }}</option>
+            </select>
+          </div>
+
+          <!-- Status Filter -->
+          <div class="cbp-filter-field">
+            <label class="cbp-field-label" for="status-filter">
+              <svg class="cbp-label-icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#toggle_on"></use>
+              </svg>
+              Status
+            </label>
+            <select 
+              class="cbp-select" 
+              id="status-filter" 
+              [(ngModel)]="selectedStatus"
+              (change)="onFilterChange()"
+            >
+              <option value="ALL">All Status</option>
+              <option *ngFor="let status of availableStatuses" [value]="status">{{ getStatusText(status) }}</option>
+            </select>
+          </div>
+
+          <!-- Department Filter -->
+          <div class="cbp-filter-field">
+            <label class="cbp-field-label" for="department-filter">
+              <svg class="cbp-label-icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#business"></use>
+              </svg>
+              Department
+            </label>
+            <select 
+              class="cbp-select" 
+              id="department-filter" 
+              [(ngModel)]="selectedDepartment"
+              (change)="onFilterChange()"
+            >
+              <option value="ALL">All Departments</option>
+              <option *ngFor="let dept of availableDepartments" [value]="dept">{{ dept }}</option>
+            </select>
+          </div>
+
+          <!-- Date Filter -->
+          <div class="cbp-filter-field">
+            <label class="cbp-field-label" for="date-filter">
+              <svg class="cbp-label-icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#schedule"></use>
+              </svg>
+              Last Login
+            </label>
+            <select 
+              class="cbp-select" 
+              id="date-filter" 
+              [(ngModel)]="dateFilter"
+              (change)="onFilterChange()"
+            >
+              <option value="ALL">All Time</option>
+              <option value="LAST_7_DAYS">Last 7 Days</option>
+              <option value="LAST_30_DAYS">Last 30 Days</option>
+              <option value="LAST_90_DAYS">Last 90 Days</option>
+            </select>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="cbp-filter-actions">
+            <button 
+              class="cbp-button cbp-button--outline cbp-button--small" 
+              (click)="resetFilters()"
+              *ngIf="hasActiveFilters"
+            >
+              <svg class="cbp-button__icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#clear"></use>
+              </svg>
+              Clear Filters
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enhanced Data Table -->
+  <div class="cbp-table-container cbp-scale-in">
+    <div class="cbp-table-header">
+      <div class="cbp-table-header__left">
+        <div class="cbp-bulk-actions" *ngIf="selectedItems.length > 0">
+          <span class="cbp-selected-count">
+            <svg class="cbp-selected-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#check_circle"></use>
+            </svg>
+            {{ selectedItems.length }} selected
+          </span>
+          <div class="cbp-bulk-buttons">
+            <button class="cbp-button cbp-button--outline cbp-button--small" (click)="openBulkModal('activate')">
+              <svg class="cbp-button__icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#check_circle"></use>
+              </svg>
+              Activate
+            </button>
+            <button class="cbp-button cbp-button--outline cbp-button--small" (click)="openBulkModal('suspend')">
+              <svg class="cbp-button__icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#block"></use>
+              </svg>
+              Suspend
+            </button>
+            <button class="cbp-button cbp-button--outline cbp-button--small" (click)="openBulkModal('reset_password')">
+              <svg class="cbp-button__icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#lock_reset"></use>
+              </svg>
+              Reset Password
+            </button>
+            <button class="cbp-button cbp-button--outline cbp-button--small" (click)="exportSelected()">
+              <svg class="cbp-button__icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#file_download"></use>
+              </svg>
+              Export
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="cbp-table-header__right">
+        <div class="cbp-table-view-options">
+          <button 
+            class="cbp-view-toggle" 
+            [class.cbp-view-toggle--active]="isTableView()"
+            title="Table view"
+            (click)="setViewMode('table')"
+          >
+            <svg class="cbp-view-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#view_list"></use>
+            </svg>
+          </button>
+          <button 
+            class="cbp-view-toggle" 
+            [class.cbp-view-toggle--active]="isCardView()"
+            title="Card view"
+            (click)="setViewMode('card')"
+          >
+            <svg class="cbp-view-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#view_module"></use>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table View -->
+    <div class="cbp-table-wrapper" *ngIf="isTableView()">
+      <table class="cbp-table">
+        <thead class="cbp-table-head">
+          <tr class="cbp-table-row cbp-table-row--header">
+            <th class="cbp-table-cell cbp-table-cell--checkbox">
+              <div class="cbp-checkbox-wrapper">
+                <input 
+                  class="cbp-checkbox" 
+                  id="select-all" 
+                  type="checkbox" 
+                  [(ngModel)]="selectAll"
+                  (change)="toggleSelectAll()"
+                  [disabled]="users.length === 0"
+                />
+                <label class="cbp-checkbox-label" for="select-all">
+                  <span class="usa-sr-only">Select all</span>
+                </label>
+              </div>
+            </th>
+            <th class="cbp-table-cell cbp-table-cell--sortable" (click)="sortBy('firstName')">
+              <div class="cbp-sort-header">
+                <span class="cbp-sort-text">Name</span>
+                <svg class="cbp-sort-icon" aria-hidden="true">
+                  <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + getSortIcon('firstName')"></use>
+                </svg>
+              </div>
+            </th>
+            <th class="cbp-table-cell cbp-table-cell--sortable" (click)="sortBy('username')">
+              <div class="cbp-sort-header">
+                <span class="cbp-sort-text">Username</span>
+                <svg class="cbp-sort-icon" aria-hidden="true">
+                  <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + getSortIcon('username')"></use>
+                </svg>
+              </div>
+            </th>
+            <th class="cbp-table-cell cbp-table-cell--sortable" (click)="sortBy('role')">
+              <div class="cbp-sort-header">
+                <span class="cbp-sort-text">Role</span>
+                <svg class="cbp-sort-icon" aria-hidden="true">
+                  <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + getSortIcon('role')"></use>
+                </svg>
+              </div>
+            </th>
+            <th class="cbp-table-cell cbp-table-cell--sortable" (click)="sortBy('department')">
+              <div class="cbp-sort-header">
+                <span class="cbp-sort-text">Department</span>
+                <svg class="cbp-sort-icon" aria-hidden="true">
+                  <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + getSortIcon('department')"></use>
+                </svg>
+              </div>
+            </th>
+            <th class="cbp-table-cell cbp-table-cell--sortable" (click)="sortBy('status')">
+              <div class="cbp-sort-header">
+                <span class="cbp-sort-text">Status</span>
+                <svg class="cbp-sort-icon" aria-hidden="true">
+                  <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + getSortIcon('status')"></use>
+                </svg>
+              </div>
+            </th>
+            <th class="cbp-table-cell cbp-table-cell--sortable" (click)="sortBy('lastLogin')">
+              <div class="cbp-sort-header">
+                <span class="cbp-sort-text">Last Login</span>
+                <svg class="cbp-sort-icon" aria-hidden="true">
+                  <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + getSortIcon('lastLogin')"></use>
+                </svg>
+              </div>
+            </th>
+            <th class="cbp-table-cell">2FA</th>
+            <th class="cbp-table-cell cbp-table-cell--actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="cbp-table-body">
+          <!-- Enhanced Loading State -->
+          <tr class="cbp-table-row cbp-table-row--loading" *ngIf="loading">
+            <td colspan="9" class="cbp-table-cell cbp-table-cell--loading">
+              <div class="cbp-loading-content">
+                <div class="cbp-loading-spinner"></div>
+                <span class="cbp-loading-text">Loading users data...</span>
+              </div>
+            </td>
+          </tr>
+          
+          <!-- Enhanced Empty State -->
+          <tr class="cbp-table-row cbp-table-row--empty" *ngIf="!loading && users.length === 0">
+            <td colspan="9" class="cbp-table-cell cbp-table-cell--empty">
+              <div class="cbp-empty-state">
+                <svg class="cbp-empty-icon" aria-hidden="true">
+                  <use xlink:href="/assets/uswds/img/sprite.svg#people_outline"></use>
+                </svg>
+                <h4 class="cbp-empty-title">No Users Found</h4>
+                <p class="cbp-empty-text">Try adjusting your search criteria or filters, or add a new user to get started.</p>
+                <button class="cbp-button cbp-button--primary" (click)="addUser()">
+                  <svg class="cbp-button__icon" aria-hidden="true">
+                    <use xlink:href="/assets/uswds/img/sprite.svg#person_add"></use>
+                  </svg>
+                  Add First User
+                </button>
+              </div>
+            </td>
+          </tr>
+          
+          <!-- Enhanced Data Rows -->
+          <tr class="cbp-table-row cbp-table-row--data" *ngFor="let user of users; trackBy: trackByUserId" 
+              [class.cbp-table-row--selected]="isSelected(user.id)">
+            <td class="cbp-table-cell cbp-table-cell--checkbox">
+              <div class="cbp-checkbox-wrapper">
+                <input 
+                  class="cbp-checkbox" 
+                  [id]="'select-' + user.id" 
+                  type="checkbox" 
+                  [checked]="isSelected(user.id)"
+                  (change)="toggleSelection(user.id)"
+                />
+                <label class="cbp-checkbox-label" [for]="'select-' + user.id">
+                  <span class="usa-sr-only">Select {{ getFullName(user) }}</span>
+                </label>
+              </div>
+            </td>
+            <td class="cbp-table-cell cbp-table-cell--primary">
+              <div class="cbp-user-name">
+                <div class="cbp-user-name-text">{{ getFullName(user) }}</div>
+                <div class="cbp-user-email">{{ user.email }}</div>
+              </div>
+            </td>
+            <td class="cbp-table-cell cbp-table-cell--code">
+              <span class="cbp-username">{{ user.username }}</span>
+            </td>
+            <td class="cbp-table-cell">
+              <span class="cbp-role-badge cbp-role-badge--{{ user.role.toLowerCase() }}">
+                {{ getRoleDisplayName(user.role) }}
+              </span>
+            </td>
+            <td class="cbp-table-cell">
+              <span class="cbp-department-text">{{ user.department }}</span>
+            </td>
+            <td class="cbp-table-cell">
+              <div class="cbp-status-wrapper">
+                <span 
+                  class="cbp-status-badge"
+                  [class]="getStatusClass(user.status)"
+                >
+                  <span class="cbp-status-indicator"></span>
+                  {{ getStatusText(user.status) }}
+                </span>
+              </div>
+            </td>
+            <td class="cbp-table-cell cbp-table-cell--date">
+              <span class="cbp-date-text">{{ formatDateTime(user.lastLogin) }}</span>
+            </td>
+            <td class="cbp-table-cell cbp-table-cell--center">
+              <div class="cbp-2fa-indicator">
+                <svg 
+                  class="cbp-2fa-icon" 
+                  [class.cbp-2fa-icon--enabled]="user.twoFactorEnabled"
+                  [class.cbp-2fa-icon--disabled]="!user.twoFactorEnabled"
+                  aria-hidden="true"
+                  [title]="user.twoFactorEnabled ? '2FA Enabled' : '2FA Disabled'"
+                >
+                  <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + (user.twoFactorEnabled ? 'security' : 'security_update_warning')"></use>
+                </svg>
+              </div>
+            </td>
+            <td class="cbp-table-cell cbp-table-cell--actions">
+              <div class="cbp-action-buttons">
+                <button 
+                  class="cbp-action-button cbp-action-button--view"
+                  (click)="viewUser(user)"
+                  title="View user details"
+                >
+                  <svg class="cbp-action-icon" aria-hidden="true">
+                    <use xlink:href="/assets/uswds/img/sprite.svg#visibility"></use>
+                  </svg>
+                </button>
+                <button 
+                  class="cbp-action-button cbp-action-button--edit"
+                  (click)="editUser(user)"
+                  title="Edit user"
+                >
+                  <svg class="cbp-action-icon" aria-hidden="true">
+                    <use xlink:href="/assets/uswds/img/sprite.svg#edit"></use>
+                  </svg>
+                </button>
+                <button 
+                  class="cbp-action-button cbp-action-button--permissions"
+                  (click)="viewPermissions(user)"
+                  title="Manage permissions"
+                >
+                  <svg class="cbp-action-icon" aria-hidden="true">
+                    <use xlink:href="/assets/uswds/img/sprite.svg#admin_panel_settings"></use>
+                  </svg>
+                </button>
+                <button 
+                  class="cbp-action-button cbp-action-button--activity"
+                  (click)="viewActivity(user)"
+                  title="View activity log"
+                >
+                  <svg class="cbp-action-icon" aria-hidden="true">
+                    <use xlink:href="/assets/uswds/img/sprite.svg#history"></use>
+                  </svg>
+                </button>
+                <div class="cbp-action-dropdown">
+                  <button 
+                    class="cbp-action-button cbp-action-button--more"
+                    title="More actions"
+                  >
+                    <svg class="cbp-action-icon" aria-hidden="true">
+                      <use xlink:href="/assets/uswds/img/sprite.svg#more_vert"></use>
+                    </svg>
+                  </button>
+                  <div class="cbp-dropdown-menu">
+                    <button (click)="resetPassword(user)">Reset Password</button>
+                    <button *ngIf="user.status !== 'SUSPENDED'" (click)="openBulkModal('suspend')">Suspend User</button>
+                    <button *ngIf="user.status === 'SUSPENDED'" (click)="openBulkModal('activate')">Reactivate User</button>
+                    <button (click)="confirmDelete(user)" class="cbp-dropdown-danger">Delete User</button>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Card View -->
+    <div class="cbp-cards-grid" *ngIf="isCardView()">
+      <!-- Loading State for Cards -->
+      <div class="cbp-cards-loading" *ngIf="loading">
+        <div class="cbp-card-skeleton" *ngFor="let i of [1,2,3,4,5,6]">
+          <div class="cbp-skeleton cbp-skeleton--card"></div>
+        </div>
+      </div>
+      
+      <!-- Empty State for Cards -->
+      <div class="cbp-cards-empty" *ngIf="!loading && users.length === 0">
+        <div class="cbp-empty-state">
+          <svg class="cbp-empty-icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#people_outline"></use>
+          </svg>
+          <h4 class="cbp-empty-title">No Users Found</h4>
+          <p class="cbp-empty-text">Try adjusting your search criteria or filters, or add a new user to get started.</p>
+          <button class="cbp-button cbp-button--primary" (click)="addUser()">
+            <svg class="cbp-button__icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#person_add"></use>
+            </svg>
+            Add First User
+          </button>
+        </div>
+      </div>
+      
+      <!-- User Cards -->
+      <div class="cbp-user-card" *ngFor="let user of users; trackBy: trackByUserId" 
+           [class.cbp-user-card--selected]="isSelected(user.id)">
+        <div class="cbp-user-card__header">
+          <div class="cbp-user-card__select">
+            <input 
+              class="cbp-checkbox" 
+              [id]="'card-select-' + user.id" 
+              type="checkbox" 
+              [checked]="isSelected(user.id)"
+              (change)="toggleSelection(user.id)"
+            />
+            <label class="cbp-checkbox-label" [for]="'card-select-' + user.id">
+              <span class="usa-sr-only">Select {{ getFullName(user) }}</span>
+            </label>
+          </div>
+          <div class="cbp-user-card__status">
+            <span 
+              class="cbp-status-badge"
+              [class]="getStatusClass(user.status)"
+            >
+              <span class="cbp-status-indicator"></span>
+              {{ getStatusText(user.status) }}
+            </span>
+          </div>
+        </div>
+        
+        <div class="cbp-user-card__body">
+          <div class="cbp-user-card__avatar">
+            <div class="cbp-avatar">
+              {{ user.firstName.charAt(0) }}{{ user.lastName.charAt(0) }}
+            </div>
+          </div>
+          <div class="cbp-user-card__name">{{ getFullName(user) }}</div>
+          <div class="cbp-user-card__username">@{{ user.username }}</div>
+          <div class="cbp-user-card__email">{{ user.email }}</div>
+          
+          <div class="cbp-user-card__details">
+            <div class="cbp-user-detail">
+              <span class="cbp-detail-label">Role:</span>
+              <span class="cbp-role-badge cbp-role-badge--{{ user.role.toLowerCase() }}">
+                {{ getRoleDisplayName(user.role) }}
+              </span>
+            </div>
+            <div class="cbp-user-detail">
+              <span class="cbp-detail-label">Department:</span>
+              <span class="cbp-detail-value">{{ user.department }}</span>
+            </div>
+            <div class="cbp-user-detail" *ngIf="user.jobTitle">
+              <span class="cbp-detail-label">Job Title:</span>
+              <span class="cbp-detail-value">{{ user.jobTitle }}</span>
+            </div>
+            <div class="cbp-user-detail">
+              <span class="cbp-detail-label">Last Login:</span>
+              <span class="cbp-detail-value">{{ formatDateTime(user.lastLogin) }}</span>
+            </div>
+            <div class="cbp-user-detail">
+              <span class="cbp-detail-label">2FA:</span>
+              <span class="cbp-2fa-status" [class.cbp-2fa-status--enabled]="user.twoFactorEnabled">
+                <svg class="cbp-2fa-icon" aria-hidden="true">
+                  <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + (user.twoFactorEnabled ? 'security' : 'security_update_warning')"></use>
+                </svg>
+                {{ user.twoFactorEnabled ? 'Enabled' : 'Disabled' }}
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="cbp-user-card__actions">
+          <button 
+            class="cbp-action-button cbp-action-button--view"
+            (click)="viewUser(user)"
+            title="View user details"
+          >
+            <svg class="cbp-action-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#visibility"></use>
+            </svg>
+          </button>
+          <button 
+            class="cbp-action-button cbp-action-button--edit"
+            (click)="editUser(user)"
+            title="Edit user"
+          >
+            <svg class="cbp-action-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#edit"></use>
+            </svg>
+          </button>
+          <button 
+            class="cbp-action-button cbp-action-button--permissions"
+            (click)="viewPermissions(user)"
+            title="Manage permissions"
+          >
+            <svg class="cbp-action-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#admin_panel_settings"></use>
+            </svg>
+          </button>
+          <button 
+            class="cbp-action-button cbp-action-button--activity"
+            (click)="viewActivity(user)"
+            title="View activity log"
+          >
+            <svg class="cbp-action-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#history"></use>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <nav aria-label="Pagination" class="usa-pagination margin-top-4" *ngIf="totalPages > 1">
+      <ul class="usa-pagination__list">
+        <li class="usa-pagination__item usa-pagination__arrow">
+          <a 
+            href="javascript:void(0);" 
+            class="usa-pagination__link"
+            [class.usa-pagination__link--disabled]="currentPage === 0"
+            (click)="goToPage(currentPage - 1)"
+            aria-label="Previous page"
+          >
+            <svg class="usa-icon" aria-hidden="true" role="img">
+              <use xlink:href="/assets/uswds/img/sprite.svg#navigate_before"></use>
+            </svg>
+            <span class="usa-pagination__link-text">Previous</span>
+          </a>
+        </li>
+
+        <li class="usa-pagination__item usa-pagination__page-no" *ngFor="let page of pageNumbers">
+          <a 
+            href="javascript:void(0);" 
+            class="usa-pagination__button"
+            [class.usa-current]="page === currentPage"
+            (click)="goToPage(page)"
+            [attr.aria-label]="'Page ' + (page + 1)"
+          >
+            {{ page + 1 }}
+          </a>
+        </li>
+
+        <li class="usa-pagination__item usa-pagination__arrow">
+          <a 
+            href="javascript:void(0);" 
+            class="usa-pagination__link"
+            [class.usa-pagination__link--disabled]="currentPage === totalPages - 1"
+            (click)="goToPage(currentPage + 1)"
+            aria-label="Next page"
+          >
+            <span class="usa-pagination__link-text">Next</span>
+            <svg class="usa-icon" aria-hidden="true" role="img">
+              <use xlink:href="/assets/uswds/img/sprite.svg#navigate_next"></use>
+            </svg>
+          </a>
+        </li>
+      </ul>
+      <div class="usa-pagination__counter">
+        Showing {{ (currentPage * pageSize) + 1 }} - {{ getMinValue((currentPage + 1) * pageSize, totalElements) }} of {{ totalElements }} results
+      </div>
+    </nav>
+  </div>
+</div>
+
+<!-- User Modal -->
+<div class="usa-modal" [class.is-visible]="showModal" *ngIf="showModal">
+  <div class="usa-modal__content cbp-modal-large">
+    <div class="usa-modal__header">
+      <h2 class="usa-modal__heading" id="modal-heading">
+        {{ isEditMode ? (selectedUser?.id ? 'Edit User' : 'Add User') : 'User Details' }}
+      </h2>
+    </div>
+    
+    <div class="usa-modal__main">
+      <div *ngIf="formErrors.general" class="usa-alert usa-alert--error margin-bottom-2">
+        <div class="usa-alert__body">
+          <p class="usa-alert__text">{{ formErrors.general }}</p>
+        </div>
+      </div>
+
+      <form class="usa-form" *ngIf="selectedUser">
+        <div class="grid-row gap-2">
+          <!-- Personal Information -->
+          <div class="grid-col-12">
+            <fieldset class="usa-fieldset">
+              <legend class="usa-legend usa-legend--large">Personal Information</legend>
+              <div class="grid-row gap-2">
+                <div class="grid-col-12 tablet:grid-col-6">
+                  <label class="usa-label" [class.usa-label--error]="formErrors.firstName" for="first-name">
+                    First Name <abbr title="required" class="usa-hint usa-hint--required">*</abbr>
+                  </label>
+                  <span class="usa-error-message" *ngIf="formErrors.firstName">{{ formErrors.firstName }}</span>
+                  <input 
+                    class="usa-input" 
+                    [class.usa-input--error]="formErrors.firstName"
+                    id="first-name" 
+                    type="text" 
+                    [(ngModel)]="selectedUser.firstName"
+                    [disabled]="!isEditMode"
+                    name="firstName"
+                  />
+                </div>
+
+                <div class="grid-col-12 tablet:grid-col-6">
+                  <label class="usa-label" [class.usa-label--error]="formErrors.lastName" for="last-name">
+                    Last Name <abbr title="required" class="usa-hint usa-hint--required">*</abbr>
+                  </label>
+                  <span class="usa-error-message" *ngIf="formErrors.lastName">{{ formErrors.lastName }}</span>
+                  <input 
+                    class="usa-input" 
+                    [class.usa-input--error]="formErrors.lastName"
+                    id="last-name" 
+                    type="text" 
+                    [(ngModel)]="selectedUser.lastName"
+                    [disabled]="!isEditMode"
+                    name="lastName"
+                  />
+                </div>
+
+                <div class="grid-col-12 tablet:grid-col-6">
+                  <label class="usa-label" [class.usa-label--error]="formErrors.email" for="email">
+                    Email Address <abbr title="required" class="usa-hint usa-hint--required">*</abbr>
+                  </label>
+                  <span class="usa-error-message" *ngIf="formErrors.email">{{ formErrors.email }}</span>
+                  <input 
+                    class="usa-input" 
+                    [class.usa-input--error]="formErrors.email"
+                    id="email" 
+                    type="email" 
+                    [(ngModel)]="selectedUser.email"
+                    [disabled]="!isEditMode"
+                    name="email"
+                  />
+                </div>
+
+                <div class="grid-col-12 tablet:grid-col-6">
+                  <label class="usa-label" for="phone">Phone Number</label>
+                  <input 
+                    class="usa-input" 
+                    id="phone" 
+                    type="tel" 
+                    [(ngModel)]="selectedUser.phoneNumber"
+                    [disabled]="!isEditMode"
+                    name="phoneNumber"
+                  />
+                </div>
+              </div>
+            </fieldset>
+          </div>
+
+          <!-- Account Information -->
+          <div class="grid-col-12">
+            <fieldset class="usa-fieldset margin-top-3">
+              <legend class="usa-legend usa-legend--large">Account Information</legend>
+              <div class="grid-row gap-2">
+                <div class="grid-col-12 tablet:grid-col-6">
+                  <label class="usa-label" [class.usa-label--error]="formErrors.username" for="username">
+                    Username <abbr title="required" class="usa-hint usa-hint--required">*</abbr>
+                  </label>
+                  <span class="usa-error-message" *ngIf="formErrors.username">{{ formErrors.username }}</span>
+                  <input 
+                    class="usa-input" 
+                    [class.usa-input--error]="formErrors.username"
+                    id="username" 
+                    type="text" 
+                    [(ngModel)]="selectedUser.username"
+                    [disabled]="!isEditMode || selectedUser.id"
+                    name="username"
+                  />
+                  <span class="usa-hint" *ngIf="selectedUser.id">Username cannot be changed after creation</span>
+                </div>
+
+                <div class="grid-col-12 tablet:grid-col-6">
+                  <label class="usa-label" for="job-title">Job Title</label>
+                  <input 
+                    class="usa-input" 
+                    id="job-title" 
+                    type="text" 
+                    [(ngModel)]="selectedUser.jobTitle"
+                    [disabled]="!isEditMode"
+                    name="jobTitle"
+                  />
+                </div>
+
+                <div class="grid-col-12 tablet:grid-col-6">
+                  <label class="usa-label" for="role">Role</label>
+                  <select 
+                    class="usa-select" 
+                    id="role" 
+                    [(ngModel)]="selectedUser.role"
+                    (change)="onRoleChange()"
+                    [disabled]="!isEditMode"
+                    name="role"
+                  >
+                    <option *ngFor="let role of availableRoles" [value]="role">{{ getRoleDisplayName(role) }}</option>
+                  </select>
+                </div>
+
+                <div class="grid-col-12 tablet:grid-col-6">
+                  <label class="usa-label" for="department">Department</label>
+                  <select 
+                    class="usa-select" 
+                    id="department" 
+                    [(ngModel)]="selectedUser.department"
+                    [disabled]="!isEditMode"
+                    name="department"
+                  >
+                    <option *ngFor="let dept of availableDepartments" [value]="dept">{{ dept }}</option>
+                  </select>
+                </div>
+
+                <div class="grid-col-12 tablet:grid-col-6">
+                  <fieldset class="usa-fieldset">
+                    <legend class="usa-legend">Status</legend>
+                    <div class="usa-radio" *ngFor="let status of availableStatuses">
+                      <input 
+                        class="usa-radio__input" 
+                        [id]="'status-' + status.toLowerCase()" 
+                        type="radio" 
+                        [value]="status"
+                        [(ngModel)]="selectedUser.status"
+                        [disabled]="!isEditMode"
+                        name="status"
+                      />
+                      <label class="usa-radio__label" [for]="'status-' + status.toLowerCase()">
+                        {{ getStatusText(status) }}
+                      </label>
+                    </div>
+                  </fieldset>
+                </div>
+
+                <div class="grid-col-12 tablet:grid-col-6">
+                  <div class="usa-checkbox">
+                    <input 
+                      class="usa-checkbox__input" 
+                      id="two-factor" 
+                      type="checkbox" 
+                      [(ngModel)]="selectedUser.twoFactorEnabled"
+                      [disabled]="!isEditMode"
+                      name="twoFactorEnabled"
+                    />
+                    <label class="usa-checkbox__label" for="two-factor">
+                      Two-Factor Authentication Enabled
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </fieldset>
+          </div>
+
+          <!-- Additional Information -->
+          <div class="grid-col-12" *ngIf="selectedUser.notes || isEditMode">
+            <fieldset class="usa-fieldset margin-top-3">
+              <legend class="usa-legend usa-legend--large">Additional Information</legend>
+              <label class="usa-label" for="notes">Notes</label>
+              <textarea 
+                class="usa-textarea" 
+                id="notes" 
+                rows="3"
+                [(ngModel)]="selectedUser.notes"
+                [disabled]="!isEditMode"
+                name="notes"
+                placeholder="Add any additional notes or comments about this user..."
+              ></textarea>
+            </fieldset>
+          </div>
+
+          <!-- Metadata (read-only) -->
+          <div class="grid-col-12" *ngIf="selectedUser.id">
+            <div class="usa-alert usa-alert--info usa-alert--slim margin-top-3">
+              <div class="usa-alert__body">
+                <h4 class="usa-alert__heading">Account Information</h4>
+                <div class="grid-row gap-2">
+                  <div class="grid-col-12 tablet:grid-col-6">
+                    <p class="usa-alert__text">
+                      <strong>Created:</strong> {{ formatDateTime(selectedUser.createdAt) }}<br>
+                      <strong>Last Updated:</strong> {{ formatDateTime(selectedUser.updatedAt) }}
+                    </p>
+                  </div>
+                  <div class="grid-col-12 tablet:grid-col-6">
+                    <p class="usa-alert__text">
+                      <strong>Failed Login Attempts:</strong> {{ selectedUser.failedLoginAttempts }}<br>
+                      <strong>Password Expires:</strong> {{ formatDate(selectedUser.passwordExpires) }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="usa-modal__footer">
+      <ul class="usa-button-group">
+        <li class="usa-button-group__item">
+          <button 
+            type="button" 
+            class="usa-button" 
+            (click)="saveUser()"
+            *ngIf="isEditMode"
+          >
+            Save Changes
+          </button>
+        </li>
+        <li class="usa-button-group__item" *ngIf="!isEditMode && selectedUser?.id">
+          <button 
+            type="button" 
+            class="usa-button usa-button--outline" 
+            (click)="selectedUser && editUser(selectedUser)"
+          >
+            Edit User
+          </button>
+        </li>
+        <li class="usa-button-group__item">
+          <button 
+            type="button" 
+            class="usa-button usa-button--unstyled" 
+            (click)="closeModal()"
+          >
+            {{ isEditMode ? 'Cancel' : 'Close' }}
+          </button>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="usa-modal" [class.is-visible]="showDeleteConfirm" *ngIf="showDeleteConfirm">
+  <div class="usa-modal__content">
+    <div class="usa-modal__header">
+      <h2 class="usa-modal__heading">Confirm User Deletion</h2>
+    </div>
+    
+    <div class="usa-modal__main">
+      <p>
+        Are you sure you want to delete user <strong>{{ getFullName(userToDelete!) }}</strong> 
+        (@{{ userToDelete?.username }})? This action will deactivate the user account 
+        and revoke all access.
+      </p>
+      <p class="text-base margin-top-2">
+        Note: The user data will be preserved for audit purposes and can be reactivated later if needed.
+      </p>
+    </div>
+
+    <div class="usa-modal__footer">
+      <ul class="usa-button-group">
+        <li class="usa-button-group__item">
+          <button type="button" class="usa-button usa-button--secondary" (click)="deleteUser()">
+            Yes, Delete User
+          </button>
+        </li>
+        <li class="usa-button-group__item">
+          <button type="button" class="usa-button usa-button--outline" (click)="cancelDelete()">
+            Cancel
+          </button>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Operation Modal -->
+<div class="usa-modal" [class.is-visible]="showBulkModal" *ngIf="showBulkModal">
+  <div class="usa-modal__content">
+    <div class="usa-modal__header">
+      <h2 class="usa-modal__heading">Bulk {{ bulkOperation?.replace('_', ' ') | titlecase }} Users</h2>
+    </div>
+    
+    <div class="usa-modal__main">
+      <p>
+        Are you sure you want to {{ bulkOperation?.replace('_', ' ') }} the selected 
+        <strong>{{ selectedUsers.size }}</strong> user(s)?
+      </p>
+      <p class="text-base margin-top-2" *ngIf="bulkOperation === 'delete'">
+        <strong>Warning:</strong> This will deactivate all selected user accounts.
+      </p>
+    </div>
+
+    <div class="usa-modal__footer">
+      <ul class="usa-button-group">
+        <li class="usa-button-group__item">
+          <button type="button" class="usa-button usa-button--secondary" (click)="executeBulkOperation()">
+            Yes, {{ bulkOperation?.replace('_', ' ') | titlecase }} Users
+          </button>
+        </li>
+        <li class="usa-button-group__item">
+          <button type="button" class="usa-button usa-button--outline" (click)="cancelBulkOperation()">
+            Cancel
+          </button>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Activity Modal -->
+<div class="usa-modal" [class.is-visible]="showActivityModal" *ngIf="showActivityModal">
+  <div class="usa-modal__content cbp-modal-large">
+    <div class="usa-modal__header">
+      <h2 class="usa-modal__heading">Activity Log - {{ getFullName(selectedUser!) }}</h2>
+    </div>
+    
+    <div class="usa-modal__main">
+      <div *ngIf="loadingActivity" class="cbp-loading-content">
+        <div class="cbp-loading-spinner"></div>
+        <span class="cbp-loading-text">Loading activity data...</span>
+      </div>
+      
+      <div *ngIf="!loadingActivity" class="cbp-activity-log">
+        <div class="cbp-activity-item" *ngFor="let activity of userActivities; trackBy: trackByActivityId">
+          <div class="cbp-activity-icon">
+            <svg aria-hidden="true">
+              <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + (activity.action.includes('Login') ? 'login' : 
+                                     activity.action.includes('Edit') || activity.action.includes('Create') ? 'edit' :
+                                     activity.action.includes('Export') ? 'file_download' : 'info')"></use>
+            </svg>
+          </div>
+          <div class="cbp-activity-content">
+            <div class="cbp-activity-main">
+              <span class="cbp-activity-action">{{ activity.action }}</span>
+              <span class="cbp-activity-resource" *ngIf="activity.resource">on {{ activity.resource }}</span>
+            </div>
+            <div class="cbp-activity-details">
+              <span class="cbp-activity-time">{{ formatDateTime(activity.timestamp) }}</span>
+              <span class="cbp-activity-ip">IP: {{ activity.ipAddress }}</span>
+            </div>
+            <div class="cbp-activity-description" *ngIf="activity.details">
+              {{ activity.details }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="usa-modal__footer">
+      <button type="button" class="usa-button usa-button--outline" (click)="closeActivityModal()">
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Permission Matrix Modal -->
+<div class="usa-modal" [class.is-visible]="showPermissionModal" *ngIf="showPermissionModal">
+  <div class="usa-modal__content cbp-modal-large">
+    <div class="usa-modal__header">
+      <h2 class="usa-modal__heading">Manage Permissions - {{ getFullName(selectedUser!) }}</h2>
+    </div>
+    
+    <div class="usa-modal__main">
+      <div class="usa-alert usa-alert--info usa-alert--slim margin-bottom-3">
+        <div class="usa-alert__body">
+          <p class="usa-alert__text">
+            Current Role: <strong>{{ getRoleDisplayName(selectedUser!.role) }}</strong>. 
+            Permissions are automatically assigned based on role, but can be customized below.
+          </p>
+        </div>
+      </div>
+
+      <div class="cbp-permission-matrix">
+        <fieldset class="usa-fieldset">
+          <legend class="usa-legend">System Permissions</legend>
+          <div class="cbp-permission-grid">
+            <div class="cbp-permission-category">
+              <h4>Countries Management</h4>
+              <div class="usa-checkbox" *ngFor="let permission of allPermissions; let i = index">
+                <input 
+                  *ngIf="permission.startsWith('countries.')"
+                  class="usa-checkbox__input" 
+                  [id]="'perm-' + i" 
+                  type="checkbox" 
+                  [checked]="hasPermission(permission)"
+                  (change)="togglePermission(permission)"
+                />
+                <label 
+                  *ngIf="permission.startsWith('countries.')"
+                  class="usa-checkbox__label" 
+                  [for]="'perm-' + i"
+                >
+                  {{ permission.split('.')[1] | titlecase }} Countries
+                </label>
+              </div>
+            </div>
+
+            <div class="cbp-permission-category">
+              <h4>User Management</h4>
+              <div class="usa-checkbox" *ngFor="let permission of allPermissions; let i = index">
+                <input 
+                  *ngIf="permission.startsWith('users.')"
+                  class="usa-checkbox__input" 
+                  [id]="'perm-users-' + i" 
+                  type="checkbox" 
+                  [checked]="hasPermission(permission)"
+                  (change)="togglePermission(permission)"
+                />
+                <label 
+                  *ngIf="permission.startsWith('users.')"
+                  class="usa-checkbox__label" 
+                  [for]="'perm-users-' + i"
+                >
+                  {{ permission.split('.')[1] | titlecase }} Users
+                </label>
+              </div>
+            </div>
+
+            <div class="cbp-permission-category">
+              <h4>Change Requests</h4>
+              <div class="usa-checkbox" *ngFor="let permission of allPermissions; let i = index">
+                <input 
+                  *ngIf="permission.startsWith('changeRequests.')"
+                  class="usa-checkbox__input" 
+                  [id]="'perm-cr-' + i" 
+                  type="checkbox" 
+                  [checked]="hasPermission(permission)"
+                  (change)="togglePermission(permission)"
+                />
+                <label 
+                  *ngIf="permission.startsWith('changeRequests.')"
+                  class="usa-checkbox__label" 
+                  [for]="'perm-cr-' + i"
+                >
+                  {{ permission.split('.')[1] | titlecase }} Change Requests
+                </label>
+              </div>
+            </div>
+
+            <div class="cbp-permission-category">
+              <h4>System & Reports</h4>
+              <div class="usa-checkbox" *ngFor="let permission of allPermissions; let i = index">
+                <input 
+                  *ngIf="!permission.includes('.') || permission.startsWith('audit.') || permission.startsWith('system.') || permission.startsWith('data.') || permission.startsWith('reports.')"
+                  class="usa-checkbox__input" 
+                  [id]="'perm-sys-' + i" 
+                  type="checkbox" 
+                  [checked]="hasPermission(permission)"
+                  (change)="togglePermission(permission)"
+                />
+                <label 
+                  *ngIf="!permission.includes('.') || permission.startsWith('audit.') || permission.startsWith('system.') || permission.startsWith('data.') || permission.startsWith('reports.')"
+                  class="usa-checkbox__label" 
+                  [for]="'perm-sys-' + i"
+                >
+                  {{ permission.includes('.') ? (permission.split('.')[1] | titlecase) + ' ' + (permission.split('.')[0] | titlecase) : permission | titlecase }}
+                </label>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+
+    <div class="usa-modal__footer">
+      <ul class="usa-button-group">
+        <li class="usa-button-group__item">
+          <button type="button" class="usa-button" (click)="savePermissions()">
+            Save Permissions
+          </button>
+        </li>
+        <li class="usa-button-group__item">
+          <button type="button" class="usa-button usa-button--outline" (click)="closePermissionModal()">
+            Cancel
+          </button>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>

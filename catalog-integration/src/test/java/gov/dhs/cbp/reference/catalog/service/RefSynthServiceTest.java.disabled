@@ -1,0 +1,269 @@
+package gov.dhs.cbp.reference.catalog.service;
+
+import gov.dhs.cbp.reference.catalog.client.OpenMetadataClient;
+import gov.dhs.cbp.reference.catalog.generator.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class RefSynthServiceTest {
+
+    @Mock
+    private OpenMetadataClient openMetadataClient;
+    
+    @Mock
+    private BigQueryViewGenerator bigQueryViewGenerator;
+    
+    @Mock
+    private SnowflakeViewGenerator snowflakeViewGenerator;
+    
+    @Mock
+    private PostgresViewGenerator postgresViewGenerator;
+    
+    @Mock
+    private DatabricksUdfGenerator databricksUdfGenerator;
+    
+    @Mock
+    private DbtModelGenerator dbtModelGenerator;
+
+    @InjectMocks
+    private RefSynthService refSynthService;
+
+    private Map<String, Object> datasetMetadata;
+    private Map<String, Object> consumerConfig;
+
+    @BeforeEach
+    void setUp() {
+        datasetMetadata = new HashMap<>();
+        datasetMetadata.put("name", "countries");
+        datasetMetadata.put("version", "2025.01.01");
+        datasetMetadata.put("schema", createSchemaMetadata());
+        
+        consumerConfig = new HashMap<>();
+        consumerConfig.put("engine", "bigquery");
+        consumerConfig.put("project", "my-project");
+        consumerConfig.put("dataset", "reference_data");
+    }
+
+    private Map<String, Object> createSchemaMetadata() {
+        Map<String, Object> schema = new HashMap<>();
+        List<Map<String, Object>> columns = new ArrayList<>();
+        
+        Map<String, Object> column1 = new HashMap<>();
+        column1.put("name", "country_code");
+        column1.put("type", "STRING");
+        column1.put("nullable", false);
+        columns.add(column1);
+        
+        Map<String, Object> column2 = new HashMap<>();
+        column2.put("name", "country_name");
+        column2.put("type", "STRING");
+        column2.put("nullable", false);
+        columns.add(column2);
+        
+        schema.put("columns", columns);
+        return schema;
+    }
+
+    @Test
+    void testGenerateBigQueryView() {
+        when(openMetadataClient.getDatasetMetadata("countries"))
+                .thenReturn(datasetMetadata);
+        when(bigQueryViewGenerator.generate(anyMap(), anyMap()))
+                .thenReturn("CREATE OR REPLACE VIEW `my-project.reference_data.countries` AS ...");
+
+        String result = refSynthService.generateConsumerArtifacts("countries", "bigquery", consumerConfig);
+
+        assertNotNull(result);
+        assertTrue(result.contains("CREATE OR REPLACE VIEW"));
+        verify(bigQueryViewGenerator).generate(eq(datasetMetadata), eq(consumerConfig));
+    }
+
+    @Test
+    void testGenerateSnowflakeView() {
+        consumerConfig.put("engine", "snowflake");
+        consumerConfig.put("database", "REFERENCE_DB");
+        consumerConfig.put("schema", "PUBLIC");
+        
+        when(openMetadataClient.getDatasetMetadata("countries"))
+                .thenReturn(datasetMetadata);
+        when(snowflakeViewGenerator.generate(anyMap(), anyMap()))
+                .thenReturn("CREATE OR REPLACE VIEW REFERENCE_DB.PUBLIC.COUNTRIES AS ...");
+
+        String result = refSynthService.generateConsumerArtifacts("countries", "snowflake", consumerConfig);
+
+        assertNotNull(result);
+        assertTrue(result.contains("CREATE OR REPLACE VIEW"));
+        verify(snowflakeViewGenerator).generate(eq(datasetMetadata), eq(consumerConfig));
+    }
+
+    @Test
+    void testGeneratePostgresView() {
+        consumerConfig.put("engine", "postgres");
+        consumerConfig.put("schema", "reference_data");
+        
+        when(openMetadataClient.getDatasetMetadata("countries"))
+                .thenReturn(datasetMetadata);
+        when(postgresViewGenerator.generate(anyMap(), anyMap()))
+                .thenReturn("CREATE OR REPLACE VIEW reference_data.countries AS ...");
+
+        String result = refSynthService.generateConsumerArtifacts("countries", "postgres", consumerConfig);
+
+        assertNotNull(result);
+        assertTrue(result.contains("CREATE OR REPLACE VIEW"));
+        verify(postgresViewGenerator).generate(eq(datasetMetadata), eq(consumerConfig));
+    }
+
+    @Test
+    void testGenerateDatabricksUdf() {
+        consumerConfig.put("engine", "databricks");
+        consumerConfig.put("catalog", "main");
+        
+        when(openMetadataClient.getDatasetMetadata("translate_country"))
+                .thenReturn(datasetMetadata);
+        when(databricksUdfGenerator.generate(anyMap(), anyMap()))
+                .thenReturn("CREATE OR REPLACE FUNCTION main.translate_country(...) ...");
+
+        String result = refSynthService.generateConsumerArtifacts("translate_country", "databricks", consumerConfig);
+
+        assertNotNull(result);
+        assertTrue(result.contains("CREATE OR REPLACE FUNCTION"));
+        verify(databricksUdfGenerator).generate(eq(datasetMetadata), eq(consumerConfig));
+    }
+
+    @Test
+    void testGenerateDbtModel() {
+        consumerConfig.put("engine", "dbt");
+        consumerConfig.put("project", "my_dbt_project");
+        
+        when(openMetadataClient.getDatasetMetadata("countries"))
+                .thenReturn(datasetMetadata);
+        when(dbtModelGenerator.generate(anyMap(), anyMap()))
+                .thenReturn("{{ config(materialized='view') }}\n\nSELECT * FROM ...");
+
+        String result = refSynthService.generateConsumerArtifacts("countries", "dbt", consumerConfig);
+
+        assertNotNull(result);
+        assertTrue(result.contains("{{ config"));
+        verify(dbtModelGenerator).generate(eq(datasetMetadata), eq(consumerConfig));
+    }
+
+    @Test
+    void testGetAvailableDatasets() {
+        List<String> datasets = Arrays.asList("countries", "ports", "airports", "carriers");
+        when(openMetadataClient.listDatasets()).thenReturn(datasets);
+
+        List<String> result = refSynthService.getAvailableDatasets();
+
+        assertNotNull(result);
+        assertEquals(4, result.size());
+        assertTrue(result.contains("countries"));
+        assertTrue(result.contains("ports"));
+    }
+
+    @Test
+    void testGetDatasetLineage() {
+        Map<String, Object> lineage = new HashMap<>();
+        lineage.put("upstream", Arrays.asList("iso_countries", "cbp_country_codes"));
+        lineage.put("downstream", Arrays.asList("country_facts", "country_analytics"));
+        
+        when(openMetadataClient.getDatasetLineage("countries")).thenReturn(lineage);
+
+        Map<String, Object> result = refSynthService.getDatasetLineage("countries");
+
+        assertNotNull(result);
+        assertTrue(result.containsKey("upstream"));
+        assertTrue(result.containsKey("downstream"));
+        List<String> upstream = (List<String>) result.get("upstream");
+        assertEquals(2, upstream.size());
+    }
+
+    @Test
+    void testGenerateWithInvalidEngine() {
+        consumerConfig.put("engine", "invalid_engine");
+        
+        when(openMetadataClient.getDatasetMetadata("countries"))
+                .thenReturn(datasetMetadata);
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            refSynthService.generateConsumerArtifacts("countries", "invalid_engine", consumerConfig);
+        });
+    }
+
+    @Test
+    void testGenerateWithMissingMetadata() {
+        when(openMetadataClient.getDatasetMetadata("non_existent"))
+                .thenReturn(null);
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            refSynthService.generateConsumerArtifacts("non_existent", "bigquery", consumerConfig);
+        });
+    }
+
+    @Test
+    void testBatchGenerateArtifacts() {
+        List<String> datasets = Arrays.asList("countries", "ports");
+        Map<String, String> results = new HashMap<>();
+        
+        when(openMetadataClient.getDatasetMetadata("countries"))
+                .thenReturn(datasetMetadata);
+        when(openMetadataClient.getDatasetMetadata("ports"))
+                .thenReturn(datasetMetadata);
+        when(bigQueryViewGenerator.generate(anyMap(), anyMap()))
+                .thenReturn("CREATE VIEW ...");
+
+        for (String dataset : datasets) {
+            String artifact = refSynthService.generateConsumerArtifacts(dataset, "bigquery", consumerConfig);
+            results.put(dataset, artifact);
+        }
+
+        assertEquals(2, results.size());
+        assertNotNull(results.get("countries"));
+        assertNotNull(results.get("ports"));
+    }
+
+    @Test
+    void testRegisterGeneratedArtifact() {
+        String artifactContent = "CREATE VIEW countries AS ...";
+        Map<String, Object> artifactMetadata = new HashMap<>();
+        artifactMetadata.put("type", "view");
+        artifactMetadata.put("engine", "bigquery");
+        artifactMetadata.put("generated_at", System.currentTimeMillis());
+        
+        when(openMetadataClient.registerArtifact(anyString(), anyString(), anyMap()))
+                .thenReturn(true);
+
+        boolean result = refSynthService.registerGeneratedArtifact(
+                "countries_view", artifactContent, artifactMetadata);
+
+        assertTrue(result);
+        verify(openMetadataClient).registerArtifact(
+                eq("countries_view"), eq(artifactContent), eq(artifactMetadata));
+    }
+
+    @Test
+    void testGetConsumerTags() {
+        Map<String, List<String>> tags = new HashMap<>();
+        tags.put("bigquery", Arrays.asList("analytics", "reporting"));
+        tags.put("snowflake", Arrays.asList("data_warehouse"));
+        
+        when(openMetadataClient.getConsumerTags("countries")).thenReturn(tags);
+
+        Map<String, List<String>> result = refSynthService.getConsumerTags("countries");
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertTrue(result.containsKey("bigquery"));
+        assertEquals(2, result.get("bigquery").size());
+    }
+}

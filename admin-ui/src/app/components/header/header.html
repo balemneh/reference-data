@@ -1,0 +1,278 @@
+<header class="usa-header usa-header--extended cbp-modern-header">
+  <div class="usa-navbar">
+    <!-- Logo Section -->
+    <div class="usa-logo">
+      <em class="usa-logo__text">
+        <a routerLink="/dashboard" title="CBP Reference Data Service" aria-label="Home" class="display-flex align-items-center">
+          <img src="/assets/images/cbp-seal.png" alt="CBP Seal" class="cbp-seal-modern margin-right-1" />
+          <div class="cbp-brand-text">
+            <span class="cbp-brand-primary">U.S. Customs and Border Protection</span>
+            <span class="cbp-brand-secondary">Reference Data Service</span>
+          </div>
+        </a>
+      </em>
+    </div>
+    
+    
+    <!-- Secondary Navigation - Modern Action Bar -->
+    <nav class="usa-nav cbp-action-bar" aria-label="Primary navigation">
+      <div class="usa-nav__secondary">
+        <ul class="usa-nav__secondary-links cbp-action-list">
+          <!-- Notifications -->
+          <li class="usa-nav__secondary-item">
+            <button 
+              class="usa-button usa-button--unstyled cbp-action-button notification-button has-tooltip"
+              (click)="toggleNotificationMenu()"
+              [attr.aria-expanded]="notificationMenuOpen"
+              aria-controls="notification-dropdown"
+              title="Notifications"
+              aria-label="Notifications"
+              aria-describedby="alerts-desc alerts-tip"
+              aria-haspopup="menu"
+            >
+              <svg class="usa-icon cbp-action-icon" aria-hidden="true" role="img">
+                <use xlink:href="/assets/uswds/img/sprite.svg#notifications"></use>
+              </svg>
+              <span class="cbp-notification-badge" *ngIf="unreadNotificationCount > 0">
+                {{ unreadNotificationCount }}
+              </span>
+              <span class="tooltip" id="alerts-tip" role="tooltip">Notifications</span>
+            </button>
+            
+            <div 
+              id="notification-dropdown"
+              class="dropdown-menu notification-dropdown cbp-modern-dropdown"
+              [class.is-visible]="notificationMenuOpen"
+              *ngIf="notificationMenuOpen"
+              role="menu"
+              aria-label="Notifications menu"
+            >
+              <div class="dropdown-header cbp-dropdown-header">
+                <h3 class="dropdown-title">Notifications</h3>
+                <div class="cbp-notification-actions" *ngIf="notifications.length > 0">
+                  <button 
+                    class="mark-all-read cbp-mark-all-btn"
+                    (click)="markAllAsRead()"
+                    *ngIf="unreadNotificationCount > 0"
+                    title="Mark all as read"
+                  >
+                    Mark all as read
+                  </button>
+                  <button 
+                    class="clear-all cbp-clear-all-btn"
+                    (click)="clearAllNotifications()"
+                    title="Clear all notifications"
+                  >
+                    Clear all
+                  </button>
+                </div>
+              </div>
+              <div class="notification-list cbp-notification-list" *ngIf="notifications.length > 0">
+                <div 
+                  *ngFor="let notification of notifications"
+                  class="notification-item cbp-notification-item"
+                  role="menuitem"
+                  tabindex="0"
+                  [class.notification-item--unread]="!notification.read"
+                  [class.notification-item--info]="notification.type === 'info'"
+                  [class.notification-item--success]="notification.type === 'success'"
+                  [class.notification-item--warning]="notification.type === 'warning'"
+                  [class.notification-item--error]="notification.type === 'error'"
+                  (click)="onNotificationClick(notification)"
+                  (keydown.enter)="onNotificationClick(notification)"
+                  (keydown.space)="onNotificationClick(notification)"
+                >
+                  <div class="notification-icon cbp-notification-icon">
+                    <svg class="usa-icon" aria-hidden="true" role="img">
+                      <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + 
+                        (notification.type === 'info' ? 'info' : 
+                         notification.type === 'success' ? 'check_circle' :
+                         notification.type === 'warning' ? 'warning' : 
+                         notification.type === 'error' ? 'error' : 'info')"></use>
+                    </svg>
+                  </div>
+                  <div class="notification-content">
+                    <div class="notification-title">{{ notification.title }}</div>
+                    <div class="notification-message">{{ notification.message }}</div>
+                    <div class="notification-time">{{ notification.time }}</div>
+                  </div>
+                  <button 
+                    *ngIf="!notification.read"
+                    class="notification-mark-read"
+                    (click)="markNotificationAsRead(notification.id)"
+                    title="Mark as read"
+                    aria-label="Mark notification as read"
+                  >
+                    <svg class="usa-icon" aria-hidden="true" role="img">
+                      <use xlink:href="/assets/uswds/img/sprite.svg#check"></use>
+                    </svg>
+                  </button>
+                  <div class="notification-indicator" *ngIf="!notification.read"></div>
+                </div>
+              </div>
+              <div class="notification-empty cbp-notification-empty" *ngIf="notifications.length === 0">
+                <svg class="empty-icon" aria-hidden="true" role="img">
+                  <use xlink:href="/assets/uswds/img/sprite.svg#notifications_none"></use>
+                </svg>
+                <p>No notifications</p>
+              </div>
+              <div class="dropdown-footer cbp-dropdown-footer">
+                <a routerLink="/notifications" class="view-all-link">View all notifications</a>
+              </div>
+            </div>
+          </li>
+          
+          <!-- Settings -->
+          <li class="usa-nav__secondary-item">
+            <button 
+              class="usa-button usa-button--unstyled cbp-action-button has-tooltip"
+              (click)="toggleSettingsMenu()"
+              [attr.aria-expanded]="settingsMenuOpen"
+              aria-controls="settings-dropdown"
+              title="Settings"
+              aria-label="Settings"
+              aria-haspopup="menu"
+            >
+              <svg class="usa-icon cbp-action-icon" aria-hidden="true" role="img">
+                <use xlink:href="/assets/uswds/img/sprite.svg#settings"></use>
+              </svg>
+              <span class="tooltip" role="tooltip">Settings</span>
+            </button>
+            
+            <div 
+              id="settings-dropdown"
+              class="dropdown-menu settings-dropdown cbp-modern-dropdown"
+              [class.is-visible]="settingsMenuOpen"
+              *ngIf="settingsMenuOpen"
+              role="menu"
+              aria-label="Settings menu"
+            >
+              <div class="dropdown-header cbp-dropdown-header">
+                <h3 class="dropdown-title">Settings</h3>
+              </div>
+              <ul class="dropdown-list cbp-dropdown-list">
+                <li *ngFor="let item of settingsItems">
+                  <button 
+                    role="menuitem" 
+                    class="cbp-dropdown-item" 
+                    tabindex="0"
+                    (click)="openSettings(item)"
+                    (keydown.enter)="openSettings(item)"
+                    (keydown.space)="openSettings(item)"
+                    [attr.aria-label]="item.title"
+                  >
+                    <svg class="cbp-dropdown-icon" aria-hidden="true" role="img">
+                      <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + item.icon"></use>
+                    </svg>
+                    <span>{{ item.title }}</span>
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </li>
+
+
+          <!-- User Profile -->
+          <li class="usa-nav__secondary-item">
+            <button 
+              class="usa-button usa-button--unstyled cbp-user-button"
+              (click)="toggleUserMenu()"
+              [attr.aria-expanded]="userMenuOpen"
+              aria-controls="user-dropdown"
+              title="Account"
+              aria-label="Account"
+              aria-describedby="account-desc"
+              aria-haspopup="menu"
+            >
+              <div class="cbp-user-avatar">
+                <img 
+                  *ngIf="currentUser.avatar; else avatarFallback"
+                  [src]="currentUser.avatar" 
+                  [alt]="currentUser.name"
+                  class="cbp-avatar-image"
+                />
+                <ng-template #avatarFallback>
+                  <div class="cbp-avatar-initials">
+                    {{ currentUser.initials }}
+                  </div>
+                </ng-template>
+              </div>
+              <div class="cbp-user-info display-none desktop:display-flex">
+                <div class="cbp-user-name">{{ currentUser.name }}</div>
+                <svg class="usa-icon cbp-user-chevron" aria-hidden="true" role="img">
+                  <use xlink:href="/assets/uswds/img/sprite.svg#expand_more"></use>
+                </svg>
+              </div>
+              <span class="usa-sr-only" id="account-desc">Open account menu</span>
+            </button>
+            
+            <div 
+              id="user-dropdown"
+              class="dropdown-menu user-dropdown cbp-modern-dropdown"
+              [class.is-visible]="userMenuOpen"
+              *ngIf="userMenuOpen"
+              role="menu"
+              aria-label="User profile menu"
+            >
+              <div class="user-info cbp-user-profile-info">
+                <div class="cbp-profile-avatar">
+                  <img 
+                    *ngIf="currentUser.avatar; else profileAvatarFallback"
+                    [src]="currentUser.avatar" 
+                    [alt]="currentUser.name"
+                    class="cbp-profile-image"
+                  />
+                  <ng-template #profileAvatarFallback>
+                    <div class="cbp-profile-initials">
+                      {{ currentUser.initials }}
+                    </div>
+                  </ng-template>
+                </div>
+                <div class="cbp-profile-details">
+                  <div class="cbp-profile-name">{{ currentUser.name }}</div>
+                  <div class="cbp-profile-email">{{ currentUser.email }}</div>
+                  <div class="cbp-profile-role">{{ currentUser.role }}</div>
+                </div>
+              </div>
+              <div class="cbp-profile-actions">
+                <button 
+                  class="cbp-profile-action"
+                  routerLink="/profile"
+                  (click)="closeMenus()"
+                >
+                  <svg class="cbp-action-icon" aria-hidden="true" role="img">
+                    <use xlink:href="/assets/uswds/img/sprite.svg#person"></use>
+                  </svg>
+                  <span>Profile Settings</span>
+                </button>
+                <button 
+                  class="cbp-profile-action cbp-profile-action--danger"
+                  role="menuitem"
+                  tabindex="0"
+                  (click)="logout()"
+                  (keydown.enter)="logout()"
+                  (keydown.space)="logout()"
+                  aria-label="Sign out"
+                >
+                  <svg class="cbp-action-icon" aria-hidden="true" role="img">
+                    <use xlink:href="/assets/uswds/img/sprite.svg#logout"></use>
+                  </svg>
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<!-- Click outside to close menus -->
+<div 
+  class="menu-overlay cbp-menu-overlay" 
+  *ngIf="userMenuOpen || notificationMenuOpen || settingsMenuOpen"
+  (click)="closeMenus()"
+></div>
+<!-- Live region for menu announcements -->
+<div class="usa-sr-only" aria-live="polite">{{ liveMessage }}</div>

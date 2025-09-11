@@ -1,0 +1,59 @@
+spring:
+  
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;CASE_INSENSITIVE_IDENTIFIERS=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  
+  sql:
+    init:
+      # Enable SQL initialization for schema setup using schema-less tables
+      mode: always
+      schema-locations: classpath:schema-h2-no-schema.sql
+      continue-on-error: true
+      
+  jpa:
+    hibernate:
+      # Use none to rely on SQL schema initialization
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+        show_sql: true
+        # Disable schema handling for H2 tests
+        hbm2ddl:
+          create_namespaces: false
+        # No default schema for H2 tests
+        globally_quoted_identifiers: false
+        auto_quote_keyword: false
+        # Use custom naming strategy to ignore schemas
+        physical_naming_strategy: gov.dhs.cbp.reference.core.config.TestEntityConfiguration
+    database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: false
+  
+  liquibase:
+    enabled: false
+  
+  test:
+    database:
+      replace: none
+
+  h2:
+    console:
+      enabled: true
+
+logging:
+  level:
+    gov.dhs.cbp.reference: DEBUG
+    org.springframework.orm.jpa: DEBUG
+    org.springframework.transaction: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.jdbc: DEBUG
+    org.springframework.sql: DEBUG
+    org.h2.server: INFO
+    org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration: DEBUG
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss} - %msg%n'

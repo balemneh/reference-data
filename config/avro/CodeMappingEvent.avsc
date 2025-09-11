@@ -1,0 +1,100 @@
+{
+  "type": "record",
+  "name": "CodeMappingEvent",
+  "namespace": "gov.dhs.cbp.reference.events.avro",
+  "fields": [
+    {
+      "name": "eventId",
+      "type": "string",
+      "doc": "Unique identifier for this event"
+    },
+    {
+      "name": "eventType",
+      "type": {
+        "type": "enum",
+        "name": "EventType",
+        "symbols": ["CREATED", "UPDATED", "DELETED", "DEPRECATED"]
+      },
+      "doc": "Type of event"
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "logicalType": "timestamp-millis",
+      "doc": "When the event occurred"
+    },
+    {
+      "name": "mappingId",
+      "type": "string",
+      "doc": "UUID of the code mapping"
+    },
+    {
+      "name": "sourceSystem",
+      "type": "string",
+      "doc": "Source code system"
+    },
+    {
+      "name": "sourceCode",
+      "type": "string",
+      "doc": "Source code value"
+    },
+    {
+      "name": "targetSystem",
+      "type": "string",
+      "doc": "Target code system"
+    },
+    {
+      "name": "targetCode",
+      "type": "string",
+      "doc": "Target code value"
+    },
+    {
+      "name": "mappingType",
+      "type": {
+        "type": "enum",
+        "name": "MappingType",
+        "symbols": ["EXACT", "PARTIAL", "APPROXIMATE", "DERIVED"]
+      },
+      "doc": "Type of mapping relationship"
+    },
+    {
+      "name": "confidence",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Confidence score (0.0 to 1.0)"
+    },
+    {
+      "name": "ruleId",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "ID of mapping rule used"
+    },
+    {
+      "name": "validFrom",
+      "type": "string",
+      "doc": "Start of validity period (ISO date)"
+    },
+    {
+      "name": "validTo",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "End of validity period (ISO date)"
+    },
+    {
+      "name": "version",
+      "type": "long",
+      "doc": "Version number"
+    },
+    {
+      "name": "changeRequestId",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Associated change request"
+    },
+    {
+      "name": "recordedBy",
+      "type": "string",
+      "doc": "User who recorded this change"
+    }
+  ]
+}

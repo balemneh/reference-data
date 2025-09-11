@@ -1,0 +1,19 @@
+FROM openjdk:21-jdk-slim
+
+WORKDIR /app
+
+# Copy the JAR file from the target directory
+COPY reference-api/target/*.jar app.jar
+
+# Expose port 8080
+EXPOSE 8080
+
+# Set environment variables for database connection
+ENV SPRING_PROFILES_ACTIVE=docker
+ENV SPRING_DATASOURCE_URL=jdbc:postgresql://refdata-postgres:5432/refdata
+ENV SPRING_DATASOURCE_USERNAME=refdata
+ENV SPRING_DATASOURCE_PASSWORD=refdata123
+ENV SPRING_LIQUIBASE_ENABLED=false
+
+# Run the application
+CMD ["java", "-jar", "app.jar"]

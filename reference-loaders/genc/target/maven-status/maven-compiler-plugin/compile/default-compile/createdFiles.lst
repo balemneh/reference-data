@@ -1,0 +1,12 @@
+gov/dhs/cbp/reference/loader/genc/repository/GencEntityStagingRepository.class
+gov/dhs/cbp/reference/loader/genc/entity/GencEntityStaging.class
+gov/dhs/cbp/reference/loader/genc/config/GencLoaderConfig$1.class
+gov/dhs/cbp/reference/loader/genc/config/GencLoaderConfig.class
+gov/dhs/cbp/reference/loader/genc/config/GencLoaderConfig$3.class
+gov/dhs/cbp/reference/loader/genc/GencLoaderService$LoadResult.class
+gov/dhs/cbp/reference/loader/genc/loader/GencLoader.class
+gov/dhs/cbp/reference/loader/genc/model/GencData.class
+gov/dhs/cbp/reference/loader/genc/GencLoaderService.class
+gov/dhs/cbp/reference/loader/genc/GencLoaderService$GencRecord.class
+gov/dhs/cbp/reference/loader/genc/service/GencLoaderScheduler.class
+gov/dhs/cbp/reference/loader/genc/config/GencLoaderConfig$2.class

@@ -1,0 +1,229 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:17.6
+    container_name: refdata-postgres
+    environment:
+      POSTGRES_DB: reference_data
+      POSTGRES_USER: refdata_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-refdata_pass}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./ops/init-scripts:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U refdata_user -d reference_data"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - refdata-network
+
+  # Redis Cache
+  redis:
+    image: redis:8.2.1-alpine
+    container_name: refdata-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - refdata-network
+
+  # Kafka (using RedPanda for simplicity)
+  redpanda:
+    image: redpandadata/redpanda:v25.2.1
+    container_name: refdata-kafka
+    command:
+      - redpanda
+      - start
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
+      - --advertise-pandaproxy-addr internal://redpanda:8082,external://localhost:18082
+      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
+      - --rpc-addr redpanda:33145
+      - --advertise-rpc-addr redpanda:33145
+      - --smp 1
+      - --memory 1G
+      - --mode dev-container
+      - --default-log-level=info
+    ports:
+      - "18081:18081"  # Schema Registry
+      - "18082:18082"  # Pandaproxy
+      - "19092:19092"  # Kafka
+      - "19644:9644"   # Prometheus metrics
+    volumes:
+      - redpanda_data:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy.*true'"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+    networks:
+      - refdata-network
+
+  # Keycloak for Authentication
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3.2
+    container_name: refdata-keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/reference_data
+      KC_DB_USERNAME: refdata_user
+      KC_DB_PASSWORD: ${DB_PASSWORD:-refdata_pass}
+      KC_HEALTH_ENABLED: true
+      KC_METRICS_ENABLED: true
+      KC_HTTP_ENABLED: true
+      KC_HTTPS_ENABLED: false
+      KC_HOSTNAME_STRICT: false
+    command: start-dev
+    ports:
+      - "8085:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/keycloak/bin/kc.sh show-config >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ./ops/keycloak-entrypoint.sh:/opt/keycloak/keycloak-entrypoint.sh:ro
+    networks:
+      - refdata-network
+
+  kc-init:
+    image: quay.io/keycloak/keycloak:26.3.2
+    container_name: refdata-keycloak-init
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["/opt/keycloak/kc-init.sh"]
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KEYCLOAK_URL: http://keycloak:8080
+      # Update both 'master' and your app realm (adjust as needed):
+      KEYCLOAK_REALMS: "master reference-data"
+    volumes:
+      - ./ops/kc-init.sh:/opt/keycloak/kc-init.sh:ro
+      - ./ops/secrets:/secrets
+    networks:
+      - refdata-network
+
+  # Spring Boot Backend API
+  reference-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: refdata-api
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/reference_data
+      SPRING_DATASOURCE_USERNAME: refdata_user
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-refdata_pass}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      SPRING_KAFKA_SCHEMA_REGISTRY_URL: http://redpanda:8081
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/reference-data
+      JAVA_OPTS: "-Xms512m -Xmx1024m"
+    ports:
+      - "8083:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - refdata-network
+
+  # Angular Admin UI
+  admin-ui:
+    build:
+      context: ./admin-ui
+      dockerfile: Dockerfile
+    container_name: refdata-ui
+    ports:
+      - "4200:80"
+    depends_on:
+      reference-api:
+        condition: service_healthy
+    environment:
+      API_URL: http://reference-api:8083
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - refdata-network
+
+  # Kafka UI for monitoring
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: refdata-kafka-ui
+    ports:
+      - "8082:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: redpanda:9092
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://redpanda:8081
+      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: PLAINTEXT
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    networks:
+      - refdata-network
+
+  # Camunda for Workflow (optional, can be enabled when needed)
+  # camunda:
+  #   image: camunda/camunda-bpm-platform:7.20.0
+  #   container_name: refdata-camunda
+  #   ports:
+  #     - "8086:8080"
+  #   environment:
+  #     DB_DRIVER: org.postgresql.Driver
+  #     DB_URL: jdbc:postgresql://postgres:5432/reference_data
+  #     DB_USERNAME: refdata_user
+  #     DB_PASSWORD: ${DB_PASSWORD:-refdata_pass}
+  #     WAIT_FOR: postgres:5432
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   networks:
+  #     - refdata-network
+
+networks:
+  refdata-network:
+    driver: bridge
+    name: refdata-network
+
+volumes:
+  postgres_data:
+    name: refdata-postgres-data
+  redis_data:
+    name: refdata-redis-data
+  redpanda_data:
+    name: refdata-kafka-data

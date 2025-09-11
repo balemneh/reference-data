@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Simplified changelog for H2 testing without schemas -->
+    
+    <changeSet id="001-create-code-system-table" author="test">
+        <createTable tableName="code_system">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="code" type="VARCHAR(50)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="owner" type="VARCHAR(100)"/>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="002-create-countries-table" author="test">
+        <createTable tableName="countries_v">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="version" type="BIGINT" defaultValueNumeric="1">
+                <constraints nullable="false"/>
+            </column>
+            <column name="code_system_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country_code" type="VARCHAR(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country_name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="iso2_code" type="VARCHAR(2)"/>
+            <column name="iso3_code" type="VARCHAR(3)"/>
+            <column name="numeric_code" type="VARCHAR(3)"/>
+            <column name="valid_from" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="valid_to" type="DATE"/>
+            <column name="recorded_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="recorded_by" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="change_request_id" type="VARCHAR(100)"/>
+            <column name="is_correction" type="BOOLEAN" defaultValueBoolean="false"/>
+            <column name="metadata" type="TEXT"/>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true"/>
+        </createTable>
+        
+        <addForeignKeyConstraint baseTableName="countries_v" 
+                                 baseColumnNames="code_system_id"
+                                 referencedTableName="code_system"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_countries_code_system"/>
+        
+        <createIndex tableName="countries_v" indexName="idx_countries_v_lookup">
+            <column name="country_code"/>
+            <column name="code_system_id"/>
+            <column name="valid_from"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="003-insert-test-data" author="test">
+        <insert tableName="code_system">
+            <column name="id" value="00000000-0000-0000-0000-000000000001"/>
+            <column name="code" value="ISO3166-1"/>
+            <column name="name" value="ISO 3166-1 Country Codes"/>
+            <column name="description" value="International standard for country codes"/>
+            <column name="owner" value="ISO"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="is_active" valueBoolean="true"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

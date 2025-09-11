@@ -1,0 +1,212 @@
+package gov.dhs.cbp.reference.workflow.service;
+
+import org.camunda.bpm.engine.RuntimeService;
+import org.camunda.bpm.engine.TaskService;
+import org.camunda.bpm.engine.runtime.ProcessInstance;
+import org.camunda.bpm.engine.task.Task;
+import org.camunda.bpm.engine.task.TaskQuery;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class ChangeRequestServiceTest {
+
+    @Mock
+    private RuntimeService runtimeService;
+    
+    @Mock
+    private TaskService taskService;
+    
+    @Mock
+    private ProcessInstance processInstance;
+    
+    @Mock
+    private Task task;
+    
+    @Mock
+    private TaskQuery taskQuery;
+
+    @InjectMocks
+    private ChangeRequestService changeRequestService;
+
+    private ChangeRequestService.ChangeRequestDto changeRequestDto;
+
+    @BeforeEach
+    void setUp() {
+        changeRequestDto = new ChangeRequestService.ChangeRequestDto();
+        changeRequestDto.setRequestId(UUID.randomUUID());
+        changeRequestDto.setDatasetType("Country");
+        changeRequestDto.setChangeType("UPDATE");
+        changeRequestDto.setRequestor("test-user");
+        changeRequestDto.setDescription("Update country code");
+        changeRequestDto.setUrgency("NORMAL");
+        
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("countryCode", "US");
+        payload.put("countryName", "United States");
+        changeRequestDto.setPayload(payload);
+    }
+
+    @Test
+    void testStartChangeRequest() {
+        when(processInstance.getId()).thenReturn("process-123");
+        when(runtimeService.startProcessInstanceByKey(
+                eq("changeRequestApproval"), 
+                anyString(), 
+                any(Map.class)))
+                .thenReturn(processInstance);
+
+        String processId = changeRequestService.startChangeRequest(changeRequestDto);
+
+        assertNotNull(processId);
+        assertEquals("process-123", processId);
+        verify(runtimeService).startProcessInstanceByKey(
+                eq("changeRequestApproval"),
+                eq(changeRequestDto.getRequestId().toString()),
+                any(Map.class));
+    }
+
+    @Test
+    void testGetTasksForUser() {
+        List<Task> tasks = Arrays.asList(task);
+        when(taskService.createTaskQuery()).thenReturn(taskQuery);
+        when(taskQuery.taskAssignee(anyString())).thenReturn(taskQuery);
+        when(taskQuery.orderByTaskCreateTime()).thenReturn(taskQuery);
+        when(taskQuery.desc()).thenReturn(taskQuery);
+        when(taskQuery.list()).thenReturn(tasks);
+
+        List<Task> result = changeRequestService.getTasksForUser("user-123");
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(taskQuery).taskAssignee("user-123");
+    }
+
+    @Test
+    void testGetTasksForGroup() {
+        List<Task> tasks = Arrays.asList(task);
+        when(taskService.createTaskQuery()).thenReturn(taskQuery);
+        when(taskQuery.taskCandidateGroup(anyString())).thenReturn(taskQuery);
+        when(taskQuery.orderByTaskCreateTime()).thenReturn(taskQuery);
+        when(taskQuery.desc()).thenReturn(taskQuery);
+        when(taskQuery.list()).thenReturn(tasks);
+
+        List<Task> result = changeRequestService.getTasksForGroup("approvers");
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(taskQuery).taskCandidateGroup("approvers");
+    }
+
+    @Test
+    void testCompleteTask() {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("approved", true);
+        variables.put("comments", "Looks good");
+
+        changeRequestService.completeTask("task-123", variables);
+
+        verify(taskService).complete("task-123", variables);
+    }
+
+    @Test
+    void testClaimTask() {
+        changeRequestService.claimTask("task-123", "user-456");
+
+        verify(taskService).claim("task-123", "user-456");
+    }
+
+    @Test
+    void testDelegateTask() {
+        changeRequestService.delegateTask("task-123", "user-789");
+
+        verify(taskService).delegateTask("task-123", "user-789");
+    }
+
+    @Test
+    void testChangeRequestDtoGettersSetters() {
+        UUID requestId = UUID.randomUUID();
+        changeRequestDto.setRequestId(requestId);
+        assertEquals(requestId, changeRequestDto.getRequestId());
+
+        changeRequestDto.setDatasetType("Port");
+        assertEquals("Port", changeRequestDto.getDatasetType());
+
+        changeRequestDto.setChangeType("CREATE");
+        assertEquals("CREATE", changeRequestDto.getChangeType());
+
+        changeRequestDto.setRequestor("admin");
+        assertEquals("admin", changeRequestDto.getRequestor());
+
+        changeRequestDto.setDescription("New port entry");
+        assertEquals("New port entry", changeRequestDto.getDescription());
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("portCode", "LAX");
+        changeRequestDto.setPayload(payload);
+        assertEquals(payload, changeRequestDto.getPayload());
+
+        changeRequestDto.setUrgency("HIGH");
+        assertEquals("HIGH", changeRequestDto.getUrgency());
+    }
+
+    @Test
+    void testStartChangeRequestWithAllFields() {
+        when(processInstance.getId()).thenReturn("process-456");
+        when(runtimeService.startProcessInstanceByKey(
+                anyString(), 
+                anyString(), 
+                any(Map.class)))
+                .thenReturn(processInstance);
+
+        String processId = changeRequestService.startChangeRequest(changeRequestDto);
+
+        assertNotNull(processId);
+        assertEquals("process-456", processId);
+        
+        verify(runtimeService).startProcessInstanceByKey(
+                eq("changeRequestApproval"),
+                eq(changeRequestDto.getRequestId().toString()),
+                argThat(variables -> 
+                    variables.containsKey("requestId") &&
+                    variables.containsKey("datasetType") &&
+                    variables.containsKey("changeType") &&
+                    variables.containsKey("requestor") &&
+                    variables.containsKey("description") &&
+                    variables.containsKey("payload") &&
+                    variables.containsKey("urgency")
+                )
+        );
+    }
+
+    @Test
+    void testGetTasksForUserEmpty() {
+        when(taskService.createTaskQuery()).thenReturn(taskQuery);
+        when(taskQuery.taskAssignee(anyString())).thenReturn(taskQuery);
+        when(taskQuery.orderByTaskCreateTime()).thenReturn(taskQuery);
+        when(taskQuery.desc()).thenReturn(taskQuery);
+        when(taskQuery.list()).thenReturn(Collections.emptyList());
+
+        List<Task> result = changeRequestService.getTasksForUser("user-no-tasks");
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void testCompleteTaskWithEmptyVariables() {
+        changeRequestService.completeTask("task-empty", new HashMap<>());
+
+        verify(taskService).complete("task-empty", new HashMap<>());
+    }
+}

@@ -1,0 +1,670 @@
+<!-- Analytics Dashboard Header -->
+<div class="cbp-analytics-header">
+  <div class="cbp-analytics-header__content">
+    <div class="cbp-analytics-header__text">
+      <h1 class="cbp-analytics-header__title">
+        <span class="usa-icon usa-icon--size-3 cbp-analytics-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
+          </svg>
+        </span>
+        Analytics Dashboard
+      </h1>
+      <p class="cbp-analytics-header__subtitle">
+        {{ getTimeRangeDescription() }} • 
+        <span class="cbp-real-time-indicator" [class.active]="realTimeEnabled">
+          <span class="cbp-pulse-dot"></span>
+          {{ realTimeEnabled ? 'Real-time updates active' : 'Real-time updates paused' }}
+        </span>
+      </p>
+    </div>
+
+    <div class="cbp-analytics-header__actions">
+      <!-- Time Range Selector -->
+      <div class="cbp-time-range-selector">
+        <label for="time-range" class="usa-sr-only">Select time range</label>
+        <select 
+          id="time-range"
+          class="usa-select cbp-time-select"
+          [(ngModel)]="selectedTimeRange"
+          (ngModelChange)="changeTimeRange($event)">
+          <option *ngFor="let range of timeRanges" [ngValue]="range">
+            {{ range.label }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="cbp-analytics-actions">
+
+        <button 
+          type="button"
+          class="usa-button usa-button--outline cbp-button--icon"
+          (click)="toggleRealTime()"
+          [title]="realTimeEnabled ? 'Pause real-time updates' : 'Enable real-time updates'">
+          <span class="usa-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path *ngIf="realTimeEnabled" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+              <path *ngIf="!realTimeEnabled" d="M8 5v14l11-7z"/>
+            </svg>
+          </span>
+          <span class="usa-sr-only">{{ realTimeEnabled ? 'Pause' : 'Play' }}</span>
+        </button>
+
+        <!-- Export Dropdown -->
+        <div class="usa-combo-box cbp-export-dropdown">
+          <select class="usa-select cbp-export-select" [(ngModel)]="exportFormat">
+            <option value="png">Export as PNG</option>
+            <option value="pdf">Export as PDF</option>
+            <option value="csv">Export as CSV</option>
+            <option value="xlsx">Export as XLSX</option>
+          </select>
+          <button 
+            type="button"
+            class="usa-button cbp-export-button"
+            [disabled]="isExporting"
+            (click)="exportVisualization(exportFormat)"
+            title="Export analytics (Ctrl+E)">
+            <span *ngIf="!isExporting" class="usa-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/>
+              </svg>
+            </span>
+            <span *ngIf="isExporting" class="cbp-loading-spinner" aria-hidden="true"></span>
+            Export
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Progress Bar -->
+  <div *ngIf="isExporting" class="cbp-export-progress">
+    <div class="cbp-progress-bar">
+      <div class="cbp-progress-bar__fill" [style.width.%]="exportProgress"></div>
+    </div>
+    <span class="cbp-progress-text">Exporting... {{ Math.round(exportProgress) }}%</span>
+  </div>
+</div>
+
+<!-- Loading State -->
+<div *ngIf="loading" class="cbp-loading-container">
+  <app-skeleton-loader 
+    [type]="'chart'" 
+    [lines]="8">
+  </app-skeleton-loader>
+</div>
+
+<!-- Error State -->
+<div *ngIf="error && !loading" class="cbp-error-container">
+  <div class="cbp-error-card">
+    <span class="usa-icon cbp-error-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+      </svg>
+    </span>
+    <h3 class="cbp-error-title">Unable to Load Analytics</h3>
+    <p class="cbp-error-message">{{ error }}</p>
+  </div>
+</div>
+
+<!-- Analytics Content -->
+<div *ngIf="!loading && !error && analyticsData" class="cbp-analytics-content">
+  
+  <!-- KPI Overview -->
+  <section class="cbp-kpi-section" aria-labelledby="kpi-title">
+    <h2 id="kpi-title" class="usa-sr-only">Key Performance Indicators</h2>
+    <div class="cbp-kpi-grid">
+      <div class="cbp-kpi-card">
+        <div class="cbp-kpi-card__icon cbp-kpi-card__icon--entities">
+          <span class="usa-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+          </span>
+        </div>
+        <div class="cbp-kpi-card__content">
+          <div class="cbp-kpi-card__number">{{ formatNumber(kpis.totalEntities) }}</div>
+          <div class="cbp-kpi-card__label">Total Entities</div>
+          <div class="cbp-kpi-card__change" 
+               [class]="kpis.monthlyGrowth >= 0 ? 'cbp-trend--up' : 'cbp-trend--down'">
+            <span class="usa-icon cbp-trend-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path *ngIf="kpis.monthlyGrowth >= 0" d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
+                <path *ngIf="kpis.monthlyGrowth < 0" d="M16 18l2.29-2.29-4.88-4.88-4 4L2 7.41 3.41 6l6 6 4-4 6.3 6.29L22 12v6z"/>
+              </svg>
+            </span>
+            {{ formatPercentage(Math.abs(kpis.monthlyGrowth)) }}
+          </div>
+        </div>
+      </div>
+
+      <div class="cbp-kpi-card">
+        <div class="cbp-kpi-card__icon cbp-kpi-card__icon--quality">
+          <span class="usa-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            </svg>
+          </span>
+        </div>
+        <div class="cbp-kpi-card__content">
+          <div class="cbp-kpi-card__number">{{ formatPercentage(kpis.dataQualityScore) }}</div>
+          <div class="cbp-kpi-card__label">Data Quality</div>
+          <div class="cbp-kpi-card__status cbp-status--excellent">Excellent</div>
+        </div>
+      </div>
+
+      <div class="cbp-kpi-card">
+        <div class="cbp-kpi-card__icon cbp-kpi-card__icon--performance">
+          <span class="usa-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+          </span>
+        </div>
+        <div class="cbp-kpi-card__content">
+          <div class="cbp-kpi-card__number">{{ kpis.avgResponseTime }}ms</div>
+          <div class="cbp-kpi-card__label">Avg Response Time</div>
+          <div class="cbp-kpi-card__status" 
+               [class]="kpis.avgResponseTime < 150 ? 'cbp-status--excellent' : kpis.avgResponseTime < 300 ? 'cbp-status--good' : 'cbp-status--warning'">
+            {{ kpis.avgResponseTime < 150 ? 'Excellent' : kpis.avgResponseTime < 300 ? 'Good' : 'Needs Attention' }}
+          </div>
+        </div>
+      </div>
+
+      <div class="cbp-kpi-card">
+        <div class="cbp-kpi-card__icon cbp-kpi-card__icon--uptime">
+          <span class="usa-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+            </svg>
+          </span>
+        </div>
+        <div class="cbp-kpi-card__content">
+          <div class="cbp-kpi-card__number">{{ formatPercentage(kpis.systemUptime) }}</div>
+          <div class="cbp-kpi-card__label">System Uptime</div>
+          <div class="cbp-kpi-card__status cbp-status--excellent">Excellent</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Filter Controls -->
+  <section class="cbp-filter-section" aria-labelledby="filter-title">
+    <h2 id="filter-title" class="cbp-filter-title">Filters</h2>
+    <div class="cbp-filter-controls">
+      <div *ngFor="let filter of activeFilters" class="cbp-filter-group">
+        <button 
+          type="button"
+          class="usa-button usa-button--outline cbp-filter-toggle"
+          [class.cbp-filter-toggle--active]="filter.enabled"
+          (click)="toggleFilterCategory(filter.type)">
+          <span class="usa-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/>
+            </svg>
+          </span>
+          {{ filter.type | titlecase }}
+          <span class="cbp-filter-count">{{ getActiveFilterCount(filter.type) }}</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Real-time Stats -->
+  <section *ngIf="realTimeEnabled" class="cbp-realtime-section" aria-labelledby="realtime-title">
+    <h2 id="realtime-title" class="cbp-section-title">Real-time Activity</h2>
+    <div class="cbp-realtime-grid">
+      <div class="cbp-realtime-card">
+        <div class="cbp-realtime-card__icon">
+          <span class="usa-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.9 1 3 1.9 3 3V21C3 22.1 3.9 23 5 23H19C20.1 23 21 22.1 21 21V9Z"/>
+            </svg>
+          </span>
+        </div>
+        <div class="cbp-realtime-card__content">
+          <div class="cbp-realtime-card__number">{{ realTimeData.currentUsers }}</div>
+          <div class="cbp-realtime-card__label">Active Users</div>
+        </div>
+      </div>
+
+      <div class="cbp-realtime-card">
+        <div class="cbp-realtime-card__icon">
+          <span class="usa-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8.5 8.5L11 6L8.5 3.5L12 0L15.5 3.5L13 6L15.5 8.5L12 12L8.5 8.5Z"/>
+            </svg>
+          </span>
+        </div>
+        <div class="cbp-realtime-card__content">
+          <div class="cbp-realtime-card__number">{{ realTimeData.currentApiCalls }}</div>
+          <div class="cbp-realtime-card__label">API Calls/min</div>
+        </div>
+      </div>
+
+      <div class="cbp-realtime-card">
+        <div class="cbp-realtime-card__icon">
+          <span class="usa-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zM12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+            </svg>
+          </span>
+        </div>
+        <div class="cbp-realtime-card__content">
+          <div class="cbp-realtime-card__number">{{ realTimeData.currentResponseTime }}ms</div>
+          <div class="cbp-realtime-card__label">Response Time</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Charts Grid -->
+  <section class="cbp-charts-section" aria-labelledby="charts-title">
+    <h2 id="charts-title" class="cbp-section-title">Analytics Overview</h2>
+    
+    <div class="cbp-charts-grid">
+      <!-- Entity Growth Chart -->
+      <div class="cbp-chart-card cbp-interactive-card" (click)="selectedChart = 'entityGrowth'">
+        <div class="cbp-chart-card__header">
+          <div class="cbp-chart-card__title-group">
+            <h3 class="cbp-chart-card__title">Entity Growth Trends</h3>
+            <p class="cbp-chart-card__subtitle">Growth over {{ selectedTimeRange.label.toLowerCase() }}</p>
+          </div>
+          <div class="cbp-chart-card__actions">
+            <button type="button" class="cbp-expand-button" title="Drill down">
+              <span class="usa-icon cbp-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/>
+                </svg>
+              </span>
+            </button>
+          </div>
+        </div>
+        <div class="cbp-chart-card__body">
+          <div class="cbp-chart-container">
+            <canvas #entityGrowthChart></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Usage Patterns Chart -->
+      <div class="cbp-chart-card cbp-interactive-card" (click)="selectedChart = 'usagePattern'">
+        <div class="cbp-chart-card__header">
+          <div class="cbp-chart-card__title-group">
+            <h3 class="cbp-chart-card__title">Usage Patterns</h3>
+            <p class="cbp-chart-card__subtitle">API usage by hour</p>
+          </div>
+          <div class="cbp-chart-card__actions">
+            <button type="button" class="cbp-expand-button" title="Drill down">
+              <span class="usa-icon cbp-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/>
+                </svg>
+              </span>
+            </button>
+          </div>
+        </div>
+        <div class="cbp-chart-card__body">
+          <div class="cbp-chart-container">
+            <canvas #usagePatternChart></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Quality Chart -->
+      <div class="cbp-chart-card cbp-interactive-card" (click)="selectedChart = 'dataQuality'">
+        <div class="cbp-chart-card__header">
+          <div class="cbp-chart-card__title-group">
+            <h3 class="cbp-chart-card__title">Data Quality Metrics</h3>
+            <p class="cbp-chart-card__subtitle">Current quality assessment</p>
+          </div>
+          <div class="cbp-chart-card__actions">
+            <button type="button" class="cbp-expand-button" title="View details">
+              <span class="usa-icon cbp-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/>
+                </svg>
+              </span>
+            </button>
+          </div>
+        </div>
+        <div class="cbp-chart-card__body">
+          <div class="cbp-chart-container">
+            <canvas #dataQualityChart></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Change Requests Chart -->
+      <div class="cbp-chart-card cbp-interactive-card" (click)="selectedChart = 'changeRequest'">
+        <div class="cbp-chart-card__header">
+          <div class="cbp-chart-card__title-group">
+            <h3 class="cbp-chart-card__title">Change Request Analytics</h3>
+            <p class="cbp-chart-card__subtitle">Status distribution</p>
+          </div>
+          <div class="cbp-chart-card__actions">
+            <div class="cbp-metric-badge">
+              {{ formatPercentage(analyticsData.changeRequests.approvalRate) }} approval rate
+            </div>
+          </div>
+        </div>
+        <div class="cbp-chart-card__body">
+          <div class="cbp-chart-container">
+            <canvas #changeRequestChart></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Geographic Distribution Chart -->
+      <div class="cbp-chart-card cbp-interactive-card" (click)="selectedChart = 'geographic'">
+        <div class="cbp-chart-card__header">
+          <div class="cbp-chart-card__title-group">
+            <h3 class="cbp-chart-card__title">Geographic Distribution</h3>
+            <p class="cbp-chart-card__subtitle">Data entities by location</p>
+          </div>
+        </div>
+        <div class="cbp-chart-card__body">
+          <div class="cbp-chart-container">
+            <canvas #geographicChart></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Performance Metrics Chart -->
+      <div class="cbp-chart-card cbp-interactive-card" (click)="selectedChart = 'performance'">
+        <div class="cbp-chart-card__header">
+          <div class="cbp-chart-card__title-group">
+            <h3 class="cbp-chart-card__title">System Performance</h3>
+            <p class="cbp-chart-card__subtitle">Response time & throughput</p>
+          </div>
+          <div class="cbp-chart-card__actions">
+            <div class="cbp-metric-badge cbp-metric-badge--success">
+              {{ formatPercentage(analyticsData.performance.uptime) }} uptime
+            </div>
+          </div>
+        </div>
+        <div class="cbp-chart-card__body">
+          <div class="cbp-chart-container">
+            <canvas #performanceChart></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- User Behavior Chart -->
+      <div class="cbp-chart-card cbp-interactive-card" (click)="selectedChart = 'userBehavior'">
+        <div class="cbp-chart-card__header">
+          <div class="cbp-chart-card__title-group">
+            <h3 class="cbp-chart-card__title">User Behavior</h3>
+            <p class="cbp-chart-card__subtitle">Page visits & user flow</p>
+          </div>
+          <div class="cbp-chart-card__actions">
+            <div class="cbp-metric-badge">
+              {{ analyticsData.userBehavior.activeUsers }}/{{ analyticsData.userBehavior.totalUsers }} active
+            </div>
+          </div>
+        </div>
+        <div class="cbp-chart-card__body">
+          <div class="cbp-chart-container">
+            <canvas #userBehaviorChart></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Real-time Activity Chart -->
+      <div *ngIf="realTimeEnabled" class="cbp-chart-card">
+        <div class="cbp-chart-card__header">
+          <div class="cbp-chart-card__title-group">
+            <h3 class="cbp-chart-card__title">Real-time Activity</h3>
+            <p class="cbp-chart-card__subtitle">Live system metrics</p>
+          </div>
+          <div class="cbp-chart-card__actions">
+            <div class="cbp-real-time-indicator active">
+              <span class="cbp-pulse-dot"></span>
+              Live
+            </div>
+          </div>
+        </div>
+        <div class="cbp-chart-card__body">
+          <div class="cbp-chart-container">
+            <canvas #realTimeChart></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Advanced Analytics Section -->
+  <section class="cbp-advanced-section" aria-labelledby="advanced-title">
+    <h2 id="advanced-title" class="cbp-section-title">Advanced Analytics</h2>
+    
+    <div class="cbp-advanced-grid">
+      <!-- API Usage Heatmap -->
+      <div class="cbp-chart-card">
+        <div class="cbp-chart-card__header">
+          <div class="cbp-chart-card__title-group">
+            <h3 class="cbp-chart-card__title">API Usage Heatmap</h3>
+            <p class="cbp-chart-card__subtitle">Activity by day/hour</p>
+          </div>
+        </div>
+        <div class="cbp-chart-card__body">
+          <div class="cbp-chart-container">
+            <canvas #apiHeatmapChart></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quality Trends -->
+      <div class="cbp-chart-card">
+        <div class="cbp-chart-card__header">
+          <div class="cbp-chart-card__title-group">
+            <h3 class="cbp-chart-card__title">Quality Trends</h3>
+            <p class="cbp-chart-card__subtitle">Quality metrics over time</p>
+          </div>
+        </div>
+        <div class="cbp-chart-card__body">
+          <div class="cbp-chart-container">
+            <canvas #qualityTrendChart></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Response Time Distribution -->
+      <div class="cbp-chart-card">
+        <div class="cbp-chart-card__header">
+          <div class="cbp-chart-card__title-group">
+            <h3 class="cbp-chart-card__title">Response Time Distribution</h3>
+            <p class="cbp-chart-card__subtitle">Performance by hour</p>
+          </div>
+        </div>
+        <div class="cbp-chart-card__body">
+          <div class="cbp-chart-container">
+            <canvas #responseTimeChart></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- User Journey Funnel -->
+      <div class="cbp-chart-card">
+        <div class="cbp-chart-card__header">
+          <div class="cbp-chart-card__title-group">
+            <h3 class="cbp-chart-card__title">User Journey Funnel</h3>
+            <p class="cbp-chart-card__subtitle">User flow & drop-off analysis</p>
+          </div>
+        </div>
+        <div class="cbp-chart-card__body">
+          <div class="cbp-chart-container">
+            <canvas #userFlowChart></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Detailed Data Tables -->
+  <section class="cbp-data-tables" aria-labelledby="tables-title">
+    <h2 id="tables-title" class="cbp-section-title">Detailed Analytics</h2>
+    
+    <!-- Geographic Data Table -->
+    <div class="cbp-table-card">
+      <div class="cbp-table-card__header">
+        <h3 class="cbp-table-card__title">Geographic Distribution Details</h3>
+        <p class="cbp-table-card__subtitle">Data entities and activity by country</p>
+      </div>
+      <div class="cbp-table-card__body">
+        <table class="usa-table usa-table--striped cbp-data-table">
+          <thead>
+            <tr>
+              <th scope="col">Country</th>
+              <th scope="col">Region</th>
+              <th scope="col">Entities</th>
+              <th scope="col">Activity</th>
+              <th scope="col">Growth</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let country of analyticsData.geographic; trackBy: trackByCountry">
+              <td>
+                <div class="cbp-country-cell">
+                  <span class="cbp-country-flag">{{ country.countryCode }}</span>
+                  {{ country.country }}
+                </div>
+              </td>
+              <td>
+                <span class="cbp-region-badge" [attr.data-region]="country.region">
+                  {{ country.region }}
+                </span>
+              </td>
+              <td class="cbp-number-cell">{{ formatNumber(country.entities) }}</td>
+              <td class="cbp-number-cell">{{ formatNumber(country.activity) }}</td>
+              <td class="cbp-trend-cell">
+                <span class="cbp-trend-indicator cbp-trend--up">
+                  <span class="usa-icon cbp-trend-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
+                    </svg>
+                  </span>
+                  +{{ (Math.random() * 10 + 2).toFixed(1) }}%
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Top Pages Performance Table -->
+    <div class="cbp-table-card">
+      <div class="cbp-table-card__header">
+        <h3 class="cbp-table-card__title">Page Performance Analysis</h3>
+        <p class="cbp-table-card__subtitle">Most visited pages and engagement metrics</p>
+      </div>
+      <div class="cbp-table-card__body">
+        <table class="usa-table usa-table--striped cbp-data-table">
+          <thead>
+            <tr>
+              <th scope="col">Page</th>
+              <th scope="col">Visits</th>
+              <th scope="col">Bounce Rate</th>
+              <th scope="col">Engagement</th>
+              <th scope="col">Performance</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let page of analyticsData.userBehavior.topPages; trackBy: trackByPage">
+              <td>
+                <code class="cbp-page-path">{{ page.page }}</code>
+              </td>
+              <td class="cbp-number-cell">{{ formatNumber(page.visits) }}</td>
+              <td class="cbp-percentage-cell">
+                <div class="cbp-progress-indicator">
+                  <div class="cbp-progress-bar cbp-progress-bar--small">
+                    <div class="cbp-progress-bar__fill" 
+                         [style.width.%]="page.bounceRate"
+                         [class]="page.bounceRate < 30 ? 'cbp-progress-bar__fill--success' : 
+                                 page.bounceRate < 50 ? 'cbp-progress-bar__fill--warning' : 
+                                 'cbp-progress-bar__fill--error'">
+                    </div>
+                  </div>
+                  <span class="cbp-progress-text">{{ formatPercentage(page.bounceRate) }}</span>
+                </div>
+              </td>
+              <td class="cbp-engagement-cell">
+                <span class="cbp-engagement-score" 
+                      [class]="page.bounceRate < 30 ? 'cbp-score--high' : 
+                              page.bounceRate < 50 ? 'cbp-score--medium' : 
+                              'cbp-score--low'">
+                  {{ page.bounceRate < 30 ? 'High' : page.bounceRate < 50 ? 'Medium' : 'Low' }}
+                </span>
+              </td>
+              <td class="cbp-performance-cell">
+                <div class="cbp-performance-indicators">
+                  <span class="cbp-perf-indicator cbp-perf-indicator--good" title="Load Time: Good">L</span>
+                  <span class="cbp-perf-indicator cbp-perf-indicator--excellent" title="Core Web Vitals: Excellent">C</span>
+                  <span class="cbp-perf-indicator cbp-perf-indicator--good" title="Accessibility: Good">A</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Drill-down Navigation -->
+<div *ngIf="drillDownLevel > 0" class="cbp-drill-nav" role="navigation" aria-label="Analytics drill-down navigation">
+  <button 
+    type="button"
+    class="usa-button usa-button--outline cbp-drill-back"
+    (click)="goBackToPrevious()"
+    title="Go back to previous level (Escape)">
+    <span class="usa-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+      </svg>
+    </span>
+    Back
+  </button>
+  
+  <div class="cbp-drill-breadcrumb">
+    <span class="cbp-breadcrumb-item" *ngFor="let item of drillDownHistory; let i = index">
+      {{ item.chart }}
+      <span *ngIf="i < drillDownHistory.length - 1" class="cbp-breadcrumb-separator">/</span>
+    </span>
+  </div>
+  
+</div>
+
+<!-- Keyboard Shortcuts Help -->
+<div class="cbp-shortcuts-help" aria-labelledby="shortcuts-title">
+  <details class="usa-accordion usa-accordion--bordered">
+    <summary class="usa-accordion__button" aria-expanded="false" aria-controls="shortcuts-content">
+      <span id="shortcuts-title">Keyboard Shortcuts</span>
+    </summary>
+    <div id="shortcuts-content" class="usa-accordion__content">
+      <div class="cbp-shortcuts-grid">
+        <div class="cbp-shortcut-item">
+          <kbd>Ctrl/Cmd + R</kbd>
+          <span>Real-time updates</span>
+        </div>
+        <div class="cbp-shortcut-item">
+          <kbd>Ctrl/Cmd + E</kbd>
+          <span>Export Analytics</span>
+        </div>
+        <div class="cbp-shortcut-item">
+          <kbd>Ctrl/Cmd + F</kbd>
+          <span>Toggle Filters</span>
+        </div>
+        <div class="cbp-shortcut-item">
+          <kbd>Ctrl/Cmd + 1-5</kbd>
+          <span>Change Time Range</span>
+        </div>
+        <div class="cbp-shortcut-item">
+          <kbd>Escape</kbd>
+          <span>Go Back (Drill-down)</span>
+        </div>
+      </div>
+    </div>
+  </details>
+</div>

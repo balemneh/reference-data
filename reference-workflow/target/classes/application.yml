@@ -1,0 +1,62 @@
+spring:
+  application:
+    name: reference-workflow
+  
+  datasource:
+    url: jdbc:postgresql://localhost:5432/reference_data
+    username: ${DB_USERNAME:ref_user}
+    password: ${DB_PASSWORD:ref_pass}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: workflow
+
+camunda:
+  bpm:
+    admin-user:
+      id: admin
+      password: admin
+      firstName: Admin
+      lastName: User
+    
+    filter:
+      create: All tasks
+    
+    authorization:
+      enabled: true
+    
+    history-level: full
+    
+    database:
+      type: postgres
+      schema-update: true
+    
+    job-execution:
+      enabled: true
+      max-jobs-per-acquisition: 3
+      wait-time-in-millis: 5000
+      max-wait: 60000
+      
+    metrics:
+      enabled: true
+      
+    webapp:
+      application-path: /camunda
+
+server:
+  port: 8082
+  servlet:
+    context-path: /workflow
+
+opa:
+  url: ${OPA_URL:http://localhost:8181}
+
+logging:
+  level:
+    org.camunda: INFO
+    gov.dhs.cbp.reference.workflow: DEBUG

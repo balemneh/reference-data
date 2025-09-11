@@ -1,0 +1,936 @@
+<div class="grid-container">
+  <!-- Enhanced Header Section -->
+  <div class="cbp-page-header cbp-fade-in">
+    <div class="cbp-page-header__content">
+      <div class="cbp-page-header__text">
+        <h1 class="cbp-page-header__title cbp-text-gradient">Import/Export Management</h1>
+        <p class="cbp-page-header__subtitle">Comprehensive data exchange hub for reference data systems with advanced validation and processing capabilities</p>
+      </div>
+      <div class="cbp-page-header__actions">
+        <button class="cbp-button cbp-button--secondary" (click)="downloadTemplate()" [disabled]="!selectedTemplate">
+          <svg class="cbp-button__icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#file_download"></use>
+          </svg>
+          Download Template
+        </button>
+        <button class="cbp-button cbp-button--primary" (click)="activeTab = 'import'">
+          <svg class="cbp-button__icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#cloud_upload"></use>
+          </svg>
+          Start Import
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enhanced Alert Messages -->
+  <div *ngIf="error" class="cbp-alert cbp-alert--error cbp-slide-up margin-bottom-3" role="alert">
+    <div class="cbp-alert__content">
+      <svg class="cbp-alert__icon" aria-hidden="true">
+        <use xlink:href="/assets/uswds/img/sprite.svg#error"></use>
+      </svg>
+      <div class="cbp-alert__body">
+        <h4 class="cbp-alert__title">Error</h4>
+        <p class="cbp-alert__text">{{ error }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Navigation Tabs -->
+  <div class="cbp-tabs-container cbp-slide-up">
+    <nav class="cbp-tabs-nav" role="tablist">
+      <button 
+        class="cbp-tab-button"
+        [class.cbp-tab-button--active]="activeTab === 'import'"
+        role="tab"
+        (click)="activeTab = 'import'"
+      >
+        <svg class="cbp-tab-icon" aria-hidden="true">
+          <use xlink:href="/assets/uswds/img/sprite.svg#cloud_upload"></use>
+        </svg>
+        Import Data
+      </button>
+      <button 
+        class="cbp-tab-button"
+        [class.cbp-tab-button--active]="activeTab === 'export'"
+        role="tab"
+        (click)="activeTab = 'export'"
+      >
+        <svg class="cbp-tab-icon" aria-hidden="true">
+          <use xlink:href="/assets/uswds/img/sprite.svg#cloud_download"></use>
+        </svg>
+        Export Data
+      </button>
+      <button 
+        class="cbp-tab-button"
+        [class.cbp-tab-button--active]="activeTab === 'history'"
+        role="tab"
+        (click)="activeTab = 'history'"
+      >
+        <svg class="cbp-tab-icon" aria-hidden="true">
+          <use xlink:href="/assets/uswds/img/sprite.svg#history"></use>
+        </svg>
+        Operation History
+        <span class="cbp-tab-badge" *ngIf="operationHistory.length > 0">{{ operationHistory.length }}</span>
+      </button>
+      <button 
+        class="cbp-tab-button"
+        [class.cbp-tab-button--active]="activeTab === 'scheduled'"
+        role="tab"
+        (click)="activeTab = 'scheduled'"
+      >
+        <svg class="cbp-tab-icon" aria-hidden="true">
+          <use xlink:href="/assets/uswds/img/sprite.svg#schedule"></use>
+        </svg>
+        Scheduled Exports
+        <span class="cbp-tab-badge" *ngIf="getEnabledScheduledExportsCount() > 0">{{ getEnabledScheduledExportsCount() }}</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- IMPORT TAB -->
+  <div class="cbp-tab-content" *ngIf="activeTab === 'import'" [@fadeSlide]>
+    <div class="cbp-import-container">
+      
+      <!-- Import Configuration Panel -->
+      <div class="cbp-config-panel">
+        <div class="cbp-config-header">
+          <h3 class="cbp-config-title">
+            <svg class="cbp-config-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#settings"></use>
+            </svg>
+            Import Configuration
+          </h3>
+        </div>
+        
+        <div class="cbp-config-content">
+          <div class="cbp-config-row">
+            <div class="cbp-config-field">
+              <label class="cbp-field-label" for="entity-type">
+                <svg class="cbp-label-icon" aria-hidden="true">
+                  <use xlink:href="/assets/uswds/img/sprite.svg#category"></use>
+                </svg>
+                Entity Type
+              </label>
+              <select 
+                class="cbp-select" 
+                id="entity-type" 
+                [(ngModel)]="entityType"
+              >
+                <option value="COUNTRIES">Countries</option>
+                <option value="PORTS">Ports</option>
+                <option value="AIRPORTS">Airports</option>
+              </select>
+            </div>
+
+            <div class="cbp-config-field">
+              <label class="cbp-field-label" for="import-format">
+                <svg class="cbp-label-icon" aria-hidden="true">
+                  <use xlink:href="/assets/uswds/img/sprite.svg#description"></use>
+                </svg>
+                File Format
+              </label>
+              <select 
+                class="cbp-select" 
+                id="import-format" 
+                [(ngModel)]="importFormat"
+              >
+                <option value="CSV">CSV (Comma-Separated Values)</option>
+                <option value="JSON">JSON (JavaScript Object Notation)</option>
+                <option value="XML">XML (Extensible Markup Language)</option>
+              </select>
+            </div>
+
+            <div class="cbp-config-field">
+              <label class="cbp-field-label" for="import-template">
+                <svg class="cbp-label-icon" aria-hidden="true">
+                  <use xlink:href="/assets/uswds/img/sprite.svg#template"></use>
+                </svg>
+                Import Template
+              </label>
+              <select 
+                class="cbp-select" 
+                id="import-template" 
+                [(ngModel)]="selectedTemplate"
+              >
+                <option *ngFor="let template of importTemplates" [ngValue]="template">
+                  {{ template.name }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="cbp-config-options" *ngIf="selectedTemplate">
+            <div class="cbp-template-info">
+              <div class="cbp-template-description">
+                <h4>Template Details</h4>
+                <p>{{ selectedTemplate.description }}</p>
+              </div>
+              <div class="cbp-template-fields">
+                <div class="cbp-field-group">
+                  <span class="cbp-field-group-title">Required Fields:</span>
+                  <div class="cbp-field-tags">
+                    <span class="cbp-field-tag cbp-field-tag--required" *ngFor="let field of selectedTemplate.requiredColumns">
+                      {{ field }}
+                    </span>
+                  </div>
+                </div>
+                <div class="cbp-field-group" *ngIf="selectedTemplate.optionalColumns.length > 0">
+                  <span class="cbp-field-group-title">Optional Fields:</span>
+                  <div class="cbp-field-tags">
+                    <span class="cbp-field-tag cbp-field-tag--optional" *ngFor="let field of selectedTemplate.optionalColumns">
+                      {{ field }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- File Upload Panel -->
+      <div class="cbp-upload-panel">
+        <div class="cbp-upload-header">
+          <h3 class="cbp-upload-title">
+            <svg class="cbp-upload-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#cloud_upload"></use>
+            </svg>
+            File Upload
+          </h3>
+        </div>
+        
+        <div class="cbp-upload-content">
+          <!-- Drag & Drop Zone -->
+          <div 
+            class="cbp-dropzone"
+            [class.cbp-dropzone--dragover]="dragOver"
+            [class.cbp-dropzone--has-file]="selectedFile"
+            (dragover)="onDragOver($event)"
+            (dragleave)="onDragLeave($event)"
+            (drop)="onDrop($event)"
+            #dropZone
+          >
+            <div class="cbp-dropzone-content" *ngIf="!selectedFile">
+              <svg class="cbp-dropzone-icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#cloud_upload"></use>
+              </svg>
+              <h4 class="cbp-dropzone-title">Drop your file here</h4>
+              <p class="cbp-dropzone-text">or</p>
+              <button class="cbp-button cbp-button--outline" (click)="fileInput.click()">
+                Choose File
+              </button>
+              <p class="cbp-dropzone-hint">
+                Supports CSV, JSON, XML files up to 50MB
+              </p>
+            </div>
+
+            <!-- Selected File Display -->
+            <div class="cbp-file-selected" *ngIf="selectedFile">
+              <div class="cbp-file-info">
+                <svg class="cbp-file-icon" aria-hidden="true">
+                  <use xlink:href="/assets/uswds/img/sprite.svg#description"></use>
+                </svg>
+                <div class="cbp-file-details">
+                  <div class="cbp-file-name">{{ selectedFile.name }}</div>
+                  <div class="cbp-file-meta">
+                    {{ formatFileSize(selectedFile.size) }} • {{ importFormat }} • {{ entityType }}
+                  </div>
+                </div>
+              </div>
+              <div class="cbp-file-actions">
+                <button class="cbp-button cbp-button--primary cbp-button--small" (click)="previewImport()" [disabled]="loading">
+                  <svg class="cbp-button__icon" aria-hidden="true" *ngIf="!loading">
+                    <use xlink:href="/assets/uswds/img/sprite.svg#visibility"></use>
+                  </svg>
+                  <span class="cbp-loading-spinner cbp-loading-spinner--small" *ngIf="loading"></span>
+                  Preview
+                </button>
+                <button class="cbp-button cbp-button--outline cbp-button--small" (click)="clearSelectedFile()">
+                  <svg class="cbp-button__icon" aria-hidden="true">
+                    <use xlink:href="/assets/uswds/img/sprite.svg#close"></use>
+                  </svg>
+                  Remove
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <input 
+            #fileInput 
+            type="file" 
+            class="cbp-file-input" 
+            accept=".csv,.json,.xml,.xlsx,.xls"
+            (change)="onFileSelected($event)"
+          />
+        </div>
+      </div>
+
+      <!-- Import Progress -->
+      <div class="cbp-progress-panel" *ngIf="isUploading">
+        <div class="cbp-progress-header">
+          <h4 class="cbp-progress-title">Import in Progress</h4>
+          <span class="cbp-progress-percentage">{{ uploadProgress.toFixed(0) }}%</span>
+        </div>
+        <div class="cbp-progress-bar">
+          <div class="cbp-progress-fill" [style.width.%]="uploadProgress"></div>
+        </div>
+        <div class="cbp-progress-status">
+          Processing {{ validationResults?.totalRecords || 0 }} records...
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Preview and Validation -->
+    <div class="cbp-preview-container" *ngIf="showPreview && previewData.length > 0">
+      <div class="cbp-preview-header">
+        <h3 class="cbp-preview-title">
+          <svg class="cbp-preview-icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#preview"></use>
+          </svg>
+          Data Preview & Validation
+        </h3>
+        <div class="cbp-preview-actions">
+          <button class="cbp-button cbp-button--outline cbp-button--small" (click)="openMappingModal()">
+            <svg class="cbp-button__icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#settings"></use>
+            </svg>
+            Configure Mapping
+          </button>
+          <button class="cbp-button cbp-button--secondary cbp-button--small" (click)="validateImport()" [disabled]="loading">
+            <svg class="cbp-button__icon" aria-hidden="true" *ngIf="!loading">
+              <use xlink:href="/assets/uswds/img/sprite.svg#check_circle"></use>
+            </svg>
+            <span class="cbp-loading-spinner cbp-loading-spinner--small" *ngIf="loading"></span>
+            Validate Data
+          </button>
+        </div>
+      </div>
+
+      <!-- Validation Results -->
+      <div class="cbp-validation-results" *ngIf="validationResults">
+        <div class="cbp-validation-summary">
+          <div class="cbp-validation-stat">
+            <div class="cbp-stat-value">{{ validationResults.totalRecords }}</div>
+            <div class="cbp-stat-label">Total Records</div>
+          </div>
+          <div class="cbp-validation-stat cbp-validation-stat--success">
+            <div class="cbp-stat-value">{{ validationResults.validRecords }}</div>
+            <div class="cbp-stat-label">Valid Records</div>
+          </div>
+          <div class="cbp-validation-stat cbp-validation-stat--error" *ngIf="validationResults.errors.length > 0">
+            <div class="cbp-stat-value">{{ validationResults.errors.length }}</div>
+            <div class="cbp-stat-label">Errors</div>
+          </div>
+          <div class="cbp-validation-stat cbp-validation-stat--warning" *ngIf="validationResults.warnings.length > 0">
+            <div class="cbp-stat-value">{{ validationResults.warnings.length }}</div>
+            <div class="cbp-stat-label">Warnings</div>
+          </div>
+        </div>
+
+        <!-- Validation Errors -->
+        <div class="cbp-validation-errors" *ngIf="validationResults.errors.length > 0">
+          <h4 class="cbp-errors-title">
+            <svg class="cbp-errors-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#error"></use>
+            </svg>
+            Validation Errors
+          </h4>
+          <div class="cbp-errors-list">
+            <div class="cbp-error-item" *ngFor="let error of validationResults.errors.slice(0, 10)">
+              <div class="cbp-error-header">
+                <span class="cbp-error-row">Row {{ error.row }}</span>
+                <span class="cbp-error-column">{{ error.column }}</span>
+              </div>
+              <div class="cbp-error-message">{{ error.error }}</div>
+              <div class="cbp-error-value" *ngIf="error.value">Value: "{{ error.value }}"</div>
+            </div>
+            <div class="cbp-errors-more" *ngIf="validationResults.errors.length > 10">
+              ... and {{ validationResults.errors.length - 10 }} more errors
+            </div>
+          </div>
+        </div>
+
+        <!-- Import Actions -->
+        <div class="cbp-import-actions" *ngIf="validationResults.isValid">
+          <button class="cbp-button cbp-button--primary cbp-button--large" (click)="executeImport()" [disabled]="isUploading">
+            <svg class="cbp-button__icon" aria-hidden="true" *ngIf="!isUploading">
+              <use xlink:href="/assets/uswds/img/sprite.svg#cloud_upload"></use>
+            </svg>
+            <span class="cbp-loading-spinner" *ngIf="isUploading"></span>
+            Import {{ validationResults.validRecords }} Records
+          </button>
+        </div>
+      </div>
+
+      <!-- Data Preview Table -->
+      <div class="cbp-preview-table">
+        <div class="cbp-table-wrapper">
+          <table class="cbp-table">
+            <thead class="cbp-table-head">
+              <tr class="cbp-table-row cbp-table-row--header">
+                <th class="cbp-table-cell" *ngFor="let column of Object.keys(previewData[0] || {}).slice(0, 8)">
+                  {{ column }}
+                </th>
+              </tr>
+            </thead>
+            <tbody class="cbp-table-body">
+              <tr class="cbp-table-row cbp-table-row--data" *ngFor="let row of previewData.slice(0, 5)">
+                <td class="cbp-table-cell" *ngFor="let column of Object.keys(row).slice(0, 8)">
+                  {{ row[column] }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="cbp-preview-note">
+          Showing first 5 rows of {{ previewData.length }} records
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPORT TAB -->
+  <div class="cbp-tab-content" *ngIf="activeTab === 'export'" [@fadeSlide]>
+    <div class="cbp-export-container">
+      
+      <!-- Export Configuration Panel -->
+      <div class="cbp-export-config-panel">
+        <div class="cbp-config-header">
+          <h3 class="cbp-config-title">
+            <svg class="cbp-config-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#settings"></use>
+            </svg>
+            Export Configuration
+          </h3>
+        </div>
+        
+        <div class="cbp-config-content">
+          <div class="cbp-config-row">
+            <div class="cbp-config-field">
+              <label class="cbp-field-label" for="export-entity-type">
+                <svg class="cbp-label-icon" aria-hidden="true">
+                  <use xlink:href="/assets/uswds/img/sprite.svg#category"></use>
+                </svg>
+                Entity Type
+              </label>
+              <select 
+                class="cbp-select" 
+                id="export-entity-type" 
+                [(ngModel)]="exportEntityType"
+              >
+                <option value="COUNTRIES">Countries</option>
+                <option value="PORTS">Ports</option>
+                <option value="AIRPORTS">Airports</option>
+                <option value="ALL">All Entity Types</option>
+              </select>
+            </div>
+
+            <div class="cbp-config-field">
+              <label class="cbp-field-label" for="export-format">
+                <svg class="cbp-label-icon" aria-hidden="true">
+                  <use xlink:href="/assets/uswds/img/sprite.svg#description"></use>
+                </svg>
+                Export Format
+              </label>
+              <select 
+                class="cbp-select" 
+                id="export-format" 
+                [(ngModel)]="exportFormat"
+              >
+                <option value="CSV">CSV (Comma-Separated Values)</option>
+                <option value="JSON">JSON (JavaScript Object Notation)</option>
+                <option value="XML">XML (Extensible Markup Language)</option>
+                <option value="EXCEL">Excel (XLSX)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Export Filters -->
+          <div class="cbp-export-filters">
+            <h4 class="cbp-filters-title">Export Filters</h4>
+            <div class="cbp-filters-grid">
+              <div class="cbp-filter-field">
+                <label class="cbp-field-label">
+                  <input type="checkbox" class="cbp-checkbox" [(ngModel)]="includeInactive">
+                  Include Inactive Records
+                </label>
+              </div>
+              
+              <div class="cbp-filter-field">
+                <label class="cbp-field-label" for="date-from">
+                  Date Range From
+                </label>
+                <input 
+                  class="cbp-input" 
+                  id="date-from" 
+                  type="date" 
+                  [(ngModel)]="dateRangeFrom"
+                />
+              </div>
+
+              <div class="cbp-filter-field">
+                <label class="cbp-field-label" for="date-to">
+                  Date Range To
+                </label>
+                <input 
+                  class="cbp-input" 
+                  id="date-to" 
+                  type="date" 
+                  [(ngModel)]="dateRangeTo"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Export Actions -->
+          <div class="cbp-export-actions">
+            <button class="cbp-button cbp-button--primary cbp-button--large" (click)="exportData()" [disabled]="isExporting">
+              <svg class="cbp-button__icon" aria-hidden="true" *ngIf="!isExporting">
+                <use xlink:href="/assets/uswds/img/sprite.svg#cloud_download"></use>
+              </svg>
+              <span class="cbp-loading-spinner" *ngIf="isExporting"></span>
+              Export Data
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Export Progress -->
+      <div class="cbp-progress-panel" *ngIf="isExporting">
+        <div class="cbp-progress-header">
+          <h4 class="cbp-progress-title">Export in Progress</h4>
+          <span class="cbp-progress-percentage">{{ exportProgress.toFixed(0) }}%</span>
+        </div>
+        <div class="cbp-progress-bar">
+          <div class="cbp-progress-fill" [style.width.%]="exportProgress"></div>
+        </div>
+        <div class="cbp-progress-status">
+          Generating {{ exportEntityType.toLowerCase() }} export...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div class="cbp-tab-content" *ngIf="activeTab === 'history'" [@fadeSlide]>
+    <div class="cbp-history-container">
+      
+      <!-- History Header -->
+      <div class="cbp-history-header">
+        <div class="cbp-history-title">
+          <h3>Operation History</h3>
+          <span class="cbp-history-count">{{ operationHistory.length }} operations</span>
+        </div>
+        <div class="cbp-history-search">
+          <div class="cbp-search-input">
+            <input
+              class="cbp-input cbp-input--search"
+              type="search"
+              placeholder="Search operations..."
+              (input)="onHistoryFilterInput($event)"
+            />
+            <svg class="cbp-search-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#search"></use>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- History Loading -->
+      <div class="cbp-history-loading" *ngIf="historyLoading">
+        <div class="cbp-loading-content">
+          <div class="cbp-loading-spinner"></div>
+          <span class="cbp-loading-text">Loading operation history...</span>
+        </div>
+      </div>
+
+      <!-- History Table -->
+      <div class="cbp-history-table" *ngIf="!historyLoading && operationHistory.length > 0">
+        <div class="cbp-table-wrapper">
+          <table class="cbp-table">
+            <thead class="cbp-table-head">
+              <tr class="cbp-table-row cbp-table-row--header">
+                <th class="cbp-table-cell">Type</th>
+                <th class="cbp-table-cell">Entity</th>
+                <th class="cbp-table-cell">File</th>
+                <th class="cbp-table-cell">Status</th>
+                <th class="cbp-table-cell">Records</th>
+                <th class="cbp-table-cell">Started</th>
+                <th class="cbp-table-cell">Duration</th>
+                <th class="cbp-table-cell">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="cbp-table-body">
+              <tr class="cbp-table-row cbp-table-row--data" *ngFor="let operation of operationHistory">
+                <td class="cbp-table-cell">
+                  <div class="cbp-operation-type">
+                    <svg class="cbp-operation-icon" [class]="'cbp-operation-icon--' + operation.operationType.toLowerCase()" aria-hidden="true">
+                      <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + (operation.operationType === 'IMPORT' ? 'cloud_upload' : 'cloud_download')"></use>
+                    </svg>
+                    {{ operation.operationType }}
+                  </div>
+                </td>
+                <td class="cbp-table-cell">
+                  <span class="cbp-entity-badge">{{ operation.entityType }}</span>
+                </td>
+                <td class="cbp-table-cell">
+                  <div class="cbp-file-info">
+                    <div class="cbp-file-name">{{ operation.fileName }}</div>
+                    <div class="cbp-file-size">{{ formatFileSize(operation.fileSize) }}</div>
+                  </div>
+                </td>
+                <td class="cbp-table-cell">
+                  <span class="cbp-status-badge" [class]="getStatusClass(operation.status)">
+                    <svg class="cbp-status-icon" aria-hidden="true">
+                      <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + getStatusIcon(operation.status)"></use>
+                    </svg>
+                    {{ operation.status }}
+                  </span>
+                </td>
+                <td class="cbp-table-cell">
+                  <div class="cbp-record-count">
+                    <div class="cbp-count-success" *ngIf="operation.successCount">
+                      ✓ {{ operation.successCount }}
+                    </div>
+                    <div class="cbp-count-error" *ngIf="operation.errorCount">
+                      ✗ {{ operation.errorCount }}
+                    </div>
+                  </div>
+                </td>
+                <td class="cbp-table-cell cbp-table-cell--date">
+                  {{ formatDate(operation.startTime) }}
+                </td>
+                <td class="cbp-table-cell">
+                  <span class="cbp-duration" *ngIf="operation.completedTime">
+                    {{ getDuration(operation.startTime, operation.completedTime) }}
+                  </span>
+                  <div class="cbp-progress-inline" *ngIf="operation.status === 'PROCESSING'">
+                    <div class="cbp-progress-bar cbp-progress-bar--small">
+                      <div class="cbp-progress-fill" [style.width.%]="operation.progress || 0"></div>
+                    </div>
+                    <span class="cbp-progress-text">{{ operation.progress || 0 }}%</span>
+                  </div>
+                </td>
+                <td class="cbp-table-cell cbp-table-cell--actions">
+                  <div class="cbp-action-buttons">
+                    <button 
+                      class="cbp-action-button cbp-action-button--download"
+                      (click)="downloadOperationFile(operation)"
+                      title="Download file"
+                      *ngIf="operation.status === 'COMPLETED'"
+                    >
+                      <svg class="cbp-action-icon" aria-hidden="true">
+                        <use xlink:href="/assets/uswds/img/sprite.svg#file_download"></use>
+                      </svg>
+                    </button>
+                    <button 
+                      class="cbp-action-button cbp-action-button--retry"
+                      (click)="retryOperation(operation)"
+                      title="Retry operation"
+                      *ngIf="operation.status === 'FAILED'"
+                    >
+                      <svg class="cbp-action-icon" aria-hidden="true">
+                        <use xlink:href="/assets/uswds/img/sprite.svg#replay"></use>
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- History Empty State -->
+      <div class="cbp-history-empty" *ngIf="!historyLoading && operationHistory.length === 0">
+        <div class="cbp-empty-state">
+          <svg class="cbp-empty-icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#history"></use>
+          </svg>
+          <h4 class="cbp-empty-title">No Operations Found</h4>
+          <p class="cbp-empty-text">Start importing or exporting data to see your operation history here.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCHEDULED EXPORTS TAB -->
+  <div class="cbp-tab-content" *ngIf="activeTab === 'scheduled'" [@fadeSlide]>
+    <div class="cbp-scheduled-container">
+      
+      <!-- Scheduled Header -->
+      <div class="cbp-scheduled-header">
+        <div class="cbp-scheduled-title">
+          <h3>Scheduled Exports</h3>
+          <span class="cbp-scheduled-count">{{ scheduledExports.length }} schedules</span>
+        </div>
+        <div class="cbp-scheduled-actions">
+          <button class="cbp-button cbp-button--primary" (click)="openScheduleModal()">
+            <svg class="cbp-button__icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#add"></use>
+            </svg>
+            Create Schedule
+          </button>
+        </div>
+      </div>
+
+      <!-- Scheduled Exports List -->
+      <div class="cbp-scheduled-list" *ngIf="scheduledExports.length > 0">
+        <div class="cbp-schedule-card" *ngFor="let schedule of scheduledExports">
+          <div class="cbp-schedule-header">
+            <div class="cbp-schedule-info">
+              <h4 class="cbp-schedule-name">{{ schedule.name }}</h4>
+              <div class="cbp-schedule-meta">
+                <span class="cbp-schedule-entity">{{ schedule.entityType }}</span>
+                <span class="cbp-schedule-format">{{ schedule.format }}</span>
+                <span class="cbp-schedule-frequency">{{ getCronDescription(schedule.schedule) }}</span>
+              </div>
+            </div>
+            <div class="cbp-schedule-status">
+              <div class="cbp-schedule-toggle">
+                <label class="cbp-toggle-switch">
+                  <input 
+                    type="checkbox" 
+                    [checked]="schedule.enabled"
+                    (change)="toggleScheduleEnabled(schedule)"
+                  >
+                  <span class="cbp-toggle-slider"></span>
+                </label>
+                <span class="cbp-toggle-label">{{ schedule.enabled ? 'Enabled' : 'Disabled' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="cbp-schedule-details">
+            <div class="cbp-schedule-timing">
+              <div class="cbp-timing-item" *ngIf="schedule.lastRun">
+                <span class="cbp-timing-label">Last Run:</span>
+                <span class="cbp-timing-value">{{ formatDate(schedule.lastRun) }}</span>
+              </div>
+              <div class="cbp-timing-item" *ngIf="schedule.nextRun && schedule.enabled">
+                <span class="cbp-timing-label">Next Run:</span>
+                <span class="cbp-timing-value">{{ formatDate(schedule.nextRun) }}</span>
+              </div>
+              <div class="cbp-timing-item">
+                <span class="cbp-timing-label">Created by:</span>
+                <span class="cbp-timing-value">{{ schedule.createdBy }}</span>
+              </div>
+            </div>
+
+            <div class="cbp-schedule-actions">
+              <button class="cbp-button cbp-button--outline cbp-button--small" (click)="openScheduleModal(schedule)">
+                <svg class="cbp-button__icon" aria-hidden="true">
+                  <use xlink:href="/assets/uswds/img/sprite.svg#edit"></use>
+                </svg>
+                Edit
+              </button>
+              <button class="cbp-button cbp-button--secondary cbp-button--small" (click)="deleteScheduledExport(schedule)">
+                <svg class="cbp-button__icon" aria-hidden="true">
+                  <use xlink:href="/assets/uswds/img/sprite.svg#delete"></use>
+                </svg>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scheduled Empty State -->
+      <div class="cbp-scheduled-empty" *ngIf="scheduledExports.length === 0">
+        <div class="cbp-empty-state">
+          <svg class="cbp-empty-icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#schedule"></use>
+          </svg>
+          <h4 class="cbp-empty-title">No Scheduled Exports</h4>
+          <p class="cbp-empty-text">Create automated export schedules to regularly export your reference data.</p>
+          <button class="cbp-button cbp-button--primary" (click)="openScheduleModal()">
+            <svg class="cbp-button__icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#add"></use>
+            </svg>
+            Create First Schedule
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Column Mapping Modal -->
+<div class="usa-modal" [class.is-visible]="showMappingModal" *ngIf="showMappingModal">
+  <div class="usa-modal__content cbp-modal-large">
+    <div class="usa-modal__header">
+      <h2 class="usa-modal__heading">Column Mapping Configuration</h2>
+    </div>
+    
+    <div class="usa-modal__main">
+      <p class="cbp-modal-description">
+        Map columns from your import file to the target database fields. Required fields must be mapped to proceed with the import.
+      </p>
+      
+      <div class="cbp-mapping-table">
+        <div class="cbp-mapping-header">
+          <div class="cbp-mapping-col">Source Column</div>
+          <div class="cbp-mapping-col">Target Field</div>
+          <div class="cbp-mapping-col">Data Type</div>
+          <div class="cbp-mapping-col">Sample Value</div>
+        </div>
+        
+        <div class="cbp-mapping-row" *ngFor="let mapping of columnMappings">
+          <div class="cbp-mapping-col">
+            <span class="cbp-source-column">{{ mapping.sourceColumn }}</span>
+            <span class="cbp-required-badge" *ngIf="mapping.required">Required</span>
+          </div>
+          <div class="cbp-mapping-col">
+            <select class="cbp-select" [(ngModel)]="mapping.targetField">
+              <option value="">-- Select Target Field --</option>
+              <option *ngFor="let field of getTargetFields()" [value]="field">{{ field }}</option>
+            </select>
+          </div>
+          <div class="cbp-mapping-col">
+            <select class="cbp-select" [(ngModel)]="mapping.dataType">
+              <option value="string">String</option>
+              <option value="number">Number</option>
+              <option value="boolean">Boolean</option>
+              <option value="date">Date</option>
+            </select>
+          </div>
+          <div class="cbp-mapping-col">
+            <code class="cbp-sample-value">{{ mapping.example }}</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="usa-modal__footer">
+      <ul class="usa-button-group">
+        <li class="usa-button-group__item">
+          <button type="button" class="usa-button" (click)="applyColumnMappings()">
+            Apply Mappings
+          </button>
+        </li>
+        <li class="usa-button-group__item">
+          <button type="button" class="usa-button usa-button--outline" (click)="closeMappingModal()">
+            Cancel
+          </button>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Schedule Modal -->
+<div class="usa-modal" [class.is-visible]="showScheduleModal" *ngIf="showScheduleModal">
+  <div class="usa-modal__content">
+    <div class="usa-modal__header">
+      <h2 class="usa-modal__heading">
+        {{ selectedSchedule ? 'Edit Scheduled Export' : 'Create Scheduled Export' }}
+      </h2>
+    </div>
+    
+    <div class="usa-modal__main">
+      <div *ngIf="error" class="usa-alert usa-alert--error margin-bottom-2">
+        <div class="usa-alert__body">
+          <p class="usa-alert__text">{{ error }}</p>
+        </div>
+      </div>
+
+      <form class="usa-form">
+        <div class="grid-row gap-2">
+          <div class="grid-col-12">
+            <label class="usa-label" for="schedule-name">
+              Schedule Name <abbr title="required" class="usa-hint usa-hint--required">*</abbr>
+            </label>
+            <input 
+              class="usa-input" 
+              id="schedule-name" 
+              type="text" 
+              [(ngModel)]="scheduleForm.name"
+              name="scheduleName"
+              required
+            />
+          </div>
+
+          <div class="grid-col-12 tablet:grid-col-6">
+            <label class="usa-label" for="schedule-entity-type">Entity Type</label>
+            <select 
+              class="usa-select" 
+              id="schedule-entity-type" 
+              [(ngModel)]="scheduleForm.entityType"
+              name="scheduleEntityType"
+            >
+              <option value="COUNTRIES">Countries</option>
+              <option value="PORTS">Ports</option>
+              <option value="AIRPORTS">Airports</option>
+              <option value="ALL">All Entity Types</option>
+            </select>
+          </div>
+
+          <div class="grid-col-12 tablet:grid-col-6">
+            <label class="usa-label" for="schedule-format">Export Format</label>
+            <select 
+              class="usa-select" 
+              id="schedule-format" 
+              [(ngModel)]="scheduleForm.format"
+              name="scheduleFormat"
+            >
+              <option value="CSV">CSV</option>
+              <option value="JSON">JSON</option>
+              <option value="XML">XML</option>
+              <option value="EXCEL">Excel</option>
+            </select>
+          </div>
+
+          <div class="grid-col-12">
+            <label class="usa-label" for="schedule-cron">Schedule (Cron Expression)</label>
+            <select 
+              class="usa-select" 
+              id="schedule-cron" 
+              [(ngModel)]="scheduleForm.schedule"
+              name="scheduleCron"
+            >
+              <option value="0 0 * * *">Daily at midnight</option>
+              <option value="0 0 * * 1">Weekly on Monday</option>
+              <option value="0 0 1 * *">Monthly on 1st</option>
+              <option value="0 2 * * *">Daily at 2 AM</option>
+              <option value="0 0 * * 0">Weekly on Sunday</option>
+            </select>
+          </div>
+
+          <div class="grid-col-12">
+            <fieldset class="usa-fieldset">
+              <legend class="usa-legend">Status</legend>
+              <div class="usa-checkbox">
+                <input 
+                  class="usa-checkbox__input" 
+                  id="schedule-enabled" 
+                  type="checkbox" 
+                  [(ngModel)]="scheduleForm.enabled"
+                  name="scheduleEnabled"
+                />
+                <label class="usa-checkbox__label" for="schedule-enabled">
+                  Enable this scheduled export
+                </label>
+              </div>
+            </fieldset>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="usa-modal__footer">
+      <ul class="usa-button-group">
+        <li class="usa-button-group__item">
+          <button type="button" class="usa-button" (click)="saveScheduledExport()">
+            {{ selectedSchedule ? 'Update Schedule' : 'Create Schedule' }}
+          </button>
+        </li>
+        <li class="usa-button-group__item">
+          <button type="button" class="usa-button usa-button--outline" (click)="closeScheduleModal()">
+            Cancel
+          </button>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>

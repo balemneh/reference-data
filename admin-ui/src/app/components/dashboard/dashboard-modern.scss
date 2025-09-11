@@ -1,0 +1,418 @@
+/* Modern Dashboard Design - Beautiful & Professional */
+
+// Dashboard Container
+.dashboard-container {
+  padding: 2rem;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  min-height: calc(100vh - 128px);
+}
+
+// Dashboard Header
+.dashboard-header {
+  margin-bottom: 2.5rem;
+  
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.025em;
+  }
+  
+  p {
+    font-size: 1rem;
+    color: #64748b;
+    margin: 0;
+  }
+}
+
+// Beautiful Card Grid
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+// Stunning Metric Cards
+.metric-card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 20px 25px -5px rgba(0, 0, 0, 0.05),
+    0 10px 10px -5px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 
+      0 4px 6px rgba(0, 0, 0, 0.05),
+      0 20px 25px -5px rgba(0, 0, 0, 0.08),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+  
+  // Colored accent bar
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
+  }
+  
+  &--countries::before {
+    background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+  }
+  
+  &--ports::before {
+    background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+  }
+  
+  &--airports::before {
+    background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+  }
+  
+  .metric-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+  
+  .metric-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  
+  .metric-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: #f0fdf4;
+    color: #16a34a;
+    
+    &--operational {
+      background: #eff6ff;
+      color: #2563eb;
+    }
+    
+    &--warning {
+      background: #fef3c7;
+      color: #d97706;
+    }
+  }
+  
+  .metric-value {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+  
+  .metric-subtitle {
+    font-size: 0.875rem;
+    color: #94a3b8;
+    margin-bottom: 1.5rem;
+  }
+  
+  .metric-chart {
+    height: 60px;
+    background: linear-gradient(to top, rgba(59, 130, 246, 0.05), transparent);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    position: relative;
+    overflow: hidden;
+    
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+  }
+  
+  .metric-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 1rem;
+    border-top: 1px solid #f1f5f9;
+    
+    .metric-trend {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      
+      &--up {
+        color: #16a34a;
+      }
+      
+      &--down {
+        color: #dc2626;
+      }
+    }
+    
+    .metric-action {
+      color: #3b82f6;
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-decoration: none;
+      
+      &:hover {
+        color: #2563eb;
+      }
+    }
+  }
+}
+
+// Data Quality Score Card - Beautiful Design
+.quality-score-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 20px 25px -5px rgba(0, 0, 0, 0.05),
+    0 10px 10px -5px rgba(0, 0, 0, 0.02);
+  
+  .quality-header {
+    margin-bottom: 2rem;
+    
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 0.5rem;
+    }
+    
+    p {
+      font-size: 0.875rem;
+      color: #64748b;
+    }
+  }
+  
+  .quality-metrics {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 2rem;
+    align-items: center;
+  }
+  
+  .quality-score-circle {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    
+    .score-ring {
+      transform: rotate(-90deg);
+      
+      circle {
+        fill: none;
+        stroke-width: 12;
+        
+        &.score-bg {
+          stroke: #f1f5f9;
+        }
+        
+        &.score-fill {
+          stroke: url(#scoreGradient);
+          stroke-linecap: round;
+          transition: stroke-dashoffset 1s ease;
+        }
+      }
+    }
+    
+    .score-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      
+      .score-value {
+        font-size: 3rem;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1;
+      }
+      
+      .score-label {
+        font-size: 0.875rem;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 0.5rem;
+      }
+    }
+  }
+  
+  .quality-breakdown {
+    flex: 1;
+    
+    .quality-item {
+      margin-bottom: 1.5rem;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+      
+      .quality-item-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        
+        .quality-item-name {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #475569;
+        }
+        
+        .quality-item-value {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #0f172a;
+        }
+      }
+      
+      .quality-item-bar {
+        height: 8px;
+        background: #f1f5f9;
+        border-radius: 9999px;
+        overflow: hidden;
+        
+        .quality-item-fill {
+          height: 100%;
+          border-radius: 9999px;
+          transition: width 1s ease;
+          
+          &--completeness {
+            background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+          }
+          
+          &--consistency {
+            background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+          }
+          
+          &--validity {
+            background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+          }
+          
+          &--uniqueness {
+            background: linear-gradient(90deg, #8b5cf6 0%, #a78bfa 100%);
+          }
+        }
+      }
+    }
+  }
+}
+
+// System Health Card
+.system-health-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 20px 25px -5px rgba(0, 0, 0, 0.05),
+    0 10px 10px -5px rgba(0, 0, 0, 0.02);
+  
+  .health-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    
+    .health-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      
+      .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #10b981;
+        animation: pulse 2s infinite;
+      }
+      
+      .status-text {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #10b981;
+      }
+    }
+  }
+  
+  .health-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    
+    .health-metric {
+      .health-metric-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+      }
+      
+      .health-metric-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #0f172a;
+      }
+    }
+  }
+}
+
+// Animations
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 1rem;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .quality-metrics {
+    grid-template-columns: 1fr;
+    
+    .quality-score-circle {
+      margin: 0 auto;
+    }
+  }
+}

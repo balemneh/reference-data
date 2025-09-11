@@ -1,0 +1,546 @@
+// Sidebar Navigation Styles
+
+.cbp-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  padding-top: 128px; // Default: banner (25px) + header (103px)
+  height: 100vh;
+  width: 250px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+  border-right: 1px solid rgba(0, 51, 102, 0.1);
+  box-shadow: 2px 0 8px rgba(0, 51, 102, 0.08);
+  z-index: 900; // Below banner and header
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  
+  // Collapsed state
+  &.cbp-sidebar--collapsed {
+    width: 60px;
+    
+    .cbp-sidebar__submenu {
+      display: none !important;
+    }
+  }
+  
+  // Dark theme support
+}
+
+// Sidebar Header
+.cbp-sidebar__header {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(0, 51, 102, 0.08);
+  min-height: 64px;
+}
+
+.cbp-sidebar__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  
+  &:hover {
+    background: rgba(0, 51, 102, 0.08);
+    color: #003366;
+    transform: scale(1.05);
+  }
+  
+  &:focus {
+    outline: 2px solid #005a9c;
+    outline-offset: 2px;
+  }
+}
+
+.cbp-sidebar__toggle-icon {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.2s ease;
+}
+
+.cbp-sidebar__title {
+  margin-left: 0.75rem;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #003366;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+  
+  .cbp-sidebar--collapsed & {
+    opacity: 0;
+  }
+}
+
+// Sidebar Content
+.cbp-sidebar__content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1rem 0;
+  
+  // Custom scrollbar
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 51, 102, 0.2) transparent;
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 51, 102, 0.2);
+    border-radius: 3px;
+    
+    &:hover {
+      background: rgba(0, 51, 102, 0.3);
+    }
+  }
+}
+
+.cbp-sidebar__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cbp-sidebar__item {
+  margin: 0 0.75rem 0.25rem 0.75rem;
+  
+  .cbp-sidebar--collapsed & {
+    margin: 0 0.5rem 0.25rem 0.5rem;
+  }
+}
+
+// Regular Navigation Links
+.cbp-sidebar__link {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  color: #6b7280;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  font-size: 0.875rem;
+  position: relative;
+  
+  &:hover {
+    background: rgba(0, 51, 102, 0.05);
+    color: #003366;
+    transform: translateX(2px);
+    
+    .cbp-sidebar__icon {
+      transform: scale(1.1);
+      color: #005a9c;
+    }
+  }
+  
+  &.cbp-sidebar__link--active,
+  .cbp-sidebar__item--active & {
+    background: linear-gradient(90deg, rgba(0, 90, 156, 0.1) 0%, rgba(0, 90, 156, 0.05) 100%);
+    color: #003366;
+    font-weight: 600;
+    border-left: 3px solid #005a9c;
+    
+    .cbp-sidebar__icon {
+      color: #005a9c;
+    }
+  }
+  
+  &:focus {
+    outline: 2px solid #005a9c;
+    outline-offset: -2px;
+  }
+  
+  .cbp-sidebar--collapsed & {
+    padding: 0.75rem;
+    justify-content: center;
+  }
+}
+
+.cbp-sidebar__link-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.cbp-sidebar__icon {
+  width: 20px;
+  height: 20px;
+  color: currentColor;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.cbp-sidebar__text {
+  margin-left: 0.75rem;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  
+  .cbp-sidebar--collapsed & {
+    opacity: 0;
+    width: 0;
+    margin-left: 0;
+  }
+}
+
+.cbp-sidebar__badge {
+  margin-left: auto;
+  background: #ef4444;
+  color: white;
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse 2s infinite;
+  
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+  
+  .cbp-sidebar--collapsed & {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    margin-left: 0;
+  }
+}
+
+// Category Buttons
+.cbp-sidebar__category {
+  display: flex !important;
+  align-items: center;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  margin: 0.25rem 0;
+  background: rgba(0, 90, 156, 0.1);
+  border: 1px solid rgba(0, 90, 156, 0.2);
+  border-left: 3px solid #005a9c;
+  color: #003366;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-align: left;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(0, 51, 102, 0.05);
+    color: #003366;
+    
+    .cbp-sidebar__icon {
+      transform: scale(1.1);
+      color: #005a9c;
+    }
+  }
+  
+  &.cbp-sidebar__category--expanded {
+    background: rgba(0, 51, 102, 0.08);
+    border-left-color: #005a9c;
+    color: #003366;
+    
+    .cbp-sidebar__expand-icon {
+      color: #003366;
+    }
+  }
+  
+  &.cbp-sidebar__category--active {
+    background: rgba(0, 51, 102, 0.08);
+    color: #003366;
+    
+    .cbp-sidebar__icon {
+      color: #005a9c;
+    }
+  }
+  
+  &:focus {
+    outline: 2px solid #005a9c;
+    outline-offset: -2px;
+  }
+  
+  .cbp-sidebar--collapsed & {
+    padding: 0.75rem;
+    justify-content: center;
+  }
+}
+
+.cbp-sidebar__category-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.cbp-sidebar__expand-icon {
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  color: #6b7280;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+  
+  &.cbp-sidebar__expand-icon--rotated {
+    transform: rotate(180deg);
+  }
+}
+
+// Submenu
+.cbp-sidebar__submenu {
+  list-style: none;
+  margin: 0.5rem 0 0.5rem 1.5rem;
+  padding: 0.25rem 0 0.25rem 0.5rem;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-left: 2px solid rgba(0, 90, 156, 0.3);
+  
+  &.cbp-sidebar__submenu--expanded {
+    max-height: 500px; // Generous max height for animation
+    background: linear-gradient(to right, rgba(0, 90, 156, 0.05), transparent);
+  }
+}
+
+.cbp-sidebar__subitem {
+  margin: 0.125rem 0;
+}
+
+.cbp-sidebar__sublink {
+  display: flex;
+  align-items: center;
+  padding: 0.625rem 1rem 0.625rem 2.5rem;
+  color: #6b7280;
+  text-decoration: none;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  font-weight: 400;
+  font-size: 0.8125rem;
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    left: 1.75rem;
+    top: 50%;
+    width: 4px;
+    height: 4px;
+    background: #d1d5db;
+    border-radius: 50%;
+    transform: translateY(-50%);
+    transition: all 0.2s ease;
+  }
+  
+  &:hover {
+    background: rgba(0, 51, 102, 0.04);
+    color: #374151;
+    transform: translateX(2px);
+    
+    &::before {
+      background: #005a9c;
+      transform: translateY(-50%) scale(1.2);
+    }
+    
+    .cbp-sidebar__subicon {
+      color: #005a9c;
+    }
+  }
+  
+  &.cbp-sidebar__sublink--active,
+  .cbp-sidebar__subitem--active & {
+    background: rgba(0, 90, 156, 0.08);
+    color: #003366;
+    font-weight: 600;
+    
+    &::before {
+      background: #005a9c;
+      transform: translateY(-50%) scale(1.5);
+    }
+    
+    .cbp-sidebar__subicon {
+      color: #005a9c;
+    }
+  }
+  
+  &:focus {
+    outline: 2px solid #005a9c;
+    outline-offset: -2px;
+  }
+}
+
+.cbp-sidebar__sublink-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.cbp-sidebar__subicon {
+  width: 16px;
+  height: 16px;
+  color: currentColor;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.cbp-sidebar__subtext {
+  margin-left: 0.625rem;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cbp-sidebar__badge--sub {
+  font-size: 0.5625rem;
+  padding: 0.1875rem 0.375rem;
+  min-width: 16px;
+  height: 16px;
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .cbp-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &.cbp-sidebar--mobile-open {
+      transform: translateX(0);
+    }
+    
+    &.cbp-sidebar--collapsed {
+      width: 250px; // Full width on mobile
+    }
+  }
+  
+  // Mobile backdrop
+  .cbp-sidebar__backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    
+    &.cbp-sidebar__backdrop--visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+}
+
+// Accessibility improvements
+@media (prefers-reduced-motion: reduce) {
+  .cbp-sidebar,
+  .cbp-sidebar__link,
+  .cbp-sidebar__category,
+  .cbp-sidebar__sublink,
+  .cbp-sidebar__submenu,
+  .cbp-sidebar__toggle-icon,
+  .cbp-sidebar__expand-icon,
+  .cbp-sidebar__icon,
+  .cbp-sidebar__subicon {
+    transition: none;
+  }
+  
+  .cbp-sidebar__badge {
+    animation: none;
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .cbp-sidebar {
+    border-right-width: 2px;
+  }
+  
+  .cbp-sidebar__link--active,
+  .cbp-sidebar__item--active .cbp-sidebar__link {
+    border-left-width: 4px;
+  }
+  
+  .cbp-sidebar__sublink::before {
+    width: 6px;
+    height: 6px;
+  }
+}
+
+// Focus visible for better keyboard navigation
+.cbp-sidebar__toggle:focus-visible,
+.cbp-sidebar__link:focus-visible,
+.cbp-sidebar__category:focus-visible,
+.cbp-sidebar__sublink:focus-visible {
+  outline: 2px solid #005a9c;
+  outline-offset: 2px;
+}
+
+// Tooltip for collapsed state
+.cbp-sidebar--collapsed {
+  .cbp-sidebar__link,
+  .cbp-sidebar__category {
+    position: relative;
+    
+    &:hover::after {
+      content: attr(title);
+      position: absolute;
+      left: calc(100% + 8px);
+      top: 50%;
+      transform: translateY(-50%);
+      background: #1f2937;
+      color: white;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      white-space: nowrap;
+      z-index: 1001;
+      pointer-events: none;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    &:hover::before {
+      // Arrow pointing to sidebar
+      content: '';
+      position: absolute;
+      left: calc(100% + 4px);
+      top: 50%;
+      transform: translateY(-50%);
+      border: 4px solid transparent;
+      border-right-color: #1f2937;
+      z-index: 1001;
+    }
+  }
+}

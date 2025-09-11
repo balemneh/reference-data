@@ -1,0 +1,409 @@
+/* CBP Skeleton Loader Component */
+
+.cbp-skeleton {
+  --skeleton-base: var(--cbp-neutral-200);
+  --skeleton-highlight: var(--cbp-neutral-100);
+  --skeleton-radius: var(--cbp-radius-md);
+  
+  &--animated {
+    * {
+      animation: cbpSkeletonPulse 2s ease-in-out infinite;
+    }
+  }
+}
+
+// Base skeleton elements
+.cbp-skeleton__line {
+  background: var(--skeleton-base);
+  border-radius: var(--skeleton-radius);
+  height: 1rem;
+  margin-bottom: 0.5rem;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+  
+  &--title {
+    height: 1.5rem;
+    width: 70%;
+    margin-bottom: 0.75rem;
+  }
+  
+  &--subtitle {
+    height: 0.875rem;
+    width: 50%;
+    opacity: 0.8;
+  }
+  
+  &--time {
+    height: 0.75rem;
+    width: 80px;
+    margin-left: auto;
+  }
+}
+
+.cbp-skeleton__avatar {
+  background: var(--skeleton-base);
+  border-radius: 50%;
+  flex-shrink: 0;
+  
+  &--sm {
+    width: 32px;
+    height: 32px;
+  }
+  
+  &--md {
+    width: 40px;
+    height: 40px;
+  }
+  
+  &--lg {
+    width: 64px;
+    height: 64px;
+  }
+  
+  &--xl {
+    width: 80px;
+    height: 80px;
+  }
+}
+
+.cbp-skeleton__button {
+  background: var(--skeleton-base);
+  border-radius: var(--skeleton-radius);
+  height: 2.5rem;
+  width: 120px;
+}
+
+.cbp-skeleton__badge {
+  background: var(--skeleton-base);
+  border-radius: 9999px;
+  height: 1.5rem;
+  width: 60px;
+}
+
+.cbp-skeleton__progress {
+  background: var(--skeleton-base);
+  border-radius: var(--skeleton-radius);
+  height: 8px;
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
+// Text skeleton variations
+.cbp-skeleton--text {
+  .cbp-skeleton__line {
+    &:nth-child(odd) {
+      width: 100%;
+    }
+    
+    &:nth-child(even) {
+      width: 75%;
+    }
+    
+    &:last-child {
+      width: 60%;
+    }
+  }
+  
+  &.cbp-skeleton--sm .cbp-skeleton__line {
+    height: 0.875rem;
+    margin-bottom: 0.375rem;
+  }
+  
+  &.cbp-skeleton--lg .cbp-skeleton__line {
+    height: 1.25rem;
+    margin-bottom: 0.75rem;
+  }
+}
+
+// Card skeleton
+.cbp-skeleton--card {
+  background: white;
+  border-radius: var(--cbp-radius-lg);
+  border: 1px solid var(--cbp-neutral-200);
+  padding: var(--cbp-space-lg);
+}
+
+.cbp-skeleton__card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--cbp-space-md);
+  margin-bottom: var(--cbp-space-lg);
+}
+
+.cbp-skeleton__card-content {
+  flex: 1;
+}
+
+.cbp-skeleton__card-body {
+  .cbp-skeleton__line {
+    &:nth-child(1) { width: 90%; }
+    &:nth-child(2) { width: 85%; }
+    &:nth-child(3) { width: 70%; }
+  }
+}
+
+// Metric card skeleton
+.cbp-skeleton--metric {
+  background: white;
+  border-radius: var(--cbp-radius-xl);
+  border: 1px solid var(--cbp-neutral-200);
+  padding: var(--cbp-space-xl);
+}
+
+.cbp-skeleton__metric {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbp-space-md);
+}
+
+.cbp-skeleton__metric-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--cbp-space-lg);
+}
+
+.cbp-skeleton__metric-value {
+  background: var(--skeleton-base);
+  border-radius: var(--skeleton-radius);
+  height: 3rem;
+  width: 120px;
+  margin-bottom: var(--cbp-space-md);
+}
+
+// Chart skeleton
+.cbp-skeleton--chart {
+  background: white;
+  border-radius: var(--cbp-radius-xl);
+  border: 1px solid var(--cbp-neutral-200);
+  padding: var(--cbp-space-xl);
+}
+
+.cbp-skeleton__chart-header {
+  margin-bottom: var(--cbp-space-lg);
+  padding-bottom: var(--cbp-space-lg);
+  border-bottom: 1px solid var(--cbp-neutral-100);
+}
+
+.cbp-skeleton__chart-placeholder {
+  background: var(--skeleton-base);
+  border-radius: var(--skeleton-radius);
+  height: 250px;
+  width: 100%;
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    background: var(--skeleton-highlight);
+    border-radius: 50%;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    height: 8px;
+    background: var(--skeleton-highlight);
+    border-radius: 4px;
+  }
+}
+
+// Table skeleton
+.cbp-skeleton--table {
+  background: white;
+  border-radius: var(--cbp-radius-lg);
+  border: 1px solid var(--cbp-neutral-200);
+  overflow: hidden;
+}
+
+.cbp-skeleton__table-header {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 4), 1fr);
+  gap: var(--cbp-space-md);
+  padding: var(--cbp-space-lg);
+  background: var(--cbp-neutral-50);
+  border-bottom: 1px solid var(--cbp-neutral-200);
+  
+  .cbp-skeleton__table-cell {
+    background: var(--skeleton-base);
+    height: 1.25rem;
+    border-radius: var(--skeleton-radius);
+  }
+}
+
+.cbp-skeleton__table-row {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 4), 1fr);
+  gap: var(--cbp-space-md);
+  padding: var(--cbp-space-lg);
+  border-bottom: 1px solid var(--cbp-neutral-100);
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  .cbp-skeleton__table-cell {
+    background: var(--skeleton-base);
+    height: 1rem;
+    border-radius: var(--skeleton-radius);
+    
+    &:first-child {
+      width: 80%;
+    }
+    
+    &:last-child {
+      width: 60%;
+    }
+  }
+}
+
+// Activity skeleton
+.cbp-skeleton--activity {
+  padding: var(--cbp-space-lg);
+}
+
+.cbp-skeleton__activity {
+  display: flex;
+  gap: var(--cbp-space-lg);
+  margin-bottom: var(--cbp-space-xl);
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.cbp-skeleton__activity-dot {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--skeleton-base);
+  flex-shrink: 0;
+  margin-top: var(--cbp-space-xs);
+}
+
+.cbp-skeleton__activity-content {
+  flex: 1;
+  padding-top: var(--cbp-space-xs);
+}
+
+.cbp-skeleton__activity-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--cbp-space-sm);
+  
+  .cbp-skeleton__line--title {
+    width: 40%;
+  }
+}
+
+.cbp-skeleton__activity-body {
+  background: var(--cbp-neutral-50);
+  border-radius: var(--cbp-radius-md);
+  padding: var(--cbp-space-md);
+  border-left: 3px solid var(--skeleton-base);
+  
+  .cbp-skeleton__line {
+    &:first-child { width: 95%; }
+    &:last-child { width: 70%; }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .cbp-skeleton--card {
+    padding: var(--cbp-space-md);
+  }
+  
+  .cbp-skeleton--metric {
+    padding: var(--cbp-space-lg);
+  }
+  
+  .cbp-skeleton--chart {
+    padding: var(--cbp-space-lg);
+  }
+  
+  .cbp-skeleton__chart-placeholder {
+    height: 200px;
+  }
+  
+  .cbp-skeleton__table-header,
+  .cbp-skeleton__table-row {
+    padding: var(--cbp-space-md);
+    gap: var(--cbp-space-sm);
+  }
+  
+  .cbp-skeleton__activity {
+    gap: var(--cbp-space-md);
+  }
+  
+  .cbp-skeleton__activity-dot {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+// Dark theme support removed
+
+// Pulse animation
+@keyframes cbpSkeletonPulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+// Shimmer animation (alternative)
+@keyframes cbpSkeletonShimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.cbp-skeleton--shimmer {
+  * {
+    animation: none !important;
+    background: linear-gradient(
+      90deg,
+      var(--skeleton-base) 25%,
+      var(--skeleton-highlight) 50%,
+      var(--skeleton-base) 75%
+    );
+    background-size: 200px 100%;
+    animation: cbpSkeletonShimmer 2s infinite linear;
+  }
+}
+
+// High contrast mode
+@media (prefers-contrast: high) {
+  .cbp-skeleton {
+    --skeleton-base: #666;
+    --skeleton-highlight: #888;
+  }
+}
+
+// Reduced motion
+@media (prefers-reduced-motion: reduce) {
+  .cbp-skeleton--animated *,
+  .cbp-skeleton--shimmer * {
+    animation: none !important;
+  }
+}

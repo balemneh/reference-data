@@ -1,0 +1,418 @@
+<!-- Change Requests Management Page -->
+<div class="grid-container">
+  <!-- Page Header -->
+  <div class="cbp-page-header cbp-fade-in">
+    <div class="cbp-page-header__content">
+      <div class="cbp-page-header__text">
+        <h1 class="cbp-page-header__title cbp-text-gradient">Change Requests Management</h1>
+        <p class="cbp-page-header__subtitle">Review and manage pending data modification requests with full audit trail</p>
+      </div>
+      <div class="cbp-page-header__actions">
+        <div class="cbp-badge-container">
+          <span class="cbp-badge cbp-badge--warning" *ngIf="pendingRequests.length > 0">
+            {{ pendingRequests.length }} Pending
+          </span>
+          <span class="cbp-badge cbp-badge--success" *ngIf="pendingRequests.length === 0">
+            All Caught Up
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Message -->
+  <div *ngIf="successMessage" class="cbp-alert cbp-alert--success cbp-slide-up margin-bottom-3" role="alert">
+    <div class="cbp-alert__content">
+      <span class="cbp-alert__icon">✓</span>
+      <div class="cbp-alert__body">
+        <h4 class="cbp-alert__title">Success</h4>
+        <p class="cbp-alert__text">{{ successMessage }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="error" class="cbp-alert cbp-alert--error cbp-slide-up margin-bottom-3" role="alert">
+    <div class="cbp-alert__content">
+      <span class="cbp-alert__icon">⚠</span>
+      <div class="cbp-alert__body">
+        <h4 class="cbp-alert__title">Error</h4>
+        <p class="cbp-alert__text">{{ error }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters and Actions Bar -->
+  <div class="cbp-filters-container cbp-slide-up">
+    <div class="cbp-filters-card">
+      <div class="cbp-filters-header">
+        <div class="cbp-filters-title">
+          <h3>Filter & Search</h3>
+        </div>
+        <div class="cbp-filters-count" *ngIf="changeRequests.length > 0">
+          <span class="cbp-count-badge">{{ changeRequests.length }}</span> results
+        </div>
+      </div>
+      
+      <div class="cbp-filters-content">
+        <!-- Search -->
+        <div class="cbp-search-field">
+          <label class="cbp-field-label" for="search-requests">
+            Search Requests
+          </label>
+          <div class="cbp-search-input">
+            <input
+              #searchInput
+              class="cbp-input cbp-input--search"
+              id="search-requests"
+              type="search"
+              placeholder="Search by description, ID, or requester..."
+              (input)="onSearchInput($event)"
+              [value]="searchTerm"
+            />
+            <button 
+              class="cbp-search-clear" 
+              type="button" 
+              *ngIf="searchTerm" 
+              (click)="clearSearch()"
+              aria-label="Clear search"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <div class="cbp-filters-row">
+          <!-- Status Filter -->
+          <div class="cbp-filter-field">
+            <label class="cbp-field-label" for="status-filter">
+              Status
+            </label>
+            <select 
+              class="cbp-select" 
+              id="status-filter" 
+              (change)="onStatusFilterChange($any($event.target).value)"
+            >
+              <option value="">All Statuses</option>
+              <option *ngFor="let status of availableStatuses" [value]="status">{{ status }}</option>
+            </select>
+          </div>
+
+          <!-- Entity Type Filter -->
+          <div class="cbp-filter-field">
+            <label class="cbp-field-label" for="entity-type-filter">
+              Entity Type
+            </label>
+            <select 
+              class="cbp-select" 
+              id="entity-type-filter" 
+              (change)="onEntityTypeFilterChange($any($event.target).value)"
+            >
+              <option value="">All Types</option>
+              <option *ngFor="let type of availableEntityTypes" [value]="type">{{ type }}</option>
+            </select>
+          </div>
+
+          <!-- Bulk Actions -->
+          <div class="cbp-filter-actions">
+            <div class="cbp-bulk-actions" *ngIf="hasSelectedItems">
+              <button 
+                class="cbp-button cbp-button--secondary cbp-button--small" 
+                (click)="bulkApprove()" 
+                [disabled]="!hasSelectedItems">
+                ✓ Approve
+              </button>
+              <button 
+                class="cbp-button cbp-button--outline cbp-button--small" 
+                (click)="bulkReject()" 
+                [disabled]="!hasSelectedItems">
+                ✗ Reject
+              </button>
+              <button 
+                class="cbp-button cbp-button--outline cbp-button--small" 
+                (click)="exportSelected()" 
+                [disabled]="!hasSelectedItems">
+                ⬇ Export
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Table -->
+  <div class="cbp-table-container cbp-slide-up-delay">
+    <div class="cbp-table-card">
+      <!-- Loading State -->
+      <div *ngIf="loading" class="cbp-loading-state">
+        <div class="cbp-spinner"></div>
+        <p>Loading change requests...</p>
+      </div>
+
+      <!-- Table -->
+      <div *ngIf="!loading" class="cbp-table-wrapper">
+        <table class="cbp-table">
+          <thead class="cbp-table-header">
+            <tr>
+              <th class="cbp-table-header__cell cbp-table-header__cell--checkbox">
+                <input 
+                  type="checkbox" 
+                  class="cbp-checkbox"
+                  [checked]="selectAll"
+                  (change)="toggleSelectAll()"
+                  [disabled]="changeRequests.length === 0"
+                />
+              </th>
+              <th class="cbp-table-header__cell cbp-table-header__cell--sortable" 
+                  (click)="sort('changeType')">
+                Change Type
+              </th>
+              <th class="cbp-table-header__cell cbp-table-header__cell--sortable" 
+                  (click)="sort('entityType')">
+                Entity Type
+              </th>
+              <th class="cbp-table-header__cell cbp-table-header__cell--sortable" 
+                  (click)="sort('description')">
+                Description
+              </th>
+              <th class="cbp-table-header__cell cbp-table-header__cell--sortable" 
+                  (click)="sort('requestedBy')">
+                Requested By
+              </th>
+              <th class="cbp-table-header__cell cbp-table-header__cell--sortable" 
+                  (click)="sort('status')">
+                Status
+              </th>
+              <th class="cbp-table-header__cell cbp-table-header__cell--sortable" 
+                  (click)="sort('createdAt')">
+                Created
+              </th>
+              <th class="cbp-table-header__cell cbp-table-header__cell--actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="cbp-table-body">
+            <tr class="cbp-table-row cbp-table-row--data" 
+                *ngFor="let request of changeRequests; let i = index" 
+                [class.cbp-table-row--selected]="request && isSelected(request.id)">
+              <td class="cbp-table-cell cbp-table-cell--checkbox">
+                <input 
+                  type="checkbox" 
+                  class="cbp-checkbox"
+                  [checked]="request && isSelected(request.id)"
+                  (change)="toggleSelection(request?.id)"
+                />
+              </td>
+              <td class="cbp-table-cell">
+                <span class="cbp-badge cbp-badge--type cbp-badge--{{ request?.changeType?.toLowerCase() || 'unknown' }}">
+                  {{ request?.changeType || 'N/A' }}
+                </span>
+              </td>
+              <td class="cbp-table-cell">
+                <span class="cbp-entity-type">
+                  <span class="cbp-entity-icon">•</span>
+                  {{ request?.entityType || 'N/A' }}
+                </span>
+              </td>
+              <td class="cbp-table-cell cbp-table-cell--description">
+                {{ request?.description || 'No description' }}
+              </td>
+              <td class="cbp-table-cell">
+                <span class="cbp-user">{{ request?.requestedBy || 'Unknown' }}</span>
+              </td>
+              <td class="cbp-table-cell">
+                <span class="cbp-status cbp-status--{{ request?.status?.toLowerCase() || 'unknown' }}">
+                  {{ request?.status || 'UNKNOWN' }}
+                </span>
+              </td>
+              <td class="cbp-table-cell">
+                <span class="cbp-date">{{ formatDate(request?.createdAt) }}</span>
+              </td>
+              <td class="cbp-table-cell cbp-table-cell--actions">
+                <div class="cbp-action-buttons">
+                  <button 
+                    class="cbp-action-button cbp-action-button--view"
+                    (click)="viewDetails(request)"
+                    title="View details"
+                    aria-label="View details">
+                    <svg class="cbp-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                    </svg>
+                  </button>
+                  <button 
+                    *ngIf="canApprove(request)"
+                    class="cbp-action-button cbp-action-button--approve"
+                    (click)="approveRequest(request)"
+                    title="Approve request"
+                    aria-label="Approve request">
+                    <svg class="cbp-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                    </svg>
+                  </button>
+                  <button 
+                    *ngIf="canReject(request)"
+                    class="cbp-action-button cbp-action-button--reject"
+                    (click)="rejectRequest(request)"
+                    title="Reject request"
+                    aria-label="Reject request">
+                    <svg class="cbp-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <!-- No Data -->
+            <tr *ngIf="changeRequests.length === 0" class="cbp-table-row cbp-table-row--empty">
+              <td colspan="8" class="cbp-table-cell cbp-table-cell--empty">
+                <div class="cbp-empty-state">
+                  <p class="cbp-empty-state__title">No Change Requests Found</p>
+                  <p class="cbp-empty-state__subtitle">Try adjusting your search or filter criteria</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div *ngIf="totalPages > 1" class="cbp-pagination">
+        <button 
+          class="cbp-pagination__button cbp-pagination__button--prev"
+          [disabled]="currentPage === 0"
+          (click)="previousPage()">
+          ← Previous
+        </button>
+        
+        <span class="cbp-pagination__info">
+          Page {{ currentPage + 1 }} of {{ totalPages }}
+        </span>
+        
+        <button 
+          class="cbp-pagination__button cbp-pagination__button--next"
+          [disabled]="currentPage === totalPages - 1"
+          (click)="nextPage()">
+          Next →
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Details Modal - Only shows when showModal is true -->
+<div *ngIf="showModal" class="cbp-modal-overlay" (click)="closeModal()">
+  <div class="cbp-modal" (click)="$event.stopPropagation()">
+    <div class="cbp-modal-header">
+      <h2>Change Request Details</h2>
+      <button class="cbp-modal-close" (click)="closeModal()">&times;</button>
+    </div>
+    <div class="cbp-modal-body" *ngIf="selectedRequest">
+      <dl class="cbp-details-list">
+        <dt>ID:</dt>
+        <dd>{{ selectedRequest.id }}</dd>
+        
+        <dt>Change Type:</dt>
+        <dd>{{ selectedRequest.changeType }}</dd>
+        
+        <dt>Entity Type:</dt>
+        <dd>{{ selectedRequest.entityType }}</dd>
+        
+        <dt>Status:</dt>
+        <dd>
+          <span class="cbp-badge" 
+                [class.cbp-badge--success]="selectedRequest.status === 'APPROVED'"
+                [class.cbp-badge--warning]="selectedRequest.status === 'PENDING'"
+                [class.cbp-badge--error]="selectedRequest.status === 'REJECTED'">
+            {{ selectedRequest.status }}
+          </span>
+        </dd>
+        
+        <dt>Description:</dt>
+        <dd>{{ selectedRequest.description }}</dd>
+        
+        <dt>Requested By:</dt>
+        <dd>{{ selectedRequest.requestedBy }}</dd>
+        
+        <dt>Created:</dt>
+        <dd>{{ formatDate(selectedRequest.createdAt) }}</dd>
+        
+        <dt>Updated:</dt>
+        <dd>{{ formatDate(selectedRequest.updatedAt) }}</dd>
+      </dl>
+
+      <div class="margin-top-3">
+        <button class="usa-button" (click)="showJson = !showJson">
+          {{ showJson ? 'Hide' : 'Show' }} JSON Data
+        </button>
+        
+        <div *ngIf="showJson" class="margin-top-2">
+          <pre class="bg-base-lightest padding-2 radius-md">{{ selectedRequest | json }}</pre>
+        </div>
+      </div>
+    </div>
+    <div class="cbp-modal-footer">
+      <button class="usa-button usa-button--outline" (click)="closeModal()">Close</button>
+      <button *ngIf="selectedRequest && canApprove(selectedRequest)" 
+              class="usa-button" 
+              (click)="approveRequest(selectedRequest)">
+        Approve
+      </button>
+      <button *ngIf="selectedRequest && canReject(selectedRequest)" 
+              class="usa-button usa-button--secondary" 
+              (click)="rejectRequest(selectedRequest)">
+        Reject
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Approval/Rejection Dialog Modal - Only shows when showApprovalDialog is true -->
+<div *ngIf="showApprovalDialog" class="cbp-modal-overlay" (click)="closeApprovalDialog()">
+  <div class="cbp-modal" (click)="$event.stopPropagation()">
+    <div class="cbp-modal-header">
+      <h2>{{ mode === 'approve' ? 'Approve' : 'Reject' }} Change Request</h2>
+      <button class="cbp-modal-close" (click)="closeApprovalDialog()">&times;</button>
+    </div>
+    <div class="cbp-modal-body">
+      <p>Are you sure you want to {{ mode === 'approve' ? 'approve' : 'reject' }} this change request?</p>
+      
+      <div class="margin-top-3">
+        <label class="usa-label" [for]="mode === 'approve' ? 'approval-notes' : 'rejection-notes'">
+          {{ mode === 'approve' ? 'Approval' : 'Rejection' }} Notes
+        </label>
+        <textarea 
+          *ngIf="mode === 'approve'"
+          class="usa-textarea" 
+          id="approval-notes"
+          [(ngModel)]="approvalNotes"
+          rows="4"
+          placeholder="Enter approval notes..."
+        ></textarea>
+        <textarea 
+          *ngIf="mode === 'reject'"
+          class="usa-textarea" 
+          id="rejection-notes"
+          [(ngModel)]="rejectionNotes"
+          rows="4"
+          placeholder="Enter rejection reason..."
+        ></textarea>
+      </div>
+    </div>
+    <div class="cbp-modal-footer">
+      <button class="usa-button usa-button--outline" (click)="closeApprovalDialog()">Cancel</button>
+      <button 
+        *ngIf="mode === 'approve'"
+        class="usa-button" 
+        (click)="confirmApproval()">
+        Confirm Approval
+      </button>
+      <button 
+        *ngIf="mode === 'reject'"
+        class="usa-button usa-button--secondary" 
+        (click)="confirmRejection()">
+        Confirm Rejection
+      </button>
+    </div>
+  </div>
+</div>

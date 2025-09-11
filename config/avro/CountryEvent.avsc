@@ -1,0 +1,92 @@
+{
+  "type": "record",
+  "name": "CountryEvent",
+  "namespace": "gov.dhs.cbp.reference.events.avro",
+  "fields": [
+    {
+      "name": "eventId",
+      "type": "string",
+      "doc": "Unique identifier for this event"
+    },
+    {
+      "name": "eventType",
+      "type": {
+        "type": "enum",
+        "name": "EventType",
+        "symbols": ["CREATED", "UPDATED", "DELETED", "DEPRECATED"]
+      },
+      "doc": "Type of event"
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "logicalType": "timestamp-millis",
+      "doc": "When the event occurred"
+    },
+    {
+      "name": "countryId",
+      "type": "string",
+      "doc": "UUID of the country"
+    },
+    {
+      "name": "countryCode",
+      "type": "string",
+      "doc": "Country code"
+    },
+    {
+      "name": "countryName",
+      "type": "string",
+      "doc": "Country name"
+    },
+    {
+      "name": "codeSystem",
+      "type": "string",
+      "doc": "Code system (e.g., ISO3166-1)"
+    },
+    {
+      "name": "iso2Code",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "ISO 2-character code"
+    },
+    {
+      "name": "iso3Code",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "ISO 3-character code"
+    },
+    {
+      "name": "numericCode",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "ISO numeric code"
+    },
+    {
+      "name": "validFrom",
+      "type": "string",
+      "doc": "Start of validity period (ISO date)"
+    },
+    {
+      "name": "validTo",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "End of validity period (ISO date)"
+    },
+    {
+      "name": "version",
+      "type": "long",
+      "doc": "Version number"
+    },
+    {
+      "name": "changeRequestId",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Associated change request"
+    },
+    {
+      "name": "recordedBy",
+      "type": "string",
+      "doc": "User who recorded this change"
+    }
+  ]
+}

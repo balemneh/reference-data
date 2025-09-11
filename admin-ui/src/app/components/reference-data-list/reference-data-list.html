@@ -1,0 +1,49 @@
+<div class="grid-container">
+  <div class="cbp-page-header">
+    <h1>{{ referenceDataType?.displayName || dataType }}</h1>
+    <button class="usa-button" (click)="addNewItem()" *ngIf="canUserPerformAction('create')">
+      Add New Item
+    </button>
+  </div>
+
+  <div class="cbp-filters" *ngIf="referenceDataType">
+    <form [formGroup]="searchForm">
+      <input type="text" formControlName="query" placeholder="Search..." />
+      <select formControlName="active">
+        <option value="all">All Items</option>
+        <option value="true">Active Only</option>
+        <option value="false">Inactive Only</option>
+      </select>
+      <select formControlName="codeSystem" *ngIf="getSystemCodes().length > 0">
+        <option value="">All Systems</option>
+        <option *ngFor="let code of getSystemCodes()" [value]="code">{{ code }}</option>
+      </select>
+      <button type="button" (click)="clearSearch()">Clear</button>
+    </form>
+  </div>
+
+  <div class="cbp-data-table" *ngIf="!loading">
+    <table class="usa-table usa-table--borderless">
+      <thead>
+        <tr>
+          <th *ngFor="let field of getDisplayFields()">{{ field.displayName }}</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of items">
+          <td *ngFor="let field of getDisplayFields()">
+            {{ formatFieldValue(getFieldValue(item, field.name), field.type) }}
+          </td>
+          <td>
+            <button class="usa-button usa-button--outline" (click)="viewItem(item)">View</button>
+            <button class="usa-button usa-button--secondary" (click)="editItem(item)" *ngIf="canUserPerformAction('update')">Edit</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="loading" class="cbp-loading">Loading...</div>
+  <div *ngIf="error" class="cbp-error">{{ error }}</div>
+</div>

@@ -1,0 +1,36 @@
+<!-- Mobile backdrop for sidebar -->
+<div 
+  class="cbp-sidebar__backdrop"
+  [class.cbp-sidebar__backdrop--visible]="showMobileBackdrop"
+  (click)="onMobileBackdropClick()"
+  *ngIf="isMobile"
+></div>
+
+<!-- Sidebar Navigation -->
+<app-sidebar
+  [isCollapsed]="sidebarCollapsed"
+  [class.cbp-sidebar--mobile-open]="showMobileBackdrop"
+  (navigationClick)="onNavigationClick($event)"
+  (toggleSidebar)="onSidebarToggle()"
+></app-sidebar>
+
+<!-- Header -->
+<app-header></app-header>
+
+<div class="layout" [class.layout--sidebar-collapsed]="sidebarCollapsed">
+  <!-- Main Content Area -->
+  <div class="layout__main">
+    <!-- Breadcrumb Navigation -->
+    <app-breadcrumb></app-breadcrumb>
+
+    <!-- Page Content -->
+    <main class="layout__content" role="main">
+      <div class="layout__content-inner">
+        <router-outlet></router-outlet>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Keyboard Shortcuts Modal -->
+<app-shortcuts-modal [visible]="showShortcuts" (close)="onShortcutsClose()"></app-shortcuts-modal>

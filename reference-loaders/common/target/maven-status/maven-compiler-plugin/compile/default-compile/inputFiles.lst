@@ -1,0 +1,12 @@
+/Users/bruhalemneh/git/reference-data/reference-loaders/common/src/main/java/gov/dhs/cbp/reference/loader/common/AbstractLoader.java
+/Users/bruhalemneh/git/reference-data/reference-loaders/common/src/main/java/gov/dhs/cbp/reference/loader/common/DiffDetector.java
+/Users/bruhalemneh/git/reference-data/reference-loaders/common/src/main/java/gov/dhs/cbp/reference/loader/common/DiffResult.java
+/Users/bruhalemneh/git/reference-data/reference-loaders/common/src/main/java/gov/dhs/cbp/reference/loader/common/LoaderConfiguration.java
+/Users/bruhalemneh/git/reference-data/reference-loaders/common/src/main/java/gov/dhs/cbp/reference/loader/common/LoaderContext.java
+/Users/bruhalemneh/git/reference-data/reference-loaders/common/src/main/java/gov/dhs/cbp/reference/loader/common/LoaderException.java
+/Users/bruhalemneh/git/reference-data/reference-loaders/common/src/main/java/gov/dhs/cbp/reference/loader/common/LoaderResult.java
+/Users/bruhalemneh/git/reference-data/reference-loaders/common/src/main/java/gov/dhs/cbp/reference/loader/common/LoaderStatus.java
+/Users/bruhalemneh/git/reference-data/reference-loaders/common/src/main/java/gov/dhs/cbp/reference/loader/common/StagingEntity.java
+/Users/bruhalemneh/git/reference-data/reference-loaders/common/src/main/java/gov/dhs/cbp/reference/loader/common/ValidationError.java
+/Users/bruhalemneh/git/reference-data/reference-loaders/common/src/main/java/gov/dhs/cbp/reference/loader/common/ValidationResult.java
+/Users/bruhalemneh/git/reference-data/reference-loaders/common/src/main/java/gov/dhs/cbp/reference/loader/common/ValidationService.java

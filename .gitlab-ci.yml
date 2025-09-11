@@ -1,0 +1,67 @@
+stages:
+  - test
+
+variables:
+  NODE_ENV: test
+  CI: "true"
+
+cache:
+  key: ${CI_PROJECT_NAME}-admin-ui-${CI_COMMIT_REF_SLUG}
+  paths:
+    - admin-ui/node_modules/
+
+admin_ui_unit:
+  image: node:20
+  stage: test
+  before_script:
+    - cd admin-ui
+    - npm ci
+    - node -e "console.log('Chromium:', require('puppeteer').executablePath())"
+    - export CHROME_BIN=$(node -p "require('puppeteer').executablePath()")
+  script:
+    - npm test -- --watch=false --browsers=ChromeHeadless
+  artifacts:
+    when: always
+    paths:
+      - admin-ui/coverage/
+
+admin_ui_build_smoke:
+  image: node:20
+  stage: test
+  before_script:
+    - cd admin-ui
+    - npm ci
+    - npm run build -- --configuration production
+    - npx http-server -p 8080 dist/admin-ui &
+    - sleep 3
+  script:
+    - BASE_URL=http://localhost:8080 node scripts/smoke.js
+  allow_failure: true
+
+admin_ui_smoke:
+  image: node:20
+  stage: test
+  rules:
+    - if: '$BASE_URL'
+  before_script:
+    - cd admin-ui
+    - npm ci
+  script:
+    - node scripts/smoke.js
+  variables:
+    BASE_URL: ${BASE_URL}
+  allow_failure: true
+
+admin_ui_a11y:
+  image: node:20
+  stage: test
+  rules:
+    - if: '$BASE_URL'
+  before_script:
+    - cd admin-ui
+    - npm ci
+  script:
+    - node scripts/a11y-smoke.js
+  variables:
+    BASE_URL: ${BASE_URL}
+  allow_failure: true

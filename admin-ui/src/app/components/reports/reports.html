@@ -1,0 +1,890 @@
+<!-- CBP Reference Data Reports - Professional Government Application -->
+
+<div class="cbp-reports-container">
+  <!-- Page Header -->
+  <div class="cbp-page-header">
+    <div class="cbp-page-header__content">
+      <div class="cbp-page-header__text">
+        <h1 class="cbp-page-header__title">
+          <i class="fas fa-chart-bar cbp-page-header__icon"></i>
+          Reports & Analytics
+        </h1>
+        <p class="cbp-page-header__subtitle">
+          Generate comprehensive reports, analyze data quality, and monitor system performance
+        </p>
+      </div>
+      <div class="cbp-page-header__actions">
+        <button 
+          class="usa-button usa-button--accent-cool" 
+          (click)="switchView('builder')"
+          [class.usa-button--active]="activeView === 'builder'">
+          <i class="fas fa-tools"></i>
+          Custom Report
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="cbp-tab-navigation">
+    <div class="usa-nav-container">
+      <nav class="usa-nav">
+        <ul class="usa-nav__primary usa-accordion">
+          <li class="usa-nav__primary-item">
+            <button 
+              class="usa-nav__link cbp-tab-link"
+              [class.usa-current]="activeView === 'templates'"
+              (click)="switchView('templates')">
+              <i class="fas fa-template"></i>
+              Report Templates
+            </button>
+          </li>
+          <li class="usa-nav__primary-item">
+            <button 
+              class="usa-nav__link cbp-tab-link"
+              [class.usa-current]="activeView === 'builder'"
+              (click)="switchView('builder')">
+              <i class="fas fa-tools"></i>
+              Custom Builder
+            </button>
+          </li>
+          <li class="usa-nav__primary-item">
+            <button 
+              class="usa-nav__link cbp-tab-link"
+              [class.usa-current]="activeView === 'scheduled'"
+              (click)="switchView('scheduled')">
+              <i class="fas fa-calendar-alt"></i>
+              Scheduled Reports
+              <span class="usa-tag usa-tag--small" *ngIf="scheduledReports.length > 0">
+                {{ scheduledReports.length }}
+              </span>
+            </button>
+          </li>
+          <li class="usa-nav__primary-item">
+            <button 
+              class="usa-nav__link cbp-tab-link"
+              [class.usa-current]="activeView === 'executions'"
+              (click)="switchView('executions')">
+              <i class="fas fa-history"></i>
+              Execution History
+            </button>
+          </li>
+          <li class="usa-nav__primary-item">
+            <button 
+              class="usa-nav__link cbp-tab-link"
+              [class.usa-current]="activeView === 'dashboard'"
+              (click)="switchView('dashboard')">
+              <i class="fas fa-tachometer-alt"></i>
+              Dashboard
+            </button>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Report Templates View -->
+  <div class="cbp-view-content" *ngIf="activeView === 'templates'">
+    <!-- Search and Filters -->
+    <div class="cbp-filters-section">
+      <div class="usa-grid-row">
+        <div class="usa-grid-col-12 usa-grid-col-md-6">
+          <div class="usa-search usa-search--big">
+            <div role="search">
+              <label class="usa-sr-only" for="report-search">Search reports</label>
+              <input 
+                #searchInput
+                class="usa-input" 
+                id="report-search" 
+                type="search" 
+                name="search"
+                placeholder="Search reports by name, description, or tags..."
+                (input)="onSearch($any($event.target).value || '')"
+                [value]="searchTerm">
+              <button class="usa-button" type="submit">
+                <i class="fas fa-search"></i>
+                <span class="usa-sr-only">Search</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="usa-grid-col-12 usa-grid-col-md-6">
+          <div class="cbp-filter-controls">
+            <div class="usa-form-group">
+              <label class="usa-label" for="category-filter">Category</label>
+              <select 
+                class="usa-select" 
+                id="category-filter"
+                [(ngModel)]="selectedCategory"
+                (change)="onCategoryChange($any($event.target).value)">
+                <option *ngFor="let category of reportCategories" [value]="category.value">
+                  {{ category.label }} ({{ category.count }})
+                </option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Report Categories Overview -->
+    <div class="cbp-categories-grid">
+      <div class="usa-grid-row">
+        <div 
+          class="usa-grid-col-12 usa-grid-col-md-6 usa-grid-col-lg-4"
+          *ngFor="let category of reportCategories.slice(1)">
+          <div 
+            class="cbp-category-card"
+            [class.cbp-category-card--active]="selectedCategory === category.value"
+            (click)="onCategoryChange(category.value)">
+            <div class="cbp-category-card__icon">
+              <i class="fas fa-{{ category.icon }}"></i>
+            </div>
+            <div class="cbp-category-card__content">
+              <h3 class="cbp-category-card__title">{{ category.label }}</h3>
+              <p class="cbp-category-card__count">{{ category.count }} reports</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Report Templates Grid -->
+    <div class="cbp-reports-grid" *ngIf="!loading && filteredTemplates.length > 0">
+      <div class="usa-grid-row">
+        <div 
+          class="usa-grid-col-12 usa-grid-col-md-6 usa-grid-col-lg-4"
+          *ngFor="let template of paginatedTemplates">
+          <div 
+            class="cbp-report-card"
+            [class.cbp-report-card--selected]="selectedTemplate?.id === template.id"
+            (click)="selectTemplate(template)">
+            <div class="cbp-report-card__header">
+              <div class="cbp-report-card__icon">
+                <i class="fas fa-{{ template.icon }}"></i>
+              </div>
+              <div class="cbp-report-card__badges">
+                <span class="usa-tag usa-tag--small cbp-category-tag cbp-category-tag--{{ template.category }}">
+                  {{ template.category | titlecase }}
+                </span>
+                <span class="usa-tag usa-tag--small usa-tag--outline" *ngIf="template.isDefault">
+                  Default
+                </span>
+              </div>
+            </div>
+            <div class="cbp-report-card__content">
+              <h3 class="cbp-report-card__title">{{ template.name }}</h3>
+              <p class="cbp-report-card__description">{{ template.description }}</p>
+              <div class="cbp-report-card__meta">
+                <span class="cbp-meta-item">
+                  <i class="fas fa-clock"></i>
+                  {{ template.estimatedTime }}
+                </span>
+                <span class="cbp-meta-item">
+                  <i class="fas fa-{{ getVisualizationIcon(template.visualizationType) }}"></i>
+                  {{ template.visualizationType | titlecase }}
+                </span>
+              </div>
+              <div class="cbp-report-card__tags">
+                <span 
+                  class="usa-tag usa-tag--small usa-tag--outline"
+                  *ngFor="let tag of template.tags.slice(0, 3)">
+                  {{ tag }}
+                </span>
+                <span 
+                  class="usa-tag usa-tag--small usa-tag--outline"
+                  *ngIf="template.tags.length > 3">
+                  +{{ template.tags.length - 3 }}
+                </span>
+              </div>
+            </div>
+            <div class="cbp-report-card__actions">
+              <button 
+                class="usa-button usa-button--outline"
+                (click)="selectTemplate(template); $event.stopPropagation()">
+                Select
+              </button>
+              <button 
+                class="usa-button"
+                [disabled]="!selectedTemplate || selectedTemplate.id !== template.id || !!currentExecution"
+                (click)="executeReport(); $event.stopPropagation()">
+                <i class="fas fa-play"></i>
+                Run Report
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="cbp-pagination" *ngIf="totalPages > 1">
+      <nav aria-label="Pagination Navigation" role="navigation">
+        <ul class="usa-pagination__list">
+          <li class="usa-pagination__item usa-pagination__arrow">
+            <button 
+              class="usa-pagination__link usa-pagination__previous-page"
+              [disabled]="currentPage === 0"
+              (click)="changePage('prev')">
+              <i class="fas fa-angle-left"></i>
+              <span class="usa-pagination__link-text">Previous</span>
+            </button>
+          </li>
+          <li class="usa-pagination__item usa-pagination__page-no">
+            <span class="usa-pagination__current">
+              Page {{ currentPage + 1 }} of {{ totalPages }}
+            </span>
+          </li>
+          <li class="usa-pagination__item usa-pagination__arrow">
+            <button 
+              class="usa-pagination__link usa-pagination__next-page"
+              [disabled]="currentPage === totalPages - 1"
+              (click)="changePage('next')">
+              <span class="usa-pagination__link-text">Next</span>
+              <i class="fas fa-angle-right"></i>
+            </button>
+          </li>
+        </ul>
+      </nav>
+    </div>
+
+    <!-- Empty State -->
+    <div class="cbp-empty-state" *ngIf="!loading && filteredTemplates.length === 0">
+      <div class="cbp-empty-state__icon">
+        <i class="fas fa-search"></i>
+      </div>
+      <h3 class="cbp-empty-state__title">No reports found</h3>
+      <p class="cbp-empty-state__description">
+        Try adjusting your search criteria or category filter to find the reports you're looking for.
+      </p>
+      <button class="usa-button usa-button--outline" (click)="selectedCategory = 'all'; searchTerm = ''; filterTemplates()">
+        Clear Filters
+      </button>
+    </div>
+  </div>
+
+  <!-- Custom Report Builder View -->
+  <div class="cbp-view-content" *ngIf="activeView === 'builder'">
+    <div class="cbp-builder-container">
+      <form [formGroup]="customReportForm" (ngSubmit)="executeCustomReport()" novalidate>
+        <div class="usa-grid-row">
+          <div class="usa-grid-col-12 usa-grid-col-lg-8">
+            <!-- Report Configuration -->
+            <div class="cbp-builder-section">
+              <h2 class="cbp-section-title">
+                <i class="fas fa-cog"></i>
+                Report Configuration
+              </h2>
+              
+              <div class="usa-grid-row">
+                <div class="usa-grid-col-12 usa-grid-col-md-6">
+                  <div class="usa-form-group" [class.usa-form-group--error]="customReportForm.get('name')?.invalid && customReportForm.get('name')?.touched">
+                    <label class="usa-label" for="report-name">
+                      Report Name <span class="cbp-required">*</span>
+                    </label>
+                    <input 
+                      class="usa-input" 
+                      id="report-name" 
+                      type="text" 
+                      formControlName="name"
+                      placeholder="Enter report name">
+                    <div class="usa-error-message" *ngIf="customReportForm.get('name')?.invalid && customReportForm.get('name')?.touched">
+                      <i class="fas fa-exclamation-circle"></i>
+                      Report name is required
+                    </div>
+                  </div>
+                </div>
+                <div class="usa-grid-col-12 usa-grid-col-md-6">
+                  <div class="usa-form-group" [class.usa-form-group--error]="customReportForm.get('dataSource')?.invalid && customReportForm.get('dataSource')?.touched">
+                    <label class="usa-label" for="data-source">
+                      Data Source <span class="cbp-required">*</span>
+                    </label>
+                    <select class="usa-select" id="data-source" formControlName="dataSource">
+                      <option value="">Select a data source</option>
+                      <option value="countries">Countries</option>
+                      <option value="ports">Ports</option>
+                      <option value="airports">Airports</option>
+                      <option value="carriers">Carriers</option>
+                      <option value="change-requests">Change Requests</option>
+                      <option value="audit-log">Audit Log</option>
+                    </select>
+                    <div class="usa-error-message" *ngIf="customReportForm.get('dataSource')?.invalid && customReportForm.get('dataSource')?.touched">
+                      <i class="fas fa-exclamation-circle"></i>
+                      Data source is required
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="usa-form-group">
+                <label class="usa-label" for="report-description">Description</label>
+                <textarea 
+                  class="usa-textarea" 
+                  id="report-description" 
+                  formControlName="description"
+                  rows="3"
+                  placeholder="Optional description of what this report contains">
+                </textarea>
+              </div>
+
+              <div class="usa-grid-row">
+                <div class="usa-grid-col-12 usa-grid-col-md-6">
+                  <div class="usa-form-group">
+                    <label class="usa-label" for="visualization-type">Visualization Type</label>
+                    <select class="usa-select" id="visualization-type" formControlName="visualization">
+                      <option *ngFor="let viz of visualizationTypes" [value]="viz.value">
+                        {{ viz.label }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+                <div class="usa-grid-col-12 usa-grid-col-md-6">
+                  <div class="usa-form-group">
+                    <label class="usa-label" for="refresh-interval">Real-time Updates Interval (minutes)</label>
+                    <input 
+                      class="usa-input" 
+                      id="refresh-interval" 
+                      type="number" 
+                      formControlName="refreshInterval"
+                      min="1" 
+                      max="1440"
+                      placeholder="Optional">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Field Selection -->
+            <div class="cbp-builder-section">
+              <h3 class="cbp-section-subtitle">
+                <i class="fas fa-columns"></i>
+                Select Fields
+              </h3>
+              
+              <div class="cbp-field-selector">
+                <div class="cbp-field-selector__available">
+                  <h4>Available Fields</h4>
+                  <div class="cbp-field-list">
+                    <div 
+                      class="cbp-field-item"
+                      *ngFor="let field of availableFields"
+                      [class.cbp-field-item--selected]="selectedFields.includes(field.id)">
+                      <div class="cbp-field-item__content">
+                        <span class="cbp-field-item__name">{{ field.label }}</span>
+                        <span class="cbp-field-item__type usa-tag usa-tag--small">{{ field.type }}</span>
+                      </div>
+                      <button 
+                        class="usa-button usa-button--unstyled cbp-field-item__action"
+                        (click)="addField(field.id)"
+                        *ngIf="!selectedFields.includes(field.id)">
+                        <i class="fas fa-plus"></i>
+                      </button>
+                      <button 
+                        class="usa-button usa-button--unstyled cbp-field-item__action cbp-field-item__action--remove"
+                        (click)="removeField(field.id)"
+                        *ngIf="selectedFields.includes(field.id)">
+                        <i class="fas fa-minus"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="cbp-field-selector__selected">
+                  <h4>Selected Fields ({{ selectedFields.length }})</h4>
+                  <div class="cbp-selected-fields" *ngIf="selectedFields.length > 0">
+                    <div 
+                      class="cbp-selected-field"
+                      *ngFor="let fieldId of selectedFields; let i = index">
+                      <span class="cbp-selected-field__name">
+                        {{ getFieldLabel(fieldId) }}
+                      </span>
+                      <button 
+                        class="usa-button usa-button--unstyled cbp-selected-field__remove"
+                        (click)="removeField(fieldId)">
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <p class="cbp-empty-message" *ngIf="selectedFields.length === 0">
+                    No fields selected. Add fields from the available list.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="cbp-builder-section">
+              <h3 class="cbp-section-subtitle">
+                <i class="fas fa-filter"></i>
+                Filters
+                <button 
+                  class="usa-button usa-button--outline usa-button--small"
+                  type="button"
+                  (click)="addFilter()">
+                  <i class="fas fa-plus"></i>
+                  Add Filter
+                </button>
+              </h3>
+              
+              <div class="cbp-filters-list" *ngIf="reportFilters.length > 0">
+                <div 
+                  class="cbp-filter-row"
+                  *ngFor="let filter of reportFilters; let i = index">
+                  <div class="cbp-filter-row__field">
+                    <select class="usa-select" [(ngModel)]="filter.field" [ngModelOptions]="{standalone: true}">
+                      <option value="">Select field</option>
+                      <option *ngFor="let field of availableFields" [value]="field.id">
+                        {{ field.label }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="cbp-filter-row__operator">
+                    <select class="usa-select" [(ngModel)]="filter.operator" [ngModelOptions]="{standalone: true}">
+                      <option value="equals">Equals</option>
+                      <option value="not-equals">Not Equals</option>
+                      <option value="contains">Contains</option>
+                      <option value="starts-with">Starts With</option>
+                      <option value="greater-than">Greater Than</option>
+                      <option value="less-than">Less Than</option>
+                      <option value="between">Between</option>
+                    </select>
+                  </div>
+                  <div class="cbp-filter-row__value">
+                    <input 
+                      class="usa-input" 
+                      type="text" 
+                      [(ngModel)]="filter.value"
+                      [ngModelOptions]="{standalone: true}"
+                      placeholder="Filter value">
+                  </div>
+                  <div class="cbp-filter-row__actions">
+                    <button 
+                      class="usa-button usa-button--unstyled cbp-filter-remove"
+                      type="button"
+                      (click)="removeFilter(i)">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <p class="cbp-empty-message" *ngIf="reportFilters.length === 0">
+                No filters applied. Click "Add Filter" to filter your data.
+              </p>
+            </div>
+          </div>
+
+          <div class="usa-grid-col-12 usa-grid-col-lg-4">
+            <!-- Report Preview -->
+            <div class="cbp-preview-panel">
+              <h3 class="cbp-preview-panel__title">
+                <i class="fas fa-eye"></i>
+                Report Preview
+              </h3>
+              
+              <div class="cbp-preview-content">
+                <div class="cbp-preview-item">
+                  <strong>Name:</strong>
+                  <span>{{ customReportForm.get('name')?.value || 'Untitled Report' }}</span>
+                </div>
+                <div class="cbp-preview-item">
+                  <strong>Data Source:</strong>
+                  <span>{{ customReportForm.get('dataSource')?.value || 'Not selected' }}</span>
+                </div>
+                <div class="cbp-preview-item">
+                  <strong>Fields:</strong>
+                  <span>{{ selectedFields.length }} selected</span>
+                </div>
+                <div class="cbp-preview-item">
+                  <strong>Filters:</strong>
+                  <span>{{ reportFilters.length }} applied</span>
+                </div>
+                <div class="cbp-preview-item">
+                  <strong>Visualization:</strong>
+                  <span>{{ getVisualizationLabel(customReportForm.get('visualization')?.value) }}</span>
+                </div>
+              </div>
+
+              <div class="cbp-preview-actions">
+                <button 
+                  class="usa-button"
+                  type="submit"
+                  [disabled]="customReportForm.invalid || selectedFields.length === 0 || !!currentExecution">
+                  <i class="fas fa-play"></i>
+                  Generate Report
+                </button>
+                <button 
+                  class="usa-button usa-button--outline"
+                  type="button"
+                  (click)="customReportForm.reset(); selectedFields = []; reportFilters = []">
+                  <i class="fas fa-clear"></i>
+                  Clear
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scheduled Reports View -->
+  <div class="cbp-view-content" *ngIf="activeView === 'scheduled'">
+    <div class="cbp-scheduled-reports">
+      <div class="cbp-section-header">
+        <h2 class="cbp-section-title">Scheduled Reports</h2>
+        <button 
+          class="usa-button"
+          (click)="showScheduleModal = true"
+          [disabled]="!selectedTemplate">
+          <i class="fas fa-calendar-plus"></i>
+          Schedule Report
+        </button>
+      </div>
+
+      <div class="cbp-scheduled-list" *ngIf="scheduledReports.length > 0">
+        <div class="cbp-scheduled-item" *ngFor="let scheduled of scheduledReports">
+          <div class="cbp-scheduled-item__header">
+            <h3 class="cbp-scheduled-item__name">{{ scheduled.name }}</h3>
+            <div class="cbp-scheduled-item__status">
+              <span class="usa-tag" [class.usa-tag--success]="scheduled.isActive" [class.usa-tag--outline]="!scheduled.isActive">
+                {{ scheduled.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+          </div>
+          <div class="cbp-scheduled-item__details">
+            <div class="cbp-detail-row">
+              <span class="cbp-detail-label">Schedule:</span>
+              <span class="cbp-detail-value">{{ scheduled.schedule.type | titlecase }} at {{ scheduled.schedule.time }}</span>
+            </div>
+            <div class="cbp-detail-row">
+              <span class="cbp-detail-label">Recipients:</span>
+              <span class="cbp-detail-value">{{ scheduled.recipients.join(', ') }}</span>
+            </div>
+            <div class="cbp-detail-row">
+              <span class="cbp-detail-label">Format:</span>
+              <span class="cbp-detail-value">{{ scheduled.format.toUpperCase() }}</span>
+            </div>
+            <div class="cbp-detail-row" *ngIf="scheduled.lastRun">
+              <span class="cbp-detail-label">Last Run:</span>
+              <span class="cbp-detail-value">{{ formatDate(scheduled.lastRun) }}</span>
+            </div>
+            <div class="cbp-detail-row" *ngIf="scheduled.nextRun">
+              <span class="cbp-detail-label">Next Run:</span>
+              <span class="cbp-detail-value">{{ formatDate(scheduled.nextRun) }}</span>
+            </div>
+          </div>
+          <div class="cbp-scheduled-item__actions">
+            <button 
+              class="usa-button usa-button--outline usa-button--small"
+              (click)="toggleScheduledReport(scheduled.id)">
+              <i class="fas" [class.fa-pause]="scheduled.isActive" [class.fa-play]="!scheduled.isActive"></i>
+              {{ scheduled.isActive ? 'Pause' : 'Resume' }}
+            </button>
+            <button 
+              class="usa-button usa-button--secondary usa-button--small"
+              (click)="deleteScheduledReport(scheduled.id)">
+              <i class="fas fa-trash"></i>
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cbp-empty-state" *ngIf="scheduledReports.length === 0">
+        <div class="cbp-empty-state__icon">
+          <i class="fas fa-calendar-alt"></i>
+        </div>
+        <h3 class="cbp-empty-state__title">No scheduled reports</h3>
+        <p class="cbp-empty-state__description">
+          Schedule reports to run automatically and receive them via email.
+        </p>
+        <button 
+          class="usa-button"
+          (click)="showScheduleModal = true"
+          [disabled]="!selectedTemplate">
+          <i class="fas fa-calendar-plus"></i>
+          Schedule Your First Report
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Execution History View -->
+  <div class="cbp-view-content" *ngIf="activeView === 'executions'">
+    <div class="cbp-execution-history">
+      <h2 class="cbp-section-title">Execution History</h2>
+      
+      <div class="cbp-execution-list" *ngIf="reportExecutions.length > 0">
+        <div class="cbp-execution-item" *ngFor="let execution of reportExecutions">
+          <div class="cbp-execution-item__header">
+            <div class="cbp-execution-item__info">
+              <h3 class="cbp-execution-item__name">{{ execution.reportId | titlecase }}</h3>
+              <span class="cbp-execution-item__time">{{ formatDate(execution.startTime) }}</span>
+            </div>
+            <div class="cbp-execution-item__status">
+              <span class="usa-tag" [ngClass]="getStatusBadgeClass(execution.status)">
+                {{ execution.status | titlecase }}
+              </span>
+            </div>
+          </div>
+          <div class="cbp-execution-item__details" *ngIf="execution.endTime">
+            <span class="cbp-detail-item">
+              <i class="fas fa-clock"></i>
+              Duration: {{ ((execution.endTime.getTime() - execution.startTime.getTime()) / 1000).toFixed(1) }}s
+            </span>
+            <span class="cbp-detail-item" *ngIf="execution.downloadUrl">
+              <a [href]="execution.downloadUrl" class="usa-link" download>
+                <i class="fas fa-download"></i>
+                Download
+              </a>
+            </span>
+          </div>
+          <div class="cbp-execution-item__error" *ngIf="execution.error">
+            <div class="usa-alert usa-alert--error usa-alert--slim">
+              <div class="usa-alert__body">
+                <p class="usa-alert__text">{{ execution.error }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cbp-empty-state" *ngIf="reportExecutions.length === 0">
+        <div class="cbp-empty-state__icon">
+          <i class="fas fa-history"></i>
+        </div>
+        <h3 class="cbp-empty-state__title">No execution history</h3>
+        <p class="cbp-empty-state__description">
+          Run some reports to see their execution history here.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard View -->
+  <div class="cbp-view-content" *ngIf="activeView === 'dashboard'">
+    <div class="cbp-dashboard">
+      <h2 class="cbp-section-title">Reports Dashboard</h2>
+      <p class="cbp-coming-soon">
+        <i class="fas fa-construction"></i>
+        Interactive dashboard coming soon
+      </p>
+    </div>
+  </div>
+
+  <!-- Report Execution Progress -->
+  <div class="cbp-execution-overlay" *ngIf="currentExecution">
+    <div class="cbp-execution-modal">
+      <div class="cbp-execution-modal__header">
+        <h3 class="cbp-execution-modal__title">
+          <i class="fas fa-cogs fa-spin" *ngIf="currentExecution.status === 'running'"></i>
+          <i class="fas fa-check-circle" *ngIf="currentExecution.status === 'completed'"></i>
+          <i class="fas fa-exclamation-triangle" *ngIf="currentExecution.status === 'failed'"></i>
+          {{ currentExecution.status === 'running' ? 'Generating Report' : 
+             currentExecution.status === 'completed' ? 'Report Generated' : 'Report Failed' }}
+        </h3>
+        <button 
+          class="usa-button usa-button--unstyled cbp-modal-close"
+          (click)="clearCurrentExecution()"
+          *ngIf="currentExecution.status !== 'running'">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="cbp-execution-modal__content">
+        <div class="cbp-progress-section" *ngIf="currentExecution.status === 'running'">
+          <div class="usa-prose">
+            <p>Processing your request...</p>
+          </div>
+          <div class="cbp-progress-bar">
+            <div class="cbp-progress-bar__fill" [style.width.%]="currentExecution.progress"></div>
+          </div>
+          <div class="cbp-progress-text">
+            {{ currentExecution.progress.toFixed(0) }}% complete
+          </div>
+        </div>
+
+        <!-- Report Results -->
+        <div class="cbp-report-results" *ngIf="currentExecution.status === 'completed' && reportData">
+          <div class="cbp-report-summary">
+            <div class="usa-grid-row">
+              <div class="usa-grid-col-6">
+                <div class="cbp-summary-stat">
+                  <span class="cbp-summary-stat__value">{{ reportData.totalRecords }}</span>
+                  <span class="cbp-summary-stat__label">Total Records</span>
+                </div>
+              </div>
+              <div class="usa-grid-col-6">
+                <div class="cbp-summary-stat">
+                  <span class="cbp-summary-stat__value">{{ reportData.executionTime }}s</span>
+                  <span class="cbp-summary-stat__label">Execution Time</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Visualization -->
+          <div class="cbp-report-visualization" *ngIf="selectedTemplate?.visualizationType !== 'table'">
+            <canvas #chartCanvas></canvas>
+          </div>
+
+          <!-- Data Table -->
+          <div class="cbp-report-table" *ngIf="reportData.headers && reportData.rows">
+            <table class="usa-table usa-table--striped">
+              <thead>
+                <tr>
+                  <th *ngFor="let header of reportData.headers">{{ header }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of reportData.rows.slice(0, 10)">
+                  <td *ngFor="let cell of row">{{ cell }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="cbp-table-note" *ngIf="reportData.rows.length > 10">
+              Showing first 10 rows of {{ reportData.rows.length }} total records.
+            </p>
+          </div>
+
+          <!-- Export Actions -->
+          <div class="cbp-export-actions">
+            <button 
+              class="usa-button usa-button--outline"
+              *ngFor="let format of exportFormats"
+              (click)="exportReport(format.value)">
+              <i class="fas fa-{{ format.icon }}"></i>
+              Export {{ format.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="cbp-execution-modal__actions">
+          <button 
+            class="usa-button usa-button--secondary"
+            (click)="cancelExecution()"
+            *ngIf="currentExecution.status === 'running'">
+            <i class="fas fa-stop"></i>
+            Cancel
+          </button>
+          <button 
+            class="usa-button"
+            (click)="clearCurrentExecution()"
+            *ngIf="currentExecution.status !== 'running'">
+            <i class="fas fa-check"></i>
+            Done
+          </button>
+          <button 
+            class="usa-button"
+            (click)="showScheduleModal = true"
+            *ngIf="currentExecution.status === 'completed'">
+            <i class="fas fa-calendar-plus"></i>
+            Schedule This Report
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Schedule Report Modal -->
+  <div class="cbp-modal-overlay" *ngIf="showScheduleModal">
+    <div class="cbp-modal">
+      <div class="cbp-modal__header">
+        <h3 class="cbp-modal__title">Schedule Report</h3>
+        <button 
+          class="usa-button usa-button--unstyled cbp-modal-close"
+          (click)="showScheduleModal = false">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <form [formGroup]="scheduleForm" (ngSubmit)="scheduleReport()" novalidate>
+        <div class="cbp-modal__content">
+          <div class="usa-form-group">
+            <label class="usa-label" for="schedule-name">
+              Schedule Name <span class="cbp-required">*</span>
+            </label>
+            <input 
+              class="usa-input" 
+              id="schedule-name" 
+              type="text" 
+              formControlName="name"
+              placeholder="Enter schedule name">
+          </div>
+
+          <div class="usa-grid-row">
+            <div class="usa-grid-col-6">
+              <div class="usa-form-group">
+                <label class="usa-label" for="schedule-type">Frequency</label>
+                <select class="usa-select" id="schedule-type" formControlName="scheduleType">
+                  <option value="once">Once</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+            </div>
+            <div class="usa-grid-col-6">
+              <div class="usa-form-group">
+                <label class="usa-label" for="schedule-time">Time</label>
+                <input 
+                  class="usa-input" 
+                  id="schedule-time" 
+                  type="time" 
+                  formControlName="time">
+              </div>
+            </div>
+          </div>
+
+          <div class="usa-form-group">
+            <label class="usa-label" for="recipients">
+              Email Recipients <span class="cbp-required">*</span>
+            </label>
+            <input 
+              class="usa-input" 
+              id="recipients" 
+              type="email" 
+              formControlName="recipients"
+              placeholder="email1@example.com, email2@example.com">
+            <div class="usa-hint">Separate multiple emails with commas</div>
+          </div>
+
+          <div class="usa-form-group">
+            <label class="usa-label" for="export-format">Export Format</label>
+            <select class="usa-select" id="export-format" formControlName="format">
+              <option *ngFor="let format of exportFormats" [value]="format.value">
+                {{ format.label }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="cbp-modal__actions">
+          <button 
+            class="usa-button"
+            type="submit"
+            [disabled]="scheduleForm.invalid">
+            <i class="fas fa-calendar-check"></i>
+            Schedule Report
+          </button>
+          <button 
+            class="usa-button usa-button--outline"
+            type="button"
+            (click)="showScheduleModal = false">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="cbp-loading-overlay" *ngIf="loading">
+    <div class="cbp-loading-content">
+      <div class="usa-spinner usa-spinner--big"></div>
+      <p class="cbp-loading-text">Loading reports...</p>
+    </div>
+  </div>
+</div>

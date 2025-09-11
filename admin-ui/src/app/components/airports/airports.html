@@ -1,0 +1,1057 @@
+<div class="grid-container">
+  <!-- Enhanced Header Section -->
+  <div class="cbp-page-header cbp-fade-in">
+    <div class="cbp-page-header__content">
+      <div class="cbp-page-header__text">
+        <h1 class="cbp-page-header__title cbp-text-gradient">Airports Management</h1>
+        <p class="cbp-page-header__subtitle">Centralized management for airport reference data across multiple aviation code systems</p>
+      </div>
+      <div class="cbp-page-header__actions">
+        <button class="cbp-button cbp-button--secondary" (click)="exportSelected()" [disabled]="!hasSelectedItems">
+          <svg class="cbp-button__icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#file_download"></use>
+          </svg>
+          Export Data
+        </button>
+        <button class="cbp-button cbp-button--primary" (click)="addAirport()">
+          <svg class="cbp-button__icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#add"></use>
+          </svg>
+          Add Airport
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enhanced Alert Messages -->
+  <div *ngIf="successMessage" class="cbp-alert cbp-alert--success cbp-slide-up margin-bottom-3" role="alert">
+    <div class="cbp-alert__content">
+      <svg class="cbp-alert__icon" aria-hidden="true">
+        <use xlink:href="/assets/uswds/img/sprite.svg#check_circle"></use>
+      </svg>
+      <div class="cbp-alert__body">
+        <h4 class="cbp-alert__title">Success</h4>
+        <p class="cbp-alert__text">{{ successMessage }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="cbp-alert cbp-alert--error cbp-slide-up margin-bottom-3" role="alert">
+    <div class="cbp-alert__content">
+      <svg class="cbp-alert__icon" aria-hidden="true">
+        <use xlink:href="/assets/uswds/img/sprite.svg#error"></use>
+      </svg>
+      <div class="cbp-alert__body">
+        <h4 class="cbp-alert__title">Error</h4>
+        <p class="cbp-alert__text">{{ error }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enhanced Filters and Actions Bar -->
+  <div class="cbp-filters-container cbp-slide-up">
+    <div class="cbp-filters-card">
+      <div class="cbp-filters-header">
+        <div class="cbp-filters-title">
+          <svg class="cbp-filters-icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#filter_list"></use>
+          </svg>
+          <h3>Filter & Search</h3>
+        </div>
+        <div class="cbp-filters-count" *ngIf="airports.length > 0">
+          <span class="cbp-count-badge">{{ airports.length }}</span> results
+        </div>
+      </div>
+      
+      <div class="cbp-filters-content">
+        <!-- Enhanced Search -->
+        <div class="cbp-search-field">
+          <label class="cbp-field-label" for="search-airports">
+            <svg class="cbp-label-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#search"></use>
+            </svg>
+            Search Airports
+          </label>
+          <div class="cbp-search-input">
+            <input
+              #searchInput
+              class="cbp-input cbp-input--search"
+              id="search-airports"
+              type="search"
+              placeholder="Search by airport name, IATA code, ICAO code, or city..."
+              (input)="onSearchInput($event)"
+              [value]="searchTerm"
+            />
+            <button 
+              class="cbp-search-clear" 
+              type="button" 
+              *ngIf="searchTerm" 
+              (click)="clearSearch()"
+              aria-label="Clear search"
+            >
+              <svg class="cbp-search-clear-icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#close"></use>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="cbp-filters-row cbp-filters-row--airports">
+          <!-- Enhanced Code System Filter -->
+          <div class="cbp-filter-field">
+            <label class="cbp-field-label" for="code-system">
+              <svg class="cbp-label-icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#code"></use>
+              </svg>
+              Code System
+            </label>
+            <select 
+              class="cbp-select" 
+              id="code-system" 
+              [(ngModel)]="codeSystem" 
+              (change)="onCodeSystemChange()"
+            >
+              <option *ngFor="let system of availableCodeSystems" [value]="system">{{ system }}</option>
+            </select>
+          </div>
+
+          <!-- Airport Type Filter -->
+          <div class="cbp-filter-field">
+            <label class="cbp-field-label" for="airport-type-filter">
+              <svg class="cbp-label-icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#flight_takeoff"></use>
+              </svg>
+              Airport Type
+            </label>
+            <select 
+              class="cbp-select" 
+              id="airport-type-filter" 
+              (change)="onAirportTypeFilterChange($any($event.target).value)"
+            >
+              <option value="all">All Types</option>
+              <option *ngFor="let type of availableAirportTypes" [value]="type">
+                {{ getAirportTypeDisplay(type) }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Hub Size Filter -->
+          <div class="cbp-filter-field">
+            <label class="cbp-field-label" for="hub-size-filter">
+              <svg class="cbp-label-icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#hub"></use>
+              </svg>
+              Hub Size
+            </label>
+            <select 
+              class="cbp-select" 
+              id="hub-size-filter" 
+              (change)="onHubSizeFilterChange($any($event.target).value)"
+            >
+              <option value="all">All Sizes</option>
+              <option *ngFor="let size of availableHubSizes" [value]="size">
+                {{ getHubSizeDisplay(size) }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Enhanced Status Filter -->
+          <div class="cbp-filter-field">
+            <label class="cbp-field-label" for="active-filter">
+              <svg class="cbp-label-icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#toggle_on"></use>
+              </svg>
+              Status
+            </label>
+            <select 
+              class="cbp-select" 
+              id="active-filter" 
+              (change)="onActiveFilterChange($any($event.target).value)"
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active Only</option>
+              <option value="inactive">Inactive Only</option>
+            </select>
+          </div>
+
+          <!-- Customs Filter -->
+          <div class="cbp-filter-field">
+            <label class="cbp-field-label" for="customs-filter">
+              <svg class="cbp-label-icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#security"></use>
+              </svg>
+              Customs
+            </label>
+            <select 
+              class="cbp-select" 
+              id="customs-filter" 
+              (change)="onCustomsFilterChange($any($event.target).value)"
+            >
+              <option value="all">All Airports</option>
+              <option value="yes">With Customs</option>
+              <option value="no">Without Customs</option>
+            </select>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="cbp-filter-actions">
+            <button 
+              class="cbp-button cbp-button--outline cbp-button--small" 
+              (click)="resetFilters()"
+              *ngIf="hasActiveFilters"
+            >
+              <svg class="cbp-button__icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#clear"></use>
+              </svg>
+              Clear Filters
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enhanced Data Table -->
+  <div class="cbp-table-container cbp-scale-in">
+    <div class="cbp-table-header">
+      <div class="cbp-table-header__left">
+        <div class="cbp-bulk-actions" *ngIf="selectedItems.length > 0">
+          <span class="cbp-selected-count">
+            <svg class="cbp-selected-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#check_circle"></use>
+            </svg>
+            {{ selectedItems.length }} selected
+          </span>
+          <div class="cbp-bulk-buttons">
+            <button class="cbp-button cbp-button--outline cbp-button--small">
+              <svg class="cbp-button__icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#edit"></use>
+              </svg>
+              Bulk Edit
+            </button>
+            <button class="cbp-button cbp-button--outline cbp-button--small">
+              <svg class="cbp-button__icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#file_download"></use>
+              </svg>
+              Export
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="cbp-table-header__right">
+        <div class="cbp-table-view-options">
+          <button 
+            class="cbp-view-toggle" 
+            [class.cbp-view-toggle--active]="isTableView()"
+            title="Table view"
+            (click)="setViewMode('table')"
+          >
+            <svg class="cbp-view-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#view_list"></use>
+            </svg>
+          </button>
+          <button 
+            class="cbp-view-toggle" 
+            [class.cbp-view-toggle--active]="isCardView()"
+            title="Card view"
+            (click)="setViewMode('card')"
+          >
+            <svg class="cbp-view-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#view_module"></use>
+            </svg>
+          </button>
+          <button 
+            class="cbp-view-toggle" 
+            [class.cbp-view-toggle--active]="isMapView()"
+            title="Map view"
+            (click)="setViewMode('map')"
+          >
+            <svg class="cbp-view-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#map"></use>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table View -->
+    <div class="cbp-table-wrapper" *ngIf="isTableView()">
+      <table class="cbp-table">
+        <thead class="cbp-table-head">
+          <tr class="cbp-table-row cbp-table-row--header">
+            <th class="cbp-table-cell cbp-table-cell--checkbox">
+              <div class="cbp-checkbox-wrapper">
+                <input 
+                  class="cbp-checkbox" 
+                  id="select-all" 
+                  type="checkbox" 
+                  [(ngModel)]="selectAll"
+                  (change)="toggleSelectAll()"
+                  [disabled]="airports.length === 0"
+                />
+                <label class="cbp-checkbox-label" for="select-all">
+                  <span class="usa-sr-only">Select all</span>
+                </label>
+              </div>
+            </th>
+            <th class="cbp-table-cell cbp-table-cell--sortable" (click)="sortBy('iataCode')">
+              <div class="cbp-sort-header">
+                <span class="cbp-sort-text">IATA</span>
+                <svg class="cbp-sort-icon" aria-hidden="true">
+                  <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + getSortIcon('iataCode')"></use>
+                </svg>
+              </div>
+            </th>
+            <th class="cbp-table-cell cbp-table-cell--sortable" (click)="sortBy('icaoCode')">
+              <div class="cbp-sort-header">
+                <span class="cbp-sort-text">ICAO</span>
+                <svg class="cbp-sort-icon" aria-hidden="true">
+                  <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + getSortIcon('icaoCode')"></use>
+                </svg>
+              </div>
+            </th>
+            <th class="cbp-table-cell cbp-table-cell--sortable" (click)="sortBy('airportName')">
+              <div class="cbp-sort-header">
+                <span class="cbp-sort-text">Airport Name</span>
+                <svg class="cbp-sort-icon" aria-hidden="true">
+                  <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + getSortIcon('airportName')"></use>
+                </svg>
+              </div>
+            </th>
+            <th class="cbp-table-cell cbp-table-cell--sortable" (click)="sortBy('city')">
+              <div class="cbp-sort-header">
+                <span class="cbp-sort-text">City</span>
+                <svg class="cbp-sort-icon" aria-hidden="true">
+                  <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + getSortIcon('city')"></use>
+                </svg>
+              </div>
+            </th>
+            <th class="cbp-table-cell">Country</th>
+            <th class="cbp-table-cell">Type</th>
+            <th class="cbp-table-cell">Hub Size</th>
+            <th class="cbp-table-cell">Status</th>
+            <th class="cbp-table-cell">Customs</th>
+            <th class="cbp-table-cell cbp-table-cell--actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="cbp-table-body">
+          <!-- Enhanced Loading State -->
+          <tr class="cbp-table-row cbp-table-row--loading" *ngIf="loading">
+            <td colspan="11" class="cbp-table-cell cbp-table-cell--loading">
+              <div class="cbp-loading-content">
+                <div class="cbp-loading-spinner"></div>
+                <span class="cbp-loading-text">Loading airports data...</span>
+              </div>
+            </td>
+          </tr>
+          
+          <!-- Enhanced Empty State -->
+          <tr class="cbp-table-row cbp-table-row--empty" *ngIf="!loading && airports.length === 0">
+            <td colspan="11" class="cbp-table-cell cbp-table-cell--empty">
+              <div class="cbp-empty-state">
+                <svg class="cbp-empty-icon" aria-hidden="true">
+                  <use xlink:href="/assets/uswds/img/sprite.svg#flight_takeoff"></use>
+                </svg>
+                <h4 class="cbp-empty-title">No Airports Found</h4>
+                <p class="cbp-empty-text">Try adjusting your search criteria or filters, or add a new airport to get started.</p>
+                <button class="cbp-button cbp-button--primary" (click)="addAirport()">
+                  <svg class="cbp-button__icon" aria-hidden="true">
+                    <use xlink:href="/assets/uswds/img/sprite.svg#add"></use>
+                  </svg>
+                  Add First Airport
+                </button>
+              </div>
+            </td>
+          </tr>
+          
+          <!-- Enhanced Data Rows -->
+          <tr class="cbp-table-row cbp-table-row--data" *ngFor="let airport of airports; trackBy: trackByAirportId" 
+              [class.cbp-table-row--selected]="isSelected(airport.id)">
+            <td class="cbp-table-cell cbp-table-cell--checkbox">
+              <div class="cbp-checkbox-wrapper">
+                <input 
+                  class="cbp-checkbox" 
+                  [id]="'select-' + airport.id" 
+                  type="checkbox" 
+                  [checked]="isSelected(airport.id)"
+                  (change)="toggleSelection(airport.id)"
+                />
+                <label class="cbp-checkbox-label" [for]="'select-' + airport.id">
+                  <span class="usa-sr-only">Select {{ airport.airportName }}</span>
+                </label>
+              </div>
+            </td>
+            <td class="cbp-table-cell cbp-table-cell--code">
+              <div class="cbp-airport-code cbp-airport-code--iata">{{ airport.iataCode }}</div>
+            </td>
+            <td class="cbp-table-cell cbp-table-cell--code">
+              <div class="cbp-airport-code cbp-airport-code--icao">{{ airport.icaoCode }}</div>
+            </td>
+            <td class="cbp-table-cell cbp-table-cell--primary">
+              <div class="cbp-airport-name">
+                <div class="cbp-airport-name-text">{{ airport.airportName }}</div>
+              </div>
+            </td>
+            <td class="cbp-table-cell">
+              <span class="cbp-city-name">{{ airport.city }}</span>
+            </td>
+            <td class="cbp-table-cell cbp-table-cell--code">
+              <span class="cbp-country-code">{{ airport.countryCode }}</span>
+            </td>
+            <td class="cbp-table-cell">
+              <span class="cbp-airport-type-badge">{{ getAirportTypeDisplay(airport.airportType) }}</span>
+            </td>
+            <td class="cbp-table-cell">
+              <span class="cbp-hub-size-badge">{{ getHubSizeDisplay(airport.hubSize) }}</span>
+            </td>
+            <td class="cbp-table-cell">
+              <div class="cbp-status-wrapper">
+                <span 
+                  class="cbp-status-badge"
+                  [ngClass]="getStatusBadgeClass(airport.status)"
+                >
+                  <span class="cbp-status-indicator"></span>
+                  {{ airport.status }}
+                </span>
+              </div>
+            </td>
+            <td class="cbp-table-cell cbp-table-cell--center">
+              <div class="cbp-customs-indicator">
+                <svg *ngIf="airport.hasCustoms" class="cbp-customs-icon cbp-customs-icon--yes" aria-hidden="true" title="Has customs facilities">
+                  <use xlink:href="/assets/uswds/img/sprite.svg#security"></use>
+                </svg>
+                <svg *ngIf="!airport.hasCustoms" class="cbp-customs-icon cbp-customs-icon--no" aria-hidden="true" title="No customs facilities">
+                  <use xlink:href="/assets/uswds/img/sprite.svg#block"></use>
+                </svg>
+              </div>
+            </td>
+            <td class="cbp-table-cell cbp-table-cell--actions">
+              <div class="cbp-action-buttons">
+                <button 
+                  class="cbp-action-button cbp-action-button--view"
+                  (click)="viewAirport(airport)"
+                  title="View airport details"
+                >
+                  <svg class="cbp-action-icon" aria-hidden="true">
+                    <use xlink:href="/assets/uswds/img/sprite.svg#visibility"></use>
+                  </svg>
+                </button>
+                <button 
+                  class="cbp-action-button cbp-action-button--edit"
+                  (click)="editAirport(airport)"
+                  title="Edit airport"
+                >
+                  <svg class="cbp-action-icon" aria-hidden="true">
+                    <use xlink:href="/assets/uswds/img/sprite.svg#edit"></use>
+                  </svg>
+                </button>
+                <button 
+                  class="cbp-action-button cbp-action-button--delete"
+                  (click)="confirmDelete(airport)"
+                  title="Deactivate airport"
+                  *ngIf="airport.isActive"
+                >
+                  <svg class="cbp-action-icon" aria-hidden="true">
+                    <use xlink:href="/assets/uswds/img/sprite.svg#delete"></use>
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Card View -->
+    <div class="cbp-cards-grid" *ngIf="isCardView()">
+      <!-- Loading State for Cards -->
+      <div class="cbp-cards-loading" *ngIf="loading">
+        <div class="cbp-card-skeleton" *ngFor="let i of [1,2,3,4,5,6]">
+          <div class="cbp-skeleton cbp-skeleton--card"></div>
+        </div>
+      </div>
+      
+      <!-- Empty State for Cards -->
+      <div class="cbp-cards-empty" *ngIf="!loading && airports.length === 0">
+        <div class="cbp-empty-state">
+          <svg class="cbp-empty-icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#flight_takeoff"></use>
+          </svg>
+          <h4 class="cbp-empty-title">No Airports Found</h4>
+          <p class="cbp-empty-text">Try adjusting your search criteria or filters, or add a new airport to get started.</p>
+          <button class="cbp-button cbp-button--primary" (click)="addAirport()">
+            <svg class="cbp-button__icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#add"></use>
+            </svg>
+            Add First Airport
+          </button>
+        </div>
+      </div>
+      
+      <!-- Airport Cards -->
+      <div class="cbp-airport-card" *ngFor="let airport of airports; trackBy: trackByAirportId" 
+           [class.cbp-airport-card--selected]="isSelected(airport.id)">
+        <div class="cbp-airport-card__header">
+          <div class="cbp-airport-card__select">
+            <input 
+              class="cbp-checkbox" 
+              [id]="'card-select-' + airport.id" 
+              type="checkbox" 
+              [checked]="isSelected(airport.id)"
+              (change)="toggleSelection(airport.id)"
+            />
+            <label class="cbp-checkbox-label" [for]="'card-select-' + airport.id">
+              <span class="usa-sr-only">Select {{ airport.airportName }}</span>
+            </label>
+          </div>
+          <div class="cbp-airport-card__badges">
+            <span class="cbp-customs-badge" [class.cbp-customs-badge--yes]="airport.hasCustoms" [class.cbp-customs-badge--no]="!airport.hasCustoms">
+              <svg class="cbp-customs-badge-icon" aria-hidden="true">
+                <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + (airport.hasCustoms ? 'security' : 'block')"></use>
+              </svg>
+              {{ airport.hasCustoms ? 'Customs' : 'No Customs' }}
+            </span>
+            <span 
+              class="cbp-status-badge"
+              [ngClass]="getStatusBadgeClass(airport.status)"
+            >
+              <span class="cbp-status-indicator"></span>
+              {{ airport.status }}
+            </span>
+          </div>
+        </div>
+        
+        <div class="cbp-airport-card__body">
+          <div class="cbp-airport-card__name">{{ airport.airportName }}</div>
+          <div class="cbp-airport-card__location">{{ airport.city }}, {{ airport.countryCode }}</div>
+          
+          <div class="cbp-airport-card__codes">
+            <div class="cbp-airport-code cbp-airport-code--iata">{{ airport.iataCode }}</div>
+            <div class="cbp-airport-code cbp-airport-code--icao">{{ airport.icaoCode }}</div>
+          </div>
+          
+          <div class="cbp-airport-card__details">
+            <div class="cbp-airport-detail">
+              <span class="cbp-detail-label">Type:</span>
+              <span class="cbp-airport-type-badge">{{ getAirportTypeDisplay(airport.airportType) }}</span>
+            </div>
+            <div class="cbp-airport-detail">
+              <span class="cbp-detail-label">Hub Size:</span>
+              <span class="cbp-hub-size-badge">{{ getHubSizeDisplay(airport.hubSize) }}</span>
+            </div>
+            <div class="cbp-airport-detail" *ngIf="airport.elevationFeet">
+              <span class="cbp-detail-label">Elevation:</span>
+              <span class="cbp-detail-value">{{ airport.elevationFeet | number }} ft</span>
+            </div>
+            <div class="cbp-airport-detail" *ngIf="airport.runwayCount">
+              <span class="cbp-detail-label">Runways:</span>
+              <span class="cbp-detail-value">{{ airport.runwayCount }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="cbp-airport-card__actions">
+          <button 
+            class="cbp-action-button cbp-action-button--view"
+            (click)="viewAirport(airport)"
+            title="View airport details"
+          >
+            <svg class="cbp-action-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#visibility"></use>
+            </svg>
+          </button>
+          <button 
+            class="cbp-action-button cbp-action-button--edit"
+            (click)="editAirport(airport)"
+            title="Edit airport"
+          >
+            <svg class="cbp-action-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#edit"></use>
+            </svg>
+          </button>
+          <button 
+            class="cbp-action-button cbp-action-button--delete"
+            (click)="confirmDelete(airport)"
+            title="Deactivate airport"
+            *ngIf="airport.isActive"
+          >
+            <svg class="cbp-action-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#delete"></use>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Map View Placeholder -->
+    <div class="cbp-map-container" *ngIf="isMapView()">
+      <div class="cbp-map-placeholder">
+        <svg class="cbp-map-placeholder-icon" aria-hidden="true">
+          <use xlink:href="/assets/uswds/img/sprite.svg#map"></use>
+        </svg>
+        <h4 class="cbp-map-placeholder-title">Map View</h4>
+        <p class="cbp-map-placeholder-text">Interactive airport map coming soon. This will display airports on a world map with filtering and clustering capabilities.</p>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <nav aria-label="Pagination" class="usa-pagination margin-top-4" *ngIf="totalPages > 1">
+      <ul class="usa-pagination__list">
+        <li class="usa-pagination__item usa-pagination__arrow">
+          <a 
+            href="javascript:void(0);" 
+            class="usa-pagination__link"
+            [class.usa-pagination__link--disabled]="currentPage === 0"
+            (click)="goToPage(currentPage - 1)"
+            aria-label="Previous page"
+          >
+            <svg class="usa-icon" aria-hidden="true" role="img">
+              <use xlink:href="/assets/uswds/img/sprite.svg#navigate_before"></use>
+            </svg>
+            <span class="usa-pagination__link-text">Previous</span>
+          </a>
+        </li>
+
+        <li class="usa-pagination__item usa-pagination__page-no" *ngFor="let page of pageNumbers">
+          <a 
+            href="javascript:void(0);" 
+            class="usa-pagination__button"
+            [class.usa-current]="page === currentPage"
+            (click)="goToPage(page)"
+            [attr.aria-label]="'Page ' + (page + 1)"
+          >
+            {{ page + 1 }}
+          </a>
+        </li>
+
+        <li class="usa-pagination__item usa-pagination__arrow">
+          <a 
+            href="javascript:void(0);" 
+            class="usa-pagination__link"
+            [class.usa-pagination__link--disabled]="currentPage === totalPages - 1"
+            (click)="goToPage(currentPage + 1)"
+            aria-label="Next page"
+          >
+            <span class="usa-pagination__link-text">Next</span>
+            <svg class="usa-icon" aria-hidden="true" role="img">
+              <use xlink:href="/assets/uswds/img/sprite.svg#navigate_next"></use>
+            </svg>
+          </a>
+        </li>
+      </ul>
+      <div class="usa-pagination__counter">
+        Showing {{ (currentPage * pageSize) + 1 }} - {{ getMinValue((currentPage + 1) * pageSize, totalElements) }} of {{ totalElements }} results
+      </div>
+    </nav>
+  </div>
+</div>
+
+<!-- Airport Modal -->
+<div *ngIf="showModal" class="cbp-modal-overlay cbp-fade-in" (click)="closeModal()">
+  <div class="cbp-modal cbp-slide-up" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" [attr.aria-labelledby]="isEditMode ? 'modal-title-edit' : 'modal-title-view'">
+    <div class="cbp-modal-header">
+      <h2 class="cbp-modal-title" [id]="isEditMode ? 'modal-title-edit' : 'modal-title-view'">
+        {{ isEditMode ? (selectedAirport?.id ? 'Edit Airport' : 'Add New Airport') : 'Airport Details' }}
+      </h2>
+      <button class="cbp-modal-close" (click)="closeModal()" aria-label="Close modal">
+        <svg class="cbp-modal-close-icon" aria-hidden="true">
+          <use xlink:href="/assets/uswds/img/sprite.svg#close"></use>
+        </svg>
+      </button>
+    </div>
+    
+    <div class="cbp-modal-content">
+      <div *ngIf="formErrors.general" class="cbp-alert cbp-alert--error margin-bottom-2">
+        <div class="cbp-alert__body">
+          <p class="cbp-alert__text">{{ formErrors.general }}</p>
+        </div>
+      </div>
+
+      <form class="cbp-form" *ngIf="selectedAirport">
+        <div class="cbp-form-section">
+          <h3 class="cbp-form-section-title">Basic Information</h3>
+
+          <div class="cbp-form-row">
+            <div class="cbp-form-group cbp-form-group--full-width">
+              <label class="cbp-label" [class.cbp-label--error]="formErrors.airportName" for="airport-name">
+                Airport Name *
+              </label>
+              <input 
+                class="cbp-input" 
+                [class.cbp-input--error]="formErrors.airportName"
+                id="airport-name" 
+                type="text" 
+                [(ngModel)]="selectedAirport.airportName"
+                [disabled]="!isEditMode"
+                name="airportName"
+                required
+              />
+              <div class="cbp-error-message" *ngIf="formErrors.airportName">{{ formErrors.airportName }}</div>
+            </div>
+          </div>
+
+          <div class="cbp-form-row">
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="code-system-field">Code System</label>
+              <select 
+                class="cbp-select" 
+                id="code-system-field" 
+                [(ngModel)]="selectedAirport.codeSystem"
+                [disabled]="!isEditMode || selectedAirport.id"
+                name="codeSystem"
+              >
+                <option *ngFor="let system of availableCodeSystems" [value]="system">{{ system }}</option>
+              </select>
+            </div>
+
+            <div class="cbp-form-group">
+              <label class="cbp-label" [class.cbp-label--error]="formErrors.iataCode" for="iata-code">
+                IATA Code *
+              </label>
+              <span class="cbp-error-message" *ngIf="formErrors.iataCode">{{ formErrors.iataCode }}</span>
+              <input 
+                class="cbp-input" 
+                [class.cbp-input--error]="formErrors.iataCode"
+                id="iata-code" 
+                type="text" 
+                maxlength="3"
+                [(ngModel)]="selectedAirport.iataCode"
+                [disabled]="!isEditMode"
+                name="iataCode"
+                style="text-transform: uppercase;"
+              />
+            </div>
+
+            <div class="cbp-form-group">
+              <label class="cbp-label" [class.cbp-label--error]="formErrors.icaoCode" for="icao-code">
+                ICAO Code *
+              </label>
+              <span class="cbp-error-message" *ngIf="formErrors.icaoCode">{{ formErrors.icaoCode }}</span>
+              <input 
+                class="cbp-input" 
+                [class.cbp-input--error]="formErrors.icaoCode"
+                id="icao-code" 
+                type="text" 
+                maxlength="4"
+                [(ngModel)]="selectedAirport.icaoCode"
+                [disabled]="!isEditMode"
+                name="icaoCode"
+                style="text-transform: uppercase;"
+              />
+            </div>
+
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="airport-type">Airport Type</label>
+              <select 
+                class="cbp-select" 
+                id="airport-type" 
+                [(ngModel)]="selectedAirport.airportType"
+                [disabled]="!isEditMode"
+                name="airportType"
+              >
+                <option *ngFor="let type of availableAirportTypes" [value]="type">{{ getAirportTypeDisplay(type) }}</option>
+              </select>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="cbp-form-section">
+          <h3 class="cbp-form-section-title">Location Information</h3>
+
+          <div class="cbp-form-row">
+            <div class="cbp-form-group">
+              <label class="cbp-label" [class.cbp-label--error]="formErrors.city" for="city">
+                City *
+            </label>
+            <span class="cbp-error-message" *ngIf="formErrors.city">{{ formErrors.city }}</span>
+            <input 
+              class="cbp-input" 
+              [class.cbp-input--error]="formErrors.city"
+              id="city" 
+              type="text" 
+              [(ngModel)]="selectedAirport.city"
+              [disabled]="!isEditMode"
+              name="city"
+              />
+            </div>
+
+            <div class="cbp-form-group">
+              <label class="cbp-label" [class.cbp-label--error]="formErrors.countryCode" for="country-code">
+                Country Code *
+            </label>
+            <span class="cbp-error-message" *ngIf="formErrors.countryCode">{{ formErrors.countryCode }}</span>
+            <input 
+              class="cbp-input" 
+              [class.cbp-input--error]="formErrors.countryCode"
+              id="country-code" 
+              type="text" 
+              maxlength="3"
+              [(ngModel)]="selectedAirport.countryCode"
+              [disabled]="!isEditMode"
+              name="countryCode"
+              style="text-transform: uppercase;"
+              />
+            </div>
+
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="state-province">State/Province</label>
+            <input 
+              class="cbp-input" 
+              id="state-province" 
+              type="text" 
+              [(ngModel)]="selectedAirport.stateProvince"
+              [disabled]="!isEditMode"
+              name="stateProvince"
+              />
+            </div>
+          </div>
+
+          <div class="cbp-form-row">
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="time-zone">Time Zone</label>
+            <input 
+              class="cbp-input" 
+              id="time-zone" 
+              type="text" 
+              [(ngModel)]="selectedAirport.timeZone"
+              [disabled]="!isEditMode"
+              name="timeZone"
+              placeholder="e.g., America/New_York"
+              />
+            </div>
+
+            <div class="cbp-form-group">
+              <label class="cbp-label" [class.cbp-label--error]="formErrors.elevationFeet" for="elevation">
+                Elevation (feet)
+            </label>
+            <span class="cbp-error-message" *ngIf="formErrors.elevationFeet">{{ formErrors.elevationFeet }}</span>
+            <input 
+              class="cbp-input" 
+              [class.cbp-input--error]="formErrors.elevationFeet"
+              id="elevation" 
+              type="number" 
+              [(ngModel)]="selectedAirport.elevationFeet"
+              [disabled]="!isEditMode"
+              name="elevationFeet"
+              />
+            </div>
+
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="hub-size">Hub Size</label>
+            <select 
+              class="cbp-select" 
+              id="hub-size" 
+              [(ngModel)]="selectedAirport.hubSize"
+              [disabled]="!isEditMode"
+              name="hubSize"
+            >
+              <option *ngFor="let size of availableHubSizes" [value]="size">{{ getHubSizeDisplay(size) }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="cbp-form-section">
+          <h3 class="cbp-form-section-title">Facilities Information</h3>
+
+          <div class="cbp-form-row">
+            <div class="cbp-form-group">
+              <label class="cbp-label" [class.cbp-label--error]="formErrors.runwayCount" for="runway-count">
+                Number of Runways
+            </label>
+            <span class="cbp-error-message" *ngIf="formErrors.runwayCount">{{ formErrors.runwayCount }}</span>
+            <input 
+              class="cbp-input" 
+              [class.cbp-input--error]="formErrors.runwayCount"
+              id="runway-count" 
+              type="number" 
+              min="0"
+              [(ngModel)]="selectedAirport.runwayCount"
+              [disabled]="!isEditMode"
+              name="runwayCount"
+              />
+            </div>
+
+            <div class="cbp-form-group">
+              <label class="cbp-label" [class.cbp-label--error]="formErrors.longestRunwayFeet" for="longest-runway">
+                Longest Runway (feet)
+            </label>
+            <span class="cbp-error-message" *ngIf="formErrors.longestRunwayFeet">{{ formErrors.longestRunwayFeet }}</span>
+            <input 
+              class="cbp-input" 
+              [class.cbp-input--error]="formErrors.longestRunwayFeet"
+              id="longest-runway" 
+              type="number" 
+              min="0"
+              [(ngModel)]="selectedAirport.longestRunwayFeet"
+              [disabled]="!isEditMode"
+              name="longestRunwayFeet"
+              />
+            </div>
+
+            <div class="cbp-form-group">
+              <label class="cbp-label" [class.cbp-label--error]="formErrors.terminalCount" for="terminal-count">
+                Number of Terminals
+            </label>
+            <span class="cbp-error-message" *ngIf="formErrors.terminalCount">{{ formErrors.terminalCount }}</span>
+            <input 
+              class="cbp-input" 
+              [class.cbp-input--error]="formErrors.terminalCount"
+              id="terminal-count" 
+              type="number" 
+              min="0"
+              [(ngModel)]="selectedAirport.terminalCount"
+              [disabled]="!isEditMode"
+              name="terminalCount"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="cbp-form-section">
+          <h3 class="cbp-form-section-title">Status & Options</h3>
+
+          <div class="cbp-form-row">
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="status">Operational Status</label>
+            <select 
+              class="cbp-select" 
+              id="status" 
+              [(ngModel)]="selectedAirport.status"
+              [disabled]="!isEditMode"
+              name="status"
+            >
+              <option *ngFor="let status of availableStatuses" [value]="status">{{ status }}</option>
+              </select>
+            </div>
+
+            <div class="cbp-form-group">
+              <div class="cbp-checkbox-wrapper">
+                <input
+                  id="is-active"
+                  class="cbp-checkbox"
+                  type="checkbox"
+                  [(ngModel)]="selectedAirport.isActive"
+                  [disabled]="!isEditMode"
+                  name="isActive"
+                />
+                <label class="cbp-checkbox-label" for="is-active">
+                  Airport is active
+                </label>
+              </div>
+            </div>
+
+            <div class="cbp-form-group">
+              <div class="cbp-checkbox-wrapper">
+                <input 
+                  id="has-customs" 
+                  class="cbp-checkbox"
+                  type="checkbox" 
+                  [(ngModel)]="selectedAirport.hasCustoms"
+                  [disabled]="!isEditMode"
+                  name="hasCustoms"
+                />
+                <label class="cbp-checkbox-label" for="has-customs">
+                  Has Customs Facilities
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cbp-form-section">
+          <h3 class="cbp-form-section-title">Contact Information</h3>
+
+          <div class="cbp-form-row">
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="website">Website</label>
+            <input 
+              class="cbp-input" 
+              id="website" 
+              type="url" 
+              [(ngModel)]="selectedAirport.website"
+              [disabled]="!isEditMode"
+              name="website"
+              placeholder="https://example.com"
+              />
+            </div>
+
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="phone">Phone Number</label>
+            <input 
+              class="cbp-input" 
+              id="phone" 
+              type="tel" 
+              [(ngModel)]="selectedAirport.phone"
+              [disabled]="!isEditMode"
+              name="phone"
+              placeholder="+1-555-123-4567"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="cbp-form-section" *ngIf="selectedAirport.id">
+          <div class="cbp-alert cbp-alert--info cbp-alert--slim">
+              <div class="cbp-alert__body">
+                <p class="cbp-alert__text">
+                  <strong>Version:</strong> {{ selectedAirport.version }} | 
+                  <strong>Valid From:</strong> {{ formatDate(selectedAirport.validFrom) }} |
+                  <strong>Valid To:</strong> {{ formatDate(selectedAirport.validTo) || 'Current' }} |
+                  <strong>Recorded:</strong> {{ formatDate(selectedAirport.recordedAt) }} by {{ selectedAirport.recordedBy }}
+                </p>
+              </div>
+            </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="cbp-modal-footer">
+      <button class="cbp-button cbp-button--secondary" (click)="closeModal()">
+        {{ isEditMode ? 'Cancel' : 'Close' }}
+      </button>
+      <button 
+        *ngIf="isEditMode"
+        class="cbp-button cbp-button--primary"
+        (click)="saveAirport()"
+      >
+        {{ selectedAirport?.id ? 'Update Airport' : 'Create Airport' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div *ngIf="showDeleteConfirm" class="cbp-modal-overlay cbp-fade-in" (click)="cancelDelete()">
+  <div class="cbp-modal cbp-modal--sm cbp-slide-up" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <div class="cbp-modal-header">
+      <h2 class="cbp-modal-title">Confirm Deactivation</h2>
+      <button class="cbp-modal-close" (click)="cancelDelete()" aria-label="Close modal">
+        <svg class="cbp-modal-close-icon" aria-hidden="true">
+          <use xlink:href="/assets/uswds/img/sprite.svg#close"></use>
+        </svg>
+      </button>
+    </div>
+    
+    <div class="cbp-modal-content">
+      <p>
+        Are you sure you want to deactivate <strong>{{ airportToDelete?.airportName }}</strong> 
+        ({{ airportToDelete?.iataCode }}/{{ airportToDelete?.icaoCode }})? This action will mark the airport as inactive 
+        in the bitemporal system.
+      </p>
+      <p class="text-base margin-top-2">
+        Note: The airport data will be preserved for historical reference and can be reactivated later if needed.
+      </p>
+    </div>
+
+    <div class="cbp-modal-footer">
+      <button class="cbp-button cbp-button--secondary" (click)="cancelDelete()">
+        Cancel
+      </button>
+      <button class="cbp-button cbp-button--danger" (click)="deleteAirport()">
+        Deactivate Airport
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,6 @@
+/Users/bruhalemneh/git/reference-data/translation-service/src/main/java/gov/dhs/cbp/reference/translation/controller/TranslateController.java
+/Users/bruhalemneh/git/reference-data/translation-service/src/main/java/gov/dhs/cbp/reference/translation/dto/BatchTranslationRequest.java
+/Users/bruhalemneh/git/reference-data/translation-service/src/main/java/gov/dhs/cbp/reference/translation/dto/BatchTranslationResponse.java
+/Users/bruhalemneh/git/reference-data/translation-service/src/main/java/gov/dhs/cbp/reference/translation/dto/TranslationRequest.java
+/Users/bruhalemneh/git/reference-data/translation-service/src/main/java/gov/dhs/cbp/reference/translation/dto/TranslationResponse.java
+/Users/bruhalemneh/git/reference-data/translation-service/src/main/java/gov/dhs/cbp/reference/translation/service/TranslationService.java

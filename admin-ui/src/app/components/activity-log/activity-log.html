@@ -1,0 +1,282 @@
+<!-- Activity Log Page -->
+<div class="cbp-container">
+  <!-- Page Header -->
+  <div class="cbp-page-header">
+    <div class="cbp-page-header__content">
+      <div class="cbp-page-header__navigation">
+        <button 
+          class="cbp-button cbp-button--secondary cbp-button--icon"
+          (click)="goBack()"
+          title="Go back"
+        >
+          <svg class="cbp-button__icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#arrow_back"></use>
+          </svg>
+          Back
+        </button>
+      </div>
+      <div class="cbp-page-header__title">
+        <h1>Activity Log</h1>
+        <p class="cbp-page-header__subtitle">View your account activity and system interactions</p>
+      </div>
+      <div class="cbp-page-header__actions">
+        <button 
+          class="cbp-button cbp-button--secondary"
+          (click)="toggleFilters()"
+        >
+          <svg class="cbp-button__icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#filter_list"></use>
+          </svg>
+          Filters
+        </button>
+        <button 
+          class="cbp-button cbp-button--primary"
+          (click)="exportActivity()"
+        >
+          <svg class="cbp-button__icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#download"></use>
+          </svg>
+          Export
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Panel -->
+  <div class="cbp-filters-panel" [class.is-visible]="showFilters">
+    <div class="cbp-filters-content">
+      <h3>Filter Activity Log</h3>
+      <div class="cbp-filters-grid">
+        <div class="usa-form-group">
+          <label class="usa-label" for="date-from">From Date</label>
+          <input 
+            class="usa-input" 
+            id="date-from"
+            type="date"
+            [(ngModel)]="filter.dateFrom"
+          />
+        </div>
+
+        <div class="usa-form-group">
+          <label class="usa-label" for="date-to">To Date</label>
+          <input 
+            class="usa-input" 
+            id="date-to"
+            type="date"
+            [(ngModel)]="filter.dateTo"
+          />
+        </div>
+
+        <div class="usa-form-group">
+          <label class="usa-label" for="action-filter">Action</label>
+          <select 
+            class="usa-select" 
+            id="action-filter"
+            [(ngModel)]="filter.action"
+          >
+            <option 
+              *ngFor="let option of actionOptions" 
+              [value]="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="usa-form-group">
+          <label class="usa-label" for="entity-filter">Entity Type</label>
+          <select 
+            class="usa-select" 
+            id="entity-filter"
+            [(ngModel)]="filter.entityType"
+          >
+            <option 
+              *ngFor="let option of entityTypeOptions" 
+              [value]="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="usa-form-group">
+          <label class="usa-label" for="result-filter">Result</label>
+          <select 
+            class="usa-select" 
+            id="result-filter"
+            [(ngModel)]="filter.result"
+          >
+            <option 
+              *ngFor="let option of resultOptions" 
+              [value]="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="cbp-filters-actions">
+        <button 
+          class="cbp-button cbp-button--primary"
+          (click)="applyFilters()"
+        >
+          Apply Filters
+        </button>
+        <button 
+          class="cbp-button cbp-button--outline"
+          (click)="clearFilters()"
+        >
+          Clear Filters
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Activity List -->
+  <div class="cbp-activity-container">
+    <!-- Loading State -->
+    <div *ngIf="loading" class="cbp-loading-state">
+      <div class="cbp-spinner"></div>
+      <p>Loading activity log...</p>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error" class="cbp-error-state">
+      <svg class="cbp-error-icon" aria-hidden="true">
+        <use xlink:href="/assets/uswds/img/sprite.svg#error"></use>
+      </svg>
+      <h3>Error Loading Activity Log</h3>
+      <p>{{ error }}</p>
+      <button class="cbp-button cbp-button--primary" (click)="retryLoad()">
+        Try Again
+      </button>
+    </div>
+
+    <!-- Activity List -->
+    <div *ngIf="!loading && !error" class="cbp-activity-list">
+      <!-- Empty State -->
+      <div *ngIf="activities.length === 0" class="cbp-empty-state">
+        <svg class="cbp-empty-icon" aria-hidden="true">
+          <use xlink:href="/assets/uswds/img/sprite.svg#history"></use>
+        </svg>
+        <h3>No Activity Found</h3>
+        <p>No activity entries match your current filters.</p>
+      </div>
+
+      <!-- Activity Entries -->
+      <div *ngIf="activities.length > 0" class="cbp-activity-entries">
+        <div 
+          *ngFor="let activity of paginatedActivities; trackBy: trackActivity"
+          class="cbp-activity-entry"
+          [class.is-expanded]="expandedEntry === activity.id"
+        >
+          <div class="cbp-activity-summary" (click)="toggleDetails(activity.id)">
+            <div class="cbp-activity-icon">
+              <svg class="cbp-icon" [ngClass]="getResultClass(activity.result)">
+                <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + getActionIcon(activity.action)"></use>
+              </svg>
+            </div>
+
+            <div class="cbp-activity-info">
+              <div class="cbp-activity-main">
+                <span class="cbp-activity-action">{{ activity.action }}</span>
+                <span class="cbp-activity-entity">{{ activity.entityType }}</span>
+                <span class="cbp-activity-description">{{ activity.description }}</span>
+              </div>
+              <div class="cbp-activity-meta">
+                <span class="cbp-activity-time">{{ formatTimestamp(activity.timestamp) }}</span>
+                <span class="cbp-activity-ip">{{ activity.ipAddress }}</span>
+              </div>
+            </div>
+
+            <div class="cbp-activity-result">
+              <span class="cbp-badge" [ngClass]="getResultClass(activity.result)">
+                <svg class="cbp-badge-icon" aria-hidden="true">
+                  <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + getResultIcon(activity.result)"></use>
+                </svg>
+                {{ activity.result }}
+              </span>
+            </div>
+
+            <div class="cbp-activity-expand">
+              <svg class="cbp-expand-icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#expand_more"></use>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Expanded Details -->
+          <div class="cbp-activity-details" *ngIf="expandedEntry === activity.id">
+            <div class="cbp-details-grid">
+              <div class="cbp-detail-item">
+                <label>Entity ID</label>
+                <span>{{ activity.entityId }}</span>
+              </div>
+              <div class="cbp-detail-item">
+                <label>Session ID</label>
+                <span>{{ activity.sessionId }}</span>
+              </div>
+              <div class="cbp-detail-item">
+                <label>User Agent</label>
+                <span class="cbp-user-agent">{{ activity.userAgent }}</span>
+              </div>
+              <div class="cbp-detail-item" *ngIf="activity.details?.changedFields">
+                <label>Changed Fields</label>
+                <span>{{ activity.details.changedFields.join(', ') }}</span>
+              </div>
+              <div class="cbp-detail-item" *ngIf="activity.details?.reason">
+                <label>Failure Reason</label>
+                <span class="cbp-failure-reason">{{ activity.details.reason }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="cbp-pagination" *ngIf="totalPages > 1">
+        <div class="cbp-pagination-info">
+          Showing {{ currentPage * pageSize + 1 }} - {{ Math.min((currentPage + 1) * pageSize, totalElements) }} 
+          of {{ totalElements }} entries
+        </div>
+
+        <nav class="cbp-pagination-nav" aria-label="Activity log pagination">
+          <button 
+            class="cbp-pagination-button"
+            [disabled]="currentPage === 0"
+            (click)="goToPreviousPage()"
+            aria-label="Previous page"
+          >
+            <svg class="cbp-pagination-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#chevron_left"></use>
+            </svg>
+          </button>
+
+          <div class="cbp-pagination-pages">
+            <button 
+              *ngFor="let page of pageNumbers"
+              class="cbp-pagination-page"
+              [class.is-current]="page === currentPage"
+              (click)="goToPage(page)"
+              [attr.aria-label]="'Page ' + (page + 1)"
+            >
+              {{ page + 1 }}
+            </button>
+          </div>
+
+          <button 
+            class="cbp-pagination-button"
+            [disabled]="currentPage === totalPages - 1"
+            (click)="goToNextPage()"
+            aria-label="Next page"
+          >
+            <svg class="cbp-pagination-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#chevron_right"></use>
+            </svg>
+          </button>
+        </nav>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,126 @@
+// Breadcrumb and Header Styles using USWDS variables
+
+
+.breadcrumb {
+  background-color: var(--usa-color-white);
+  border-bottom: 1px solid var(--usa-color-base-lighter);
+  padding: 1.25rem 2rem; /* increased vertical spacing */
+  position: sticky;
+  top: 0;
+  z-index: 800;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-top: 0.25rem; /* additional space from agency header */
+
+  @media (max-width: 767px) {
+    padding: 0.75rem 1rem;
+  }
+}
+
+.breadcrumb__container {
+  max-width: none;
+}
+
+.breadcrumb__list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.breadcrumb__item {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+
+  &--active {
+    .breadcrumb__current {
+      color: var(--usa-color-primary-dark);
+      font-weight: 600;
+    }
+  }
+
+  @media (max-width: 479px) {
+    font-size: 0.8125rem;
+  }
+}
+
+.breadcrumb__link {
+  display: flex;
+  align-items: center;
+  color: var(--usa-color-base-dark);
+  text-decoration: none;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+
+  &:hover,
+  &:focus {
+    color: var(--usa-color-primary-dark);
+    background-color: var(--usa-color-primary-lightest);
+    text-decoration: underline;
+  }
+
+  &:focus {
+    outline: 2px solid var(--usa-color-focus);
+    outline-offset: 2px;
+  }
+}
+
+.breadcrumb__current {
+  display: flex;
+  align-items: center;
+  color: var(--usa-color-base-darker);
+  padding: 0.25rem;
+}
+
+.breadcrumb__icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 0.25rem;
+  flex-shrink: 0;
+
+  @media (max-width: 479px) {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.breadcrumb__text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+
+  @media (max-width: 767px) {
+    max-width: 120px;
+  }
+
+  @media (max-width: 479px) {
+    max-width: 80px;
+  }
+}
+
+.breadcrumb__separator {
+  width: 12px;
+  height: 12px;
+  color: var(--usa-color-base);
+  margin: 0 0.25rem;
+  flex-shrink: 0;
+
+  @media (max-width: 479px) {
+    width: 10px;
+    height: 10px;
+  }
+}
+
+// All breadcrumb actions styles removed - functionality moved to header
+
+// High contrast mode
+@media (prefers-contrast: high) {
+  .breadcrumb {
+    border-bottom-width: 2px;
+  }
+}

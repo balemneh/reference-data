@@ -1,0 +1,64 @@
+/* CBP Reference Data Admin UI - Main App Styles */
+
+// 1. SPACING IMPROVEMENTS - Government Banner ’ Header ’ Breadcrumb Spacing
+.usa-banner {
+  margin-bottom: 1.5rem;
+}
+
+app-header {
+  margin-bottom: 1rem;
+}
+
+app-breadcrumb {
+  margin-bottom: 1.5rem;
+}
+
+// 2. Main Content Padding
+.main-content {
+  padding: 2rem;
+}
+
+// Layout adjustments for proper spacing
+.layout__main {
+  flex: 1;
+  min-height: 100vh;
+  margin-left: 280px;
+  transition: margin-left var(--cbp-transition-normal);
+  
+  @media (max-width: 1023px) {
+    margin-left: 0;
+  }
+}
+
+.layout--sidebar-collapsed .layout__main {
+  margin-left: 70px;
+  
+  @media (max-width: 1023px) {
+    margin-left: 0;
+  }
+}
+
+.layout__content {
+  padding: 0;
+  background-color: var(--cbp-neutral-50, #f8f9fa);
+  min-height: calc(100vh - 160px);
+}
+
+.layout__content-inner {
+  padding: 2rem;
+  max-width: none;
+}
+
+// 8. COLOR ADJUSTMENTS - Replace low-contrast grays with WCAG AA compliant colors
+:root {
+  --cbp-neutral-500: #565c65; // Replace #999 with USWDS gray-cool-60
+  --cbp-neutral-600: #3d4551; // Darker gray for better contrast
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  :root {
+    --cbp-neutral-500: #000000;
+    --cbp-neutral-600: #000000;
+  }
+}

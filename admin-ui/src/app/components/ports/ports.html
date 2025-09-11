@@ -1,0 +1,1023 @@
+<div class="grid-container">
+  <!-- Enhanced Header Section -->
+  <div class="cbp-page-header cbp-fade-in">
+    <div class="cbp-page-header__content">
+      <div class="cbp-page-header__text">
+        <h1 class="cbp-page-header__title cbp-text-gradient">Ports Management</h1>
+        <p class="cbp-page-header__subtitle">Centralized management for port reference data across multiple code systems and geographic locations</p>
+      </div>
+      <div class="cbp-page-header__actions">
+        <button class="cbp-button cbp-button--secondary" (click)="exportSelected()" [disabled]="!hasSelectedItems">
+          <svg class="cbp-button__icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#file_download"></use>
+          </svg>
+          Export Data
+        </button>
+        <button class="cbp-button cbp-button--primary" (click)="addPort()">
+          <svg class="cbp-button__icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#add"></use>
+          </svg>
+          Add Port
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enhanced Alert Messages -->
+  <div *ngIf="successMessage" class="cbp-alert cbp-alert--success cbp-slide-up margin-bottom-3" role="alert">
+    <div class="cbp-alert__content">
+      <svg class="cbp-alert__icon" aria-hidden="true">
+        <use xlink:href="/assets/uswds/img/sprite.svg#check_circle"></use>
+      </svg>
+      <div class="cbp-alert__body">
+        <h4 class="cbp-alert__title">Success</h4>
+        <p class="cbp-alert__text">{{ successMessage }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="cbp-alert cbp-alert--error cbp-slide-up margin-bottom-3" role="alert">
+    <div class="cbp-alert__content">
+      <svg class="cbp-alert__icon" aria-hidden="true">
+        <use xlink:href="/assets/uswds/img/sprite.svg#error"></use>
+      </svg>
+      <div class="cbp-alert__body">
+        <h4 class="cbp-alert__title">Error</h4>
+        <p class="cbp-alert__text">{{ error }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enhanced Filters and Actions Bar -->
+  <div class="cbp-filters-container cbp-slide-up">
+    <div class="cbp-filters-card">
+      <div class="cbp-filters-header">
+        <div class="cbp-filters-title">
+          <svg class="cbp-filters-icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#filter_list"></use>
+          </svg>
+          <h3>Filter & Search</h3>
+        </div>
+        <div class="cbp-filters-count" *ngIf="ports.length > 0">
+          <span class="cbp-count-badge">{{ ports.length }}</span> results
+        </div>
+      </div>
+      
+      <div class="cbp-filters-content">
+        <!-- Enhanced Search -->
+        <div class="cbp-search-field">
+          <label class="cbp-field-label" for="search-ports">
+            <svg class="cbp-label-icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#search"></use>
+            </svg>
+            Search Ports
+          </label>
+          <div class="cbp-search-input">
+            <input
+              #searchInput
+              class="cbp-input cbp-input--search"
+              id="search-ports"
+              type="search"
+              placeholder="Search by port name, code, city, or country..."
+              (input)="onSearchInput($event)"
+              [value]="searchTerm"
+            />
+            <button 
+              class="cbp-search-clear" 
+              type="button" 
+              *ngIf="searchTerm" 
+              (click)="clearSearch()"
+              aria-label="Clear search"
+            >
+              <svg class="cbp-search-clear-icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#close"></use>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="cbp-filters-row">
+          <!-- Enhanced Code System Filter -->
+          <div class="cbp-filter-field">
+            <label class="cbp-field-label" for="code-system-select">
+              <svg class="cbp-label-icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#code"></use>
+              </svg>
+              Code System
+            </label>
+            <select 
+              id="code-system-select" 
+              class="cbp-select cbp-select--enhanced"
+              [(ngModel)]="codeSystem" 
+              (change)="onCodeSystemChange()"
+            >
+              <option *ngFor="let system of availableCodeSystems" [value]="system">
+                {{ system }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Port Type Filter -->
+          <div class="cbp-filter-field">
+            <label class="cbp-field-label" for="port-type-select">
+              <svg class="cbp-label-icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#directions_boat"></use>
+              </svg>
+              Port Type
+            </label>
+            <select 
+              id="port-type-select" 
+              class="cbp-select cbp-select--enhanced"
+              (change)="onPortTypeFilterChange($any($event.target).value)"
+            >
+              <option value="all">All Types</option>
+              <option *ngFor="let type of availablePortTypes" [value]="type">
+                {{ getPortTypeDisplayName(type) }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Country Filter -->
+          <div class="cbp-filter-field">
+            <label class="cbp-field-label" for="country-filter">
+              <svg class="cbp-label-icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#public"></use>
+              </svg>
+              Country
+            </label>
+            <input
+              id="country-filter"
+              class="cbp-input cbp-input--filter"
+              type="text"
+              placeholder="Filter by country..."
+              (input)="onCountryFilterChange($event)"
+            />
+          </div>
+
+          <!-- Enhanced Active Status Filter -->
+          <div class="cbp-filter-field">
+            <label class="cbp-field-label" for="active-filter">
+              <svg class="cbp-label-icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#toggle_on"></use>
+              </svg>
+              Status
+            </label>
+            <select 
+              id="active-filter" 
+              class="cbp-select cbp-select--enhanced"
+              (change)="onActiveFilterChange($any($event.target).value)"
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active Only</option>
+              <option value="inactive">Inactive Only</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Enhanced Action Buttons -->
+        <div class="cbp-filters-actions">
+          <button class="cbp-button cbp-button--outline cbp-button--icon" (click)="resetFilters()" [disabled]="!hasActiveFilters">
+            <svg class="cbp-button__icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#clear"></use>
+            </svg>
+            Clear Filters
+          </button>
+          
+          <div class="cbp-view-toggle">
+            <span class="cbp-view-toggle-label">View:</span>
+            <div class="cbp-view-buttons" role="tablist">
+              <button 
+                class="cbp-view-button" 
+                [class.cbp-view-button--active]="isTableView()"
+                (click)="setViewMode('table')"
+                role="tab"
+                [attr.aria-selected]="isTableView()"
+                aria-label="Table view"
+              >
+                <svg class="cbp-view-icon" aria-hidden="true">
+                  <use xlink:href="/assets/uswds/img/sprite.svg#view_list"></use>
+                </svg>
+                Table
+              </button>
+              <button 
+                class="cbp-view-button" 
+                [class.cbp-view-button--active]="isCardView()"
+                (click)="setViewMode('card')"
+                role="tab"
+                [attr.aria-selected]="isCardView()"
+                aria-label="Card view"
+              >
+                <svg class="cbp-view-icon" aria-hidden="true">
+                  <use xlink:href="/assets/uswds/img/sprite.svg#view_module"></use>
+                </svg>
+                Cards
+              </button>
+              <button 
+                class="cbp-view-button" 
+                [class.cbp-view-button--active]="isMapView()"
+                (click)="setViewMode('map')"
+                role="tab"
+                [attr.aria-selected]="isMapView()"
+                aria-label="Map view"
+              >
+                <svg class="cbp-view-icon" aria-hidden="true">
+                  <use xlink:href="/assets/uswds/img/sprite.svg#map"></use>
+                </svg>
+                Map
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Content -->
+  <div class="cbp-data-container cbp-slide-up">
+    <!-- Loading State -->
+    <div *ngIf="loading" class="cbp-loading-state">
+      <div class="cbp-spinner-container">
+        <div class="cbp-spinner" role="status" aria-label="Loading ports">
+          <div class="cbp-spinner-inner"></div>
+        </div>
+        <p class="cbp-loading-text">Loading ports...</p>
+      </div>
+    </div>
+
+    <!-- Table View -->
+    <div *ngIf="!loading && isTableView()" class="cbp-table-container">
+      <div class="cbp-table-wrapper">
+        <table class="cbp-table cbp-table--enhanced">
+          <thead>
+            <tr>
+              <th class="cbp-table__select">
+                <input 
+                  type="checkbox" 
+                  class="cbp-checkbox" 
+                  [(ngModel)]="selectAll" 
+                  (change)="toggleSelectAll()"
+                  [indeterminate]="selectedPorts.size > 0 && !selectAll"
+                  aria-label="Select all ports"
+                >
+              </th>
+              <th class="cbp-table__sortable" (click)="sortBy('portCode')" role="button" tabindex="0">
+                <div class="cbp-table__header-content">
+                  Port Code
+                  <svg class="cbp-table__sort-icon" aria-hidden="true">
+                    <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + getSortIcon('portCode')"></use>
+                  </svg>
+                </div>
+              </th>
+              <th class="cbp-table__sortable" (click)="sortBy('portName')" role="button" tabindex="0">
+                <div class="cbp-table__header-content">
+                  Port Name
+                  <svg class="cbp-table__sort-icon" aria-hidden="true">
+                    <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + getSortIcon('portName')"></use>
+                  </svg>
+                </div>
+              </th>
+              <th class="cbp-table__sortable" (click)="sortBy('countryCode')" role="button" tabindex="0">
+                <div class="cbp-table__header-content">
+                  Country
+                  <svg class="cbp-table__sort-icon" aria-hidden="true">
+                    <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + getSortIcon('countryCode')"></use>
+                  </svg>
+                </div>
+              </th>
+              <th class="cbp-table__sortable" (click)="sortBy('city')" role="button" tabindex="0">
+                <div class="cbp-table__header-content">
+                  Location
+                  <svg class="cbp-table__sort-icon" aria-hidden="true">
+                    <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + getSortIcon('city')"></use>
+                  </svg>
+                </div>
+              </th>
+              <th class="cbp-table__sortable" (click)="sortBy('portType')" role="button" tabindex="0">
+                <div class="cbp-table__header-content">
+                  Type
+                  <svg class="cbp-table__sort-icon" aria-hidden="true">
+                    <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + getSortIcon('portType')"></use>
+                  </svg>
+                </div>
+              </th>
+              <th>Coordinates</th>
+              <th>Capabilities</th>
+              <th class="cbp-table__sortable" (click)="sortBy('isActive')" role="button" tabindex="0">
+                <div class="cbp-table__header-content">
+                  Status
+                  <svg class="cbp-table__sort-icon" aria-hidden="true">
+                    <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + getSortIcon('isActive')"></use>
+                  </svg>
+                </div>
+              </th>
+              <th class="cbp-table__actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let port of ports; trackBy: trackByPortId" 
+                class="cbp-table__row"
+                [class.cbp-table__row--inactive]="!port.isActive">
+              <td class="cbp-table__select">
+                <input 
+                  type="checkbox" 
+                  class="cbp-checkbox" 
+                  [checked]="isSelected(port.id)"
+                  (change)="toggleSelection(port.id)"
+                  [attr.aria-label]="'Select ' + port.portName"
+                >
+              </td>
+              <td class="cbp-table__code">
+                <div class="cbp-code-display">{{ port.portCode }}</div>
+              </td>
+              <td class="cbp-table__name">
+                <div class="cbp-name-display">
+                  <span class="cbp-name-primary">{{ port.portName }}</span>
+                  <span class="cbp-name-system">{{ port.codeSystem }}</span>
+                </div>
+              </td>
+              <td class="cbp-table__country">
+                <div class="cbp-country-display">
+                  <span class="cbp-country-name">{{ port.countryName || port.countryCode }}</span>
+                </div>
+              </td>
+              <td class="cbp-table__location">
+                <div class="cbp-location-display">
+                  <span class="cbp-location-city">{{ port.city }}</span>
+                  <span class="cbp-location-state" *ngIf="port.stateProvince">{{ port.stateProvince }}</span>
+                </div>
+              </td>
+              <td class="cbp-table__type">
+                <span class="cbp-type-badge cbp-type-badge--{{ port.portType.toLowerCase() }}">
+                  {{ getPortTypeDisplayName(port.portType) }}
+                </span>
+              </td>
+              <td class="cbp-table__coordinates">
+                <span class="cbp-coordinates">{{ formatCoordinates(port.latitude, port.longitude) }}</span>
+              </td>
+              <td class="cbp-table__capabilities">
+                <div class="cbp-capabilities-display">
+                  <span 
+                    *ngFor="let capability of port.capabilities?.slice(0, 3)"
+                    class="cbp-capability-badge"
+                    [title]="capability"
+                  >
+                    <svg class="cbp-capability-icon" aria-hidden="true">
+                      <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + getCapabilityIcon(capability)"></use>
+                    </svg>
+                    {{ capability }}
+                  </span>
+                  <span 
+                    *ngIf="port.capabilities && port.capabilities.length > 3"
+                    class="cbp-capability-more"
+                    [title]="port.capabilities.slice(3).join(', ')"
+                  >
+                    +{{ port.capabilities.length - 3 }} more
+                  </span>
+                </div>
+              </td>
+              <td class="cbp-table__status">
+                <span class="cbp-status-badge" 
+                      [class.cbp-status-badge--active]="port.isActive"
+                      [class.cbp-status-badge--inactive]="!port.isActive">
+                  <svg class="cbp-status-icon" aria-hidden="true">
+                    <use [attr.xlink:href]="port.isActive ? '/assets/uswds/img/sprite.svg#check_circle' : '/assets/uswds/img/sprite.svg#cancel'"></use>
+                  </svg>
+                  {{ port.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td class="cbp-table__actions">
+                <div class="cbp-action-buttons">
+                  <button 
+                    class="cbp-button cbp-button--sm cbp-button--secondary"
+                    (click)="viewPort(port)"
+                    [attr.aria-label]="'View details for ' + port.portName"
+                  >
+                    <svg class="cbp-button__icon" aria-hidden="true">
+                      <use xlink:href="/assets/uswds/img/sprite.svg#visibility"></use>
+                    </svg>
+                  </button>
+                  <button 
+                    class="cbp-button cbp-button--sm cbp-button--outline"
+                    (click)="editPort(port)"
+                    [attr.aria-label]="'Edit ' + port.portName"
+                  >
+                    <svg class="cbp-button__icon" aria-hidden="true">
+                      <use xlink:href="/assets/uswds/img/sprite.svg#edit"></use>
+                    </svg>
+                  </button>
+                  <button 
+                    class="cbp-button cbp-button--sm cbp-button--danger"
+                    (click)="confirmDelete(port)"
+                    [attr.aria-label]="'Delete ' + port.portName"
+                  >
+                    <svg class="cbp-button__icon" aria-hidden="true">
+                      <use xlink:href="/assets/uswds/img/sprite.svg#delete"></use>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Card View -->
+    <div *ngIf="!loading && isCardView()" class="cbp-cards-container">
+      <div class="cbp-cards-grid">
+        <div 
+          *ngFor="let port of ports; trackBy: trackByPortId" 
+          class="cbp-port-card"
+          [class.cbp-port-card--inactive]="!port.isActive"
+        >
+          <div class="cbp-card-header">
+            <div class="cbp-card-select">
+              <input 
+                type="checkbox" 
+                class="cbp-checkbox" 
+                [checked]="isSelected(port.id)"
+                (change)="toggleSelection(port.id)"
+                [attr.aria-label]="'Select ' + port.portName"
+              >
+            </div>
+            <div class="cbp-card-status">
+              <span class="cbp-status-badge" 
+                    [class.cbp-status-badge--active]="port.isActive"
+                    [class.cbp-status-badge--inactive]="!port.isActive">
+                {{ port.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+          </div>
+          
+          <div class="cbp-card-content">
+            <div class="cbp-card-title">
+              <h3>{{ port.portName }}</h3>
+              <span class="cbp-card-code">{{ port.portCode }}</span>
+            </div>
+            
+            <div class="cbp-card-info">
+              <div class="cbp-info-row">
+                <svg class="cbp-info-icon" aria-hidden="true">
+                  <use xlink:href="/assets/uswds/img/sprite.svg#public"></use>
+                </svg>
+                <span>{{ port.countryName || port.countryCode }}</span>
+              </div>
+              
+              <div class="cbp-info-row">
+                <svg class="cbp-info-icon" aria-hidden="true">
+                  <use xlink:href="/assets/uswds/img/sprite.svg#location_city"></use>
+                </svg>
+                <span>{{ port.city }}<span *ngIf="port.stateProvince">, {{ port.stateProvince }}</span></span>
+              </div>
+              
+              <div class="cbp-info-row">
+                <svg class="cbp-info-icon" aria-hidden="true">
+                  <use xlink:href="/assets/uswds/img/sprite.svg#directions_boat"></use>
+                </svg>
+                <span>{{ getPortTypeDisplayName(port.portType) }}</span>
+              </div>
+              
+              <div class="cbp-info-row" *ngIf="port.latitude && port.longitude">
+                <svg class="cbp-info-icon" aria-hidden="true">
+                  <use xlink:href="/assets/uswds/img/sprite.svg#my_location"></use>
+                </svg>
+                <span>{{ formatCoordinates(port.latitude, port.longitude) }}</span>
+              </div>
+            </div>
+            
+            <div class="cbp-card-capabilities" *ngIf="port.capabilities && port.capabilities.length > 0">
+              <h4>Capabilities</h4>
+              <div class="cbp-capabilities-list">
+                <span 
+                  *ngFor="let capability of port.capabilities?.slice(0, 4)"
+                  class="cbp-capability-tag"
+                >
+                  {{ capability }}
+                </span>
+                <span 
+                  *ngIf="port.capabilities && port.capabilities.length > 4"
+                  class="cbp-capability-more"
+                >
+                  +{{ port.capabilities.length - 4 }} more
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="cbp-card-actions">
+            <button 
+              class="cbp-button cbp-button--sm cbp-button--secondary"
+              (click)="viewPort(port)"
+            >
+              View Details
+            </button>
+            <button 
+              class="cbp-button cbp-button--sm cbp-button--outline"
+              (click)="editPort(port)"
+            >
+              Edit
+            </button>
+            <button 
+              class="cbp-button cbp-button--sm cbp-button--danger"
+              (click)="confirmDelete(port)"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Map View -->
+    <div *ngIf="!loading && isMapView()" class="cbp-map-container">
+      <div class="cbp-map-placeholder">
+        <div class="cbp-map-placeholder-content">
+          <svg class="cbp-map-placeholder-icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#map"></use>
+          </svg>
+          <h3>Interactive Map View</h3>
+          <p>Map integration would display ports on an interactive map with clustering and filtering capabilities.</p>
+          <p><strong>Note:</strong> Map functionality requires integration with a mapping service (Google Maps, OpenStreetMap, etc.)</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading && ports.length === 0" class="cbp-empty-state">
+      <div class="cbp-empty-content">
+        <svg class="cbp-empty-icon" aria-hidden="true">
+          <use xlink:href="/assets/uswds/img/sprite.svg#directions_boat"></use>
+        </svg>
+        <h3 class="cbp-empty-title">No ports found</h3>
+        <p class="cbp-empty-description">
+          {{ searchTerm || hasActiveFilters ? 'Try adjusting your search or filters to find ports.' : 'Get started by adding your first port to the system.' }}
+        </p>
+        <button 
+          *ngIf="!searchTerm && !hasActiveFilters"
+          class="cbp-button cbp-button--primary"
+          (click)="addPort()"
+        >
+          Add First Port
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enhanced Pagination -->
+  <div *ngIf="!loading && ports.length > 0 && totalPages > 1" class="cbp-pagination-container cbp-slide-up">
+    <nav class="cbp-pagination" role="navigation" aria-label="Ports pagination">
+      <div class="cbp-pagination-info">
+        Showing {{ (currentPage * pageSize) + 1 }} to {{ getMinValue((currentPage + 1) * pageSize, totalElements) }} 
+        of {{ totalElements }} ports
+      </div>
+      
+      <div class="cbp-pagination-controls">
+        <button 
+          class="cbp-pagination-button cbp-pagination-button--prev"
+          [disabled]="currentPage === 0"
+          (click)="goToPage(currentPage - 1)"
+          aria-label="Go to previous page"
+        >
+          <svg class="cbp-pagination-icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#navigate_before"></use>
+          </svg>
+          Previous
+        </button>
+        
+        <div class="cbp-pagination-pages">
+          <button 
+            *ngFor="let page of pageNumbers"
+            class="cbp-pagination-page"
+            [class.cbp-pagination-page--current]="page === currentPage"
+            (click)="goToPage(page)"
+            [attr.aria-label]="'Go to page ' + (page + 1)"
+            [attr.aria-current]="page === currentPage ? 'page' : null"
+          >
+            {{ page + 1 }}
+          </button>
+        </div>
+        
+        <button 
+          class="cbp-pagination-button cbp-pagination-button--next"
+          [disabled]="currentPage === totalPages - 1"
+          (click)="goToPage(currentPage + 1)"
+          aria-label="Go to next page"
+        >
+          Next
+          <svg class="cbp-pagination-icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#navigate_next"></use>
+          </svg>
+        </button>
+      </div>
+    </nav>
+  </div>
+</div>
+
+<!-- Port Details/Edit Modal -->
+<div *ngIf="showModal" class="cbp-modal-overlay cbp-fade-in" (click)="closeModal()">
+  <div class="cbp-modal cbp-slide-up" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" [attr.aria-labelledby]="isEditMode ? 'modal-title-edit' : 'modal-title-view'">
+    <div class="cbp-modal-header">
+      <h2 class="cbp-modal-title" [id]="isEditMode ? 'modal-title-edit' : 'modal-title-view'">
+        {{ isEditMode ? (selectedPort?.id ? 'Edit Port' : 'Add New Port') : 'Port Details' }}
+      </h2>
+      <button class="cbp-modal-close" (click)="closeModal()" aria-label="Close modal">
+        <svg class="cbp-modal-close-icon" aria-hidden="true">
+          <use xlink:href="/assets/uswds/img/sprite.svg#close"></use>
+        </svg>
+      </button>
+    </div>
+    
+    <div class="cbp-modal-content">
+      <div *ngIf="formErrors.general" class="cbp-alert cbp-alert--error margin-bottom-3">
+        <div class="cbp-alert__content">
+          <svg class="cbp-alert__icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#error"></use>
+          </svg>
+          <div class="cbp-alert__body">
+            <p class="cbp-alert__text">{{ formErrors.general }}</p>
+          </div>
+        </div>
+      </div>
+
+      <form *ngIf="selectedPort" class="cbp-form">
+        <div class="cbp-form-section">
+          <h3 class="cbp-form-section-title">Basic Information</h3>
+          
+          <div class="cbp-form-row">
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="port-code">
+                Port Code *
+              </label>
+              <input
+                id="port-code"
+                class="cbp-input"
+                [class.cbp-input--error]="formErrors.portCode"
+                type="text"
+                [(ngModel)]="selectedPort.portCode"
+                [readonly]="!isEditMode"
+                name="portCode"
+                required
+              />
+              <div *ngIf="formErrors.portCode" class="cbp-error-message">
+                {{ formErrors.portCode }}
+              </div>
+            </div>
+            
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="port-name">
+                Port Name *
+              </label>
+              <input
+                id="port-name"
+                class="cbp-input"
+                [class.cbp-input--error]="formErrors.portName"
+                type="text"
+                [(ngModel)]="selectedPort.portName"
+                [readonly]="!isEditMode"
+                name="portName"
+                required
+              />
+              <div *ngIf="formErrors.portName" class="cbp-error-message">
+                {{ formErrors.portName }}
+              </div>
+            </div>
+          </div>
+
+          <div class="cbp-form-row">
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="country-code">
+                Country Code *
+              </label>
+              <input
+                id="country-code"
+                class="cbp-input"
+                [class.cbp-input--error]="formErrors.countryCode"
+                type="text"
+                [(ngModel)]="selectedPort.countryCode"
+                [readonly]="!isEditMode"
+                name="countryCode"
+                required
+              />
+              <div *ngIf="formErrors.countryCode" class="cbp-error-message">
+                {{ formErrors.countryCode }}
+              </div>
+            </div>
+            
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="country-name">
+                Country Name
+              </label>
+              <input
+                id="country-name"
+                class="cbp-input"
+                type="text"
+                [(ngModel)]="selectedPort.countryName"
+                [readonly]="!isEditMode"
+                name="countryName"
+              />
+            </div>
+          </div>
+
+          <div class="cbp-form-row">
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="city">
+                City *
+              </label>
+              <input
+                id="city"
+                class="cbp-input"
+                [class.cbp-input--error]="formErrors.city"
+                type="text"
+                [(ngModel)]="selectedPort.city"
+                [readonly]="!isEditMode"
+                name="city"
+                required
+              />
+              <div *ngIf="formErrors.city" class="cbp-error-message">
+                {{ formErrors.city }}
+              </div>
+            </div>
+            
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="state-province">
+                State/Province
+              </label>
+              <input
+                id="state-province"
+                class="cbp-input"
+                type="text"
+                [(ngModel)]="selectedPort.stateProvince"
+                [readonly]="!isEditMode"
+                name="stateProvince"
+              />
+            </div>
+          </div>
+
+          <div class="cbp-form-row">
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="port-type">
+                Port Type *
+              </label>
+              <select
+                id="port-type"
+                class="cbp-select"
+                [(ngModel)]="selectedPort.portType"
+                [disabled]="!isEditMode"
+                name="portType"
+                required
+              >
+                <option *ngFor="let type of availablePortTypes" [value]="type">
+                  {{ getPortTypeDisplayName(type) }}
+                </option>
+              </select>
+            </div>
+            
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="code-system-modal">
+                Code System
+              </label>
+              <select
+                id="code-system-modal"
+                class="cbp-select"
+                [(ngModel)]="selectedPort.codeSystem"
+                [disabled]="!isEditMode"
+                name="codeSystem"
+              >
+                <option *ngFor="let system of availableCodeSystems" [value]="system">
+                  {{ system }}
+                </option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="cbp-form-section">
+          <h3 class="cbp-form-section-title">Geographic Information</h3>
+          
+          <div class="cbp-form-row">
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="latitude">
+                Latitude
+              </label>
+              <input
+                id="latitude"
+                class="cbp-input"
+                [class.cbp-input--error]="formErrors.latitude"
+                type="number"
+                step="0.000001"
+                min="-90"
+                max="90"
+                [(ngModel)]="selectedPort.latitude"
+                [readonly]="!isEditMode"
+                name="latitude"
+                placeholder="e.g., 40.7128"
+              />
+              <div *ngIf="formErrors.latitude" class="cbp-error-message">
+                {{ formErrors.latitude }}
+              </div>
+            </div>
+            
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="longitude">
+                Longitude
+              </label>
+              <input
+                id="longitude"
+                class="cbp-input"
+                [class.cbp-input--error]="formErrors.longitude"
+                type="number"
+                step="0.000001"
+                min="-180"
+                max="180"
+                [(ngModel)]="selectedPort.longitude"
+                [readonly]="!isEditMode"
+                name="longitude"
+                placeholder="e.g., -74.0060"
+              />
+              <div *ngIf="formErrors.longitude" class="cbp-error-message">
+                {{ formErrors.longitude }}
+              </div>
+            </div>
+          </div>
+
+          <div class="cbp-form-row">
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="time-zone">
+                Time Zone
+              </label>
+              <input
+                id="time-zone"
+                class="cbp-input"
+                type="text"
+                [(ngModel)]="selectedPort.timeZone"
+                [readonly]="!isEditMode"
+                name="timeZone"
+                placeholder="e.g., America/New_York"
+              />
+            </div>
+            
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="customs-office">
+                Customs Office
+              </label>
+              <input
+                id="customs-office"
+                class="cbp-input"
+                type="text"
+                [(ngModel)]="selectedPort.customsOffice"
+                [readonly]="!isEditMode"
+                name="customsOffice"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="cbp-form-section">
+          <h3 class="cbp-form-section-title">Port Capabilities</h3>
+          
+          <div class="cbp-capabilities-manager" *ngIf="isEditMode">
+            <div class="cbp-capability-item" *ngFor="let capability of selectedPort.capabilities; let i = index">
+              <select 
+                class="cbp-select cbp-capability-select"
+                [value]="capability"
+                (change)="onCapabilityChange(i, $event)"
+              >
+                <option value="">Select Capability</option>
+                <option value="CONTAINER">Container Handling</option>
+                <option value="BULK_CARGO">Bulk Cargo</option>
+                <option value="PASSENGER">Passenger Services</option>
+                <option value="RO_RO">Roll-on/Roll-off</option>
+                <option value="CRUISE">Cruise Terminal</option>
+                <option value="FISHING">Fishing Port</option>
+                <option value="NAVAL">Naval Facility</option>
+                <option value="PETROLEUM">Petroleum Products</option>
+                <option value="LNG">LNG Terminal</option>
+                <option value="GRAIN">Grain Terminal</option>
+              </select>
+              <button 
+                type="button"
+                class="cbp-button cbp-button--sm cbp-button--danger"
+                (click)="removeCapability(i)"
+              >
+                Remove
+              </button>
+            </div>
+            
+            <button 
+              type="button"
+              class="cbp-button cbp-button--outline"
+              (click)="addCapability()"
+            >
+              Add Capability
+            </button>
+          </div>
+          
+          <div class="cbp-capabilities-display" *ngIf="!isEditMode && selectedPort.capabilities">
+            <div class="cbp-capability-tags">
+              <span 
+                *ngFor="let capability of selectedPort.capabilities"
+                class="cbp-capability-tag"
+              >
+                <svg class="cbp-capability-icon" aria-hidden="true">
+                  <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + getCapabilityIcon(capability)"></use>
+                </svg>
+                {{ capability }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="cbp-form-section">
+          <h3 class="cbp-form-section-title">Status & Validation</h3>
+          
+          <div class="cbp-form-row">
+            <div class="cbp-form-group">
+              <div class="cbp-checkbox-wrapper">
+                <input
+                  id="is-active"
+                  class="cbp-checkbox"
+                  type="checkbox"
+                  [(ngModel)]="selectedPort.isActive"
+                  [disabled]="!isEditMode"
+                  name="isActive"
+                />
+                <label class="cbp-checkbox-label" for="is-active">
+                  Port is active
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="cbp-form-row" *ngIf="!isEditMode">
+            <div class="cbp-form-group">
+              <label class="cbp-label">Valid From</label>
+              <div class="cbp-readonly-field">{{ formatDate(selectedPort.validFrom) }}</div>
+            </div>
+            
+            <div class="cbp-form-group" *ngIf="selectedPort.validTo">
+              <label class="cbp-label">Valid To</label>
+              <div class="cbp-readonly-field">{{ formatDate(selectedPort.validTo) }}</div>
+            </div>
+          </div>
+
+          <div class="cbp-form-row" *ngIf="!isEditMode">
+            <div class="cbp-form-group">
+              <label class="cbp-label">Recorded At</label>
+              <div class="cbp-readonly-field">{{ formatDate(selectedPort.recordedAt) }}</div>
+            </div>
+            
+            <div class="cbp-form-group">
+              <label class="cbp-label">Version</label>
+              <div class="cbp-readonly-field">{{ selectedPort.version }}</div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    
+    <div class="cbp-modal-footer">
+      <button class="cbp-button cbp-button--secondary" (click)="closeModal()">
+        {{ isEditMode ? 'Cancel' : 'Close' }}
+      </button>
+      <button 
+        *ngIf="isEditMode"
+        class="cbp-button cbp-button--primary"
+        (click)="savePort()"
+      >
+        {{ selectedPort?.id ? 'Update Port' : 'Create Port' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div *ngIf="showDeleteConfirm" class="cbp-modal-overlay cbp-fade-in" (click)="cancelDelete()">
+  <div class="cbp-modal cbp-modal--sm cbp-slide-up" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <div class="cbp-modal-header">
+      <h2 class="cbp-modal-title">Confirm Deletion</h2>
+    </div>
+    
+    <div class="cbp-modal-content">
+      <div class="cbp-delete-confirmation">
+        <svg class="cbp-delete-icon" aria-hidden="true">
+          <use xlink:href="/assets/uswds/img/sprite.svg#warning"></use>
+        </svg>
+        <p class="cbp-delete-message">
+          Are you sure you want to deactivate the port <strong>{{ portToDelete?.portName }}</strong>?
+        </p>
+        <p class="cbp-delete-note">
+          This action will mark the port as inactive in the system. This change requires approval and can be reversed.
+        </p>
+      </div>
+    </div>
+    
+    <div class="cbp-modal-footer">
+      <button class="cbp-button cbp-button--secondary" (click)="cancelDelete()">
+        Cancel
+      </button>
+      <button class="cbp-button cbp-button--danger" (click)="deletePort()">
+        Deactivate Port
+      </button>
+    </div>
+  </div>
+</div>

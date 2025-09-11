@@ -1,0 +1,374 @@
+<!-- Settings Page -->
+<div class="cbp-container">
+  <!-- Page Header -->
+  <div class="cbp-page-header">
+    <div class="cbp-page-header__content">
+      <div class="cbp-page-header__navigation">
+        <button 
+          class="cbp-button cbp-button--secondary cbp-button--icon"
+          (click)="goBack()"
+          title="Go back"
+        >
+          <svg class="cbp-button__icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#arrow_back"></use>
+          </svg>
+          Back
+        </button>
+      </div>
+      <div class="cbp-page-header__title">
+        <h1>Settings</h1>
+        <p class="cbp-page-header__subtitle">Manage your preferences and account settings</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Content -->
+  <div class="cbp-settings-layout">
+    <!-- Settings Navigation -->
+    <nav class="cbp-settings-nav">
+      <ul class="cbp-settings-nav__list">
+        <li class="cbp-settings-nav__item">
+          <button 
+            class="cbp-settings-nav__link"
+            [class.is-active]="currentTab === 'general'"
+            (click)="setActiveTab('general')"
+          >
+            <svg class="cbp-settings-nav__icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#settings"></use>
+            </svg>
+            General
+          </button>
+        </li>
+        <li class="cbp-settings-nav__item">
+          <button 
+            class="cbp-settings-nav__link"
+            [class.is-active]="currentTab === 'notifications'"
+            (click)="setActiveTab('notifications')"
+          >
+            <svg class="cbp-settings-nav__icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#notifications"></use>
+            </svg>
+            Notifications
+          </button>
+        </li>
+        <li class="cbp-settings-nav__item">
+          <button 
+            class="cbp-settings-nav__link"
+            [class.is-active]="currentTab === 'accessibility'"
+            (click)="setActiveTab('accessibility')"
+          >
+            <svg class="cbp-settings-nav__icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#accessibility"></use>
+            </svg>
+            Accessibility
+          </button>
+        </li>
+        <li class="cbp-settings-nav__item">
+          <button 
+            class="cbp-settings-nav__link"
+            [class.is-active]="currentTab === 'advanced'"
+            (click)="setActiveTab('advanced')"
+          >
+            <svg class="cbp-settings-nav__icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#build"></use>
+            </svg>
+            Advanced
+          </button>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- Settings Content -->
+    <main class="cbp-settings-content">
+      <!-- General Settings -->
+      <div class="cbp-settings-panel" *ngIf="currentTab === 'general'">
+        <div class="cbp-settings-panel__header">
+          <h2>General Settings</h2>
+          <p>Configure display preferences and regional settings</p>
+        </div>
+
+        <div class="cbp-settings-section">
+          <h3>Display Preferences</h3>
+          
+          <div class="cbp-form-group">
+            <label class="cbp-label" for="language">Language</label>
+            <select 
+              class="cbp-select" 
+              id="language"
+              [(ngModel)]="preferences.display.language"
+            >
+              <option 
+                *ngFor="let option of languageOptions" 
+                [value]="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="cbp-form-group">
+            <label class="cbp-label" for="timezone">Timezone</label>
+            <select 
+              class="cbp-select" 
+              id="timezone"
+              [(ngModel)]="preferences.display.timezone"
+            >
+              <option 
+                *ngFor="let option of timezoneOptions" 
+                [value]="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="cbp-form-group">
+            <label class="cbp-label" for="dateFormat">Date Format</label>
+            <select 
+              class="cbp-select" 
+              id="dateFormat"
+              [(ngModel)]="preferences.display.dateFormat"
+            >
+              <option 
+                *ngFor="let option of dateFormatOptions" 
+                [value]="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="cbp-form-group">
+            <label class="cbp-label" for="itemsPerPage">Items per page</label>
+            <select 
+              class="cbp-select" 
+              id="itemsPerPage"
+              [(ngModel)]="preferences.display.itemsPerPage"
+            >
+              <option 
+                *ngFor="let option of itemsPerPageOptions" 
+                [value]="option"
+              >
+                {{ option }}
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notifications Settings -->
+      <div class="cbp-settings-panel" *ngIf="currentTab === 'notifications'">
+        <div class="cbp-settings-panel__header">
+          <h2>Notification Preferences</h2>
+          <p>Choose how and when you want to be notified</p>
+        </div>
+
+        <div class="cbp-settings-section">
+          <h3>Notification Methods</h3>
+          
+          <div class="cbp-checkbox-wrapper">
+            <input 
+              class="cbp-checkbox" 
+              id="email-notifications"
+              type="checkbox"
+              [(ngModel)]="preferences.notifications.email"
+            />
+            <label class="cbp-checkbox-label" for="email-notifications">
+              Email notifications
+            </label>
+          </div>
+
+          <div class="cbp-checkbox-wrapper">
+            <input 
+              class="cbp-checkbox" 
+              id="browser-notifications"
+              type="checkbox"
+              [(ngModel)]="preferences.notifications.browser"
+            />
+            <label class="cbp-checkbox-label" for="browser-notifications">
+              Browser notifications
+            </label>
+          </div>
+        </div>
+
+        <div class="cbp-settings-section">
+          <h3>Notification Types</h3>
+          
+          <div class="cbp-checkbox-wrapper">
+            <input 
+              class="cbp-checkbox" 
+              id="change-request-notifications"
+              type="checkbox"
+              [(ngModel)]="preferences.notifications.changeRequests"
+            />
+            <label class="cbp-checkbox-label" for="change-request-notifications">
+              Change request updates
+            </label>
+          </div>
+
+          <div class="cbp-checkbox-wrapper">
+            <input 
+              class="cbp-checkbox" 
+              id="system-alert-notifications"
+              type="checkbox"
+              [(ngModel)]="preferences.notifications.systemAlerts"
+            />
+            <label class="cbp-checkbox-label" for="system-alert-notifications">
+              System alerts and maintenance
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accessibility Settings -->
+      <div class="cbp-settings-panel" *ngIf="currentTab === 'accessibility'">
+        <div class="cbp-settings-panel__header">
+          <h2>Accessibility Options</h2>
+          <p>Customize the interface to meet your accessibility needs</p>
+        </div>
+
+        <div class="cbp-settings-section">
+          <h3>Visual Accessibility</h3>
+          
+          <div class="cbp-checkbox-wrapper">
+            <input 
+              class="cbp-checkbox" 
+              id="high-contrast"
+              type="checkbox"
+              [(ngModel)]="preferences.accessibility.highContrast"
+            />
+            <label class="cbp-checkbox-label" for="high-contrast">
+              High contrast mode
+            </label>
+          </div>
+
+          <div class="cbp-form-group">
+            <label class="cbp-label">Font size</label>
+            <select 
+              class="cbp-select" 
+              id="fontSize"
+              [(ngModel)]="preferences.accessibility.fontSize"
+            >
+              <option value="small">Small</option>
+              <option value="medium">Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="cbp-settings-section">
+          <h3>Motion & Animation</h3>
+          
+          <div class="cbp-checkbox-wrapper">
+            <input 
+              class="cbp-checkbox" 
+              id="reduce-motion"
+              type="checkbox"
+              [(ngModel)]="preferences.accessibility.reduceMotion"
+            />
+            <label class="cbp-checkbox-label" for="reduce-motion">
+              Reduce motion and animations
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Advanced Settings -->
+      <div class="cbp-settings-panel" *ngIf="currentTab === 'advanced'">
+        <div class="cbp-settings-panel__header">
+          <h2>Advanced Settings</h2>
+          <p>Data management and advanced configuration options</p>
+        </div>
+
+        <div class="cbp-settings-section">
+          <h3>Data Management</h3>
+          
+          <div class="cbp-action-group">
+            <button 
+              class="cbp-button cbp-button--secondary"
+              (click)="exportSettings()"
+            >
+              <svg class="cbp-button__icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#download"></use>
+              </svg>
+              Export Settings
+            </button>
+            
+            <label class="cbp-button cbp-button--secondary cbp-file-input">
+              <input 
+                type="file" 
+                accept=".json"
+                (change)="importSettings($event)"
+                hidden
+              />
+              <svg class="cbp-button__icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#upload"></use>
+              </svg>
+              Import Settings
+            </label>
+          </div>
+        </div>
+
+        <div class="cbp-settings-section">
+          <h3>Cache & Data</h3>
+          
+          <div class="cbp-action-group">
+            <button 
+              class="cbp-button cbp-button--secondary"
+              (click)="clearCache()"
+            >
+              <svg class="cbp-button__icon" aria-hidden="true">
+                <use xlink:href="/assets/uswds/img/sprite.svg#clear"></use>
+              </svg>
+              Clear Cache
+            </button>
+          </div>
+          
+          <p class="cbp-hint">
+            Clearing cache will remove all locally stored data and reload the application.
+          </p>
+        </div>
+
+        <div class="cbp-settings-section cbp-settings-section--danger">
+          <h3>Reset Settings</h3>
+          
+          <button 
+            class="cbp-button cbp-button--outline cbp-button--danger"
+            (click)="resetPreferences()"
+          >
+            <svg class="cbp-button__icon" aria-hidden="true">
+              <use xlink:href="/assets/uswds/img/sprite.svg#restore"></use>
+            </svg>
+            Reset All Settings
+          </button>
+          
+          <p class="cbp-hint">
+            This will restore all settings to their default values. This action cannot be undone.
+          </p>
+        </div>
+      </div>
+
+      <!-- Save Actions -->
+      <div class="cbp-settings-actions">
+        <button 
+          class="cbp-button cbp-button--primary"
+          (click)="savePreferences()"
+          [disabled]="loading"
+        >
+          <svg class="cbp-button__icon" aria-hidden="true" *ngIf="!loading">
+            <use xlink:href="/assets/uswds/img/sprite.svg#save"></use>
+          </svg>
+          <span *ngIf="!loading">Save Changes</span>
+          <span *ngIf="loading">Saving...</span>
+        </button>
+        
+        <button 
+          class="cbp-button cbp-button--outline"
+          (click)="goBack()"
+        >
+          Cancel
+        </button>
+      </div>
+    </main>
+  </div>
+</div>
