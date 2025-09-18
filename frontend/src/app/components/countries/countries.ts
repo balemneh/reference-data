@@ -1,7 +1,8 @@
 import { Component, OnInit, ViewChild, ElementRef, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ApiService, CountryDto, PagedResponse } from '../../services/api.service';
+import { Router } from '@angular/router';
+import { ApiService, CountryDto, PagedResponse, ChangeRequestDto } from '../../services/api.service';
 import { ToastService } from '../../services/toast.service';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 
@@ -42,6 +43,12 @@ export class CountriesComponent implements OnInit {
   countryToDelete: CountryDto | null = null;
   isEditMode = false;
   formErrors: any = {};
+
+  // Change request fields
+  businessJustification = '';
+  isSubmittingChangeRequest = false;
+  showJustificationModal = false;
+  pendingAction: 'create' | 'update' | 'delete' | null = null;
   
   // Sorting
   sortField: keyof CountryDto = 'countryName';
@@ -54,7 +61,11 @@ export class CountriesComponent implements OnInit {
   // View toggle
   viewMode: 'table' | 'card' = 'table';
 
-  constructor(private apiService: ApiService, private toastService: ToastService) {}
+  constructor(
+    private apiService: ApiService,
+    private toastService: ToastService,
+    private router: Router
+  ) {}
   
   private initializeSearchSubscription() {
     this.searchSubject.pipe(
@@ -219,17 +230,12 @@ export class CountriesComponent implements OnInit {
   
   deleteCountry() {
     if (!this.countryToDelete) return;
-    
-    // In a bitemporal system, we don't actually delete - we mark as inactive
-    const updatedCountry = {
-      ...this.countryToDelete,
-      isActive: false,
-      validTo: new Date().toISOString()
-    };
-    
-    this.saveCountryData(updatedCountry, 'Country deactivated successfully');
+
+    // Set up for change request workflow
+    this.selectedCountry = { ...this.countryToDelete };
+    this.pendingAction = 'delete';
     this.showDeleteConfirm = false;
-    this.countryToDelete = null;
+    this.showJustificationModal = true;
   }
   
   cancelDelete() {
@@ -239,67 +245,102 @@ export class CountriesComponent implements OnInit {
 
   saveCountry() {
     if (!this.selectedCountry || !this.validateForm()) return;
-    
-    this.saveCountryData(this.selectedCountry, 'Country saved successfully');
+
+    // Set pending action and show justification modal
+    this.pendingAction = this.selectedCountry.id ? 'update' : 'create';
+    this.showJustificationModal = true;
   }
   
-  private saveCountryData(country: CountryDto, successMsg: string) {
+  private saveCountryData(country: CountryDto, justification: string) {
+    if (!justification.trim()) {
+      this.toastService.showError('Business justification required', 'Please provide a business justification for this change.');
+      return;
+    }
+
+    this.isSubmittingChangeRequest = true;
+
     // Create a change request for the country modification
     const changeRequest = {
       changeType: (country.id ? 'UPDATE' : 'CREATE') as 'UPDATE' | 'CREATE',
       entityType: 'COUNTRY',
       entityId: country.id || undefined,
-      description: `${country.id ? 'Update' : 'Create'} country: ${country.countryName}`,
+      description: `${country.id ? 'Update' : 'Create'} country: ${country.countryName} - ${justification}`,
       requestedBy: 'current-user', // Would come from auth service
-      newValues: country
+      newValues: country,
+      comments: justification
     };
-    
+
     this.apiService.createChangeRequest(changeRequest).subscribe({
-      next: (response: any) => {
-        this.successMessage = successMsg + ` (Request ID: ${response.id})`;
-        this.toastService.showSuccess('Change request submitted', `Request ID: ${response.id}`);
+      next: (response: ChangeRequestDto) => {
+        const message = `Change request submitted successfully (ID: ${response.id})`;
+        this.successMessage = message;
+        this.toastService.showSuccess('Change Request Submitted', `Your request has been submitted for review. Request ID: ${response.id}`);
+
+        // Close modals and reset forms
         this.closeModal();
+        this.closeJustificationModal();
         this.loadCountries();
-        
+
+        // Navigate to change request details after a short delay
+        setTimeout(() => {
+          this.router.navigate(['/change-requests', response.id]);
+        }, 2000);
+
         // Clear success message after 5 seconds
         setTimeout(() => {
           this.successMessage = null;
         }, 5000);
       },
       error: (error: any) => {
-        this.formErrors.general = error.error?.detail || 'Failed to save country. Please try again.';
-        this.toastService.showError('Failed to save country', this.formErrors.general);
-        console.error('Error saving country:', error);
+        this.formErrors.general = error.error?.detail || 'Failed to submit change request. Please try again.';
+        this.toastService.showError('Change Request Failed', this.formErrors.general);
+        console.error('Error creating change request:', error);
+      },
+      complete: () => {
+        this.isSubmittingChangeRequest = false;
       }
     });
   }
   
   private validateForm(): boolean {
     this.formErrors = {};
-    
+
     if (!this.selectedCountry) return false;
-    
+
     if (!this.selectedCountry.countryName?.trim()) {
       this.formErrors.countryName = 'Country name is required';
     }
-    
+
     if (!this.selectedCountry.countryCode?.trim()) {
       this.formErrors.countryCode = 'Country code is required';
     }
-    
+
     if (!this.selectedCountry.iso2Code?.trim() || this.selectedCountry.iso2Code.length !== 2) {
       this.formErrors.iso2Code = 'ISO 2 code must be exactly 2 characters';
     }
-    
+
     if (!this.selectedCountry.iso3Code?.trim() || this.selectedCountry.iso3Code.length !== 3) {
       this.formErrors.iso3Code = 'ISO 3 code must be exactly 3 characters';
     }
-    
+
     if (this.selectedCountry.numericCode && !/^\d{3}$/.test(this.selectedCountry.numericCode)) {
       this.formErrors.numericCode = 'Numeric code must be exactly 3 digits';
     }
-    
+
     return Object.keys(this.formErrors).length === 0;
+  }
+
+  private validateJustification(): boolean {
+    if (!this.businessJustification?.trim()) {
+      this.formErrors.justification = 'Business justification is required';
+      return false;
+    }
+    if (this.businessJustification.trim().length < 10) {
+      this.formErrors.justification = 'Business justification must be at least 10 characters';
+      return false;
+    }
+    delete this.formErrors.justification;
+    return true;
   }
 
   closeModal() {
@@ -307,6 +348,59 @@ export class CountriesComponent implements OnInit {
     this.selectedCountry = null;
     this.isEditMode = false;
     this.formErrors = {};
+  }
+
+  // Justification modal methods
+  submitChangeRequest() {
+    if (!this.validateJustification() || !this.selectedCountry) return;
+
+    if (this.pendingAction === 'delete') {
+      // For delete, mark as inactive
+      const updatedCountry = {
+        ...this.selectedCountry,
+        isActive: false,
+        validTo: new Date().toISOString()
+      };
+      this.saveCountryData(updatedCountry, this.businessJustification);
+    } else {
+      // For create/update, use the current form data
+      this.saveCountryData(this.selectedCountry, this.businessJustification);
+    }
+  }
+
+  closeJustificationModal() {
+    this.showJustificationModal = false;
+    this.businessJustification = '';
+    this.pendingAction = null;
+    this.countryToDelete = null;
+    delete this.formErrors.justification;
+  }
+
+  getJustificationModalTitle(): string {
+    switch (this.pendingAction) {
+      case 'create':
+        return 'Justify Country Creation';
+      case 'update':
+        return 'Justify Country Update';
+      case 'delete':
+        return 'Justify Country Deactivation';
+      default:
+        return 'Provide Business Justification';
+    }
+  }
+
+  getJustificationModalDescription(): string {
+    const countryName = this.selectedCountry?.countryName || 'this country';
+    switch (this.pendingAction) {
+      case 'create':
+        return `Please provide a business justification for creating the new country "${countryName}".`;
+      case 'update':
+        return `Please provide a business justification for updating "${countryName}".`;
+      case 'delete':
+        return `Please provide a business justification for deactivating "${countryName}".`;
+      default:
+        return 'Please provide a business justification for this change.';
+    }
   }
   
   // Bulk operations

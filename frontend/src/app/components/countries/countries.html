@@ -486,7 +486,7 @@
               class="cbp-button cbp-button--sm cbp-button--danger"
               (click)="confirmDelete(country)"
             >
-              Delete
+              Request Deactivation
             </button>
           </div>
         </div>
@@ -764,12 +764,12 @@
       <button class="cbp-button cbp-button--secondary" (click)="closeModal()">
         {{ isEditMode ? 'Cancel' : 'Close' }}
       </button>
-      <button 
+      <button
         *ngIf="isEditMode"
         class="cbp-button cbp-button--primary"
         (click)="saveCountry()"
       >
-        {{ selectedCountry?.id ? 'Update Country' : 'Create Country' }}
+        {{ selectedCountry?.id ? 'Request Country Update' : 'Request Country Creation' }}
       </button>
     </div>
   </div>
@@ -781,15 +781,16 @@
     <div class="usa-modal__header">
       <h2 class="usa-modal__heading">Confirm Deactivation</h2>
     </div>
-    
+
     <div class="usa-modal__main">
       <p>
-        Are you sure you want to deactivate <strong>{{ countryToDelete?.countryName }}</strong> 
-        ({{ countryToDelete?.countryCode }})? This action will mark the country as inactive 
+        Are you sure you want to deactivate <strong>{{ countryToDelete?.countryName }}</strong>
+        ({{ countryToDelete?.countryCode }})? This action will create a change request to mark the country as inactive
         in the bitemporal system.
       </p>
       <p class="text-base margin-top-2">
         Note: The country data will be preserved for historical reference and can be reactivated later if needed.
+        A business justification will be required.
       </p>
     </div>
 
@@ -798,7 +799,105 @@
         Cancel
       </button>
       <button class="cbp-button cbp-button--danger" (click)="deleteCountry()">
-        Deactivate Country
+        Request Deactivation
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Business Justification Modal -->
+<div *ngIf="showJustificationModal" class="cbp-modal-overlay cbp-fade-in" (click)="closeJustificationModal()">
+  <div class="cbp-modal cbp-slide-up" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" [attr.aria-labelledby]="'justification-modal-title'">
+    <div class="cbp-modal-header">
+      <h2 class="cbp-modal-title" id="justification-modal-title">
+        {{ getJustificationModalTitle() }}
+      </h2>
+      <button class="cbp-modal-close" (click)="closeJustificationModal()" aria-label="Close modal">
+        <svg class="cbp-modal-close-icon" aria-hidden="true">
+          <use xlink:href="/assets/uswds/img/sprite.svg#close"></use>
+        </svg>
+      </button>
+    </div>
+
+    <div class="cbp-modal-content">
+      <div *ngIf="formErrors.general" class="cbp-alert cbp-alert--error margin-bottom-3">
+        <div class="cbp-alert__content">
+          <svg class="cbp-alert__icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#error"></use>
+          </svg>
+          <div class="cbp-alert__body">
+            <p class="cbp-alert__text">{{ formErrors.general }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="cbp-form">
+        <div class="cbp-form-section">
+          <p class="cbp-text-base margin-bottom-3">
+            {{ getJustificationModalDescription() }}
+          </p>
+
+          <div class="cbp-form-group">
+            <label class="cbp-label" for="business-justification">
+              Business Justification *
+            </label>
+            <textarea
+              id="business-justification"
+              class="cbp-textarea"
+              [class.cbp-input--error]="formErrors.justification"
+              rows="5"
+              placeholder="Please provide a detailed business justification for this change..."
+              [(ngModel)]="businessJustification"
+              name="businessJustification"
+              required
+            ></textarea>
+            <div *ngIf="formErrors.justification" class="cbp-error-message">
+              {{ formErrors.justification }}
+            </div>
+            <div class="cbp-field-hint">
+              Minimum 10 characters required. Be specific about why this change is necessary.
+            </div>
+          </div>
+
+          <!-- Summary of changes -->
+          <div class="cbp-form-section margin-top-3" *ngIf="selectedCountry">
+            <h4 class="cbp-form-section-title">Change Summary</h4>
+            <div class="cbp-change-summary">
+              <div class="cbp-summary-row">
+                <span class="cbp-summary-label">Country:</span>
+                <span class="cbp-summary-value">{{ selectedCountry.countryName }} ({{ selectedCountry.countryCode }})</span>
+              </div>
+              <div class="cbp-summary-row">
+                <span class="cbp-summary-label">Action:</span>
+                <span class="cbp-summary-value cbp-status-badge"
+                      [class.cbp-status-badge--warning]="pendingAction === 'update'"
+                      [class.cbp-status-badge--success]="pendingAction === 'create'"
+                      [class.cbp-status-badge--danger]="pendingAction === 'delete'">
+                  {{ pendingAction === 'create' ? 'Create New' : pendingAction === 'update' ? 'Update Existing' : 'Deactivate' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cbp-modal-footer">
+      <button class="cbp-button cbp-button--secondary" (click)="closeJustificationModal()" [disabled]="isSubmittingChangeRequest">
+        Cancel
+      </button>
+      <button
+        class="cbp-button cbp-button--primary"
+        (click)="submitChangeRequest()"
+        [disabled]="isSubmittingChangeRequest || !businessJustification?.trim()"
+      >
+        <span *ngIf="!isSubmittingChangeRequest">Submit Change Request</span>
+        <span *ngIf="isSubmittingChangeRequest">
+          <svg class="cbp-button__icon cbp-button__icon--loading" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#autorenew"></use>
+          </svg>
+          Submitting...
+        </span>
       </button>
     </div>
   </div>
