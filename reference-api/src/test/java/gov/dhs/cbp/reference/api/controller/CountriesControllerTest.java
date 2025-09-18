@@ -2,10 +2,12 @@ package gov.dhs.cbp.reference.api.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.dhs.cbp.reference.api.config.WebMvcTestConfig;
-import gov.dhs.cbp.reference.api.dto.CountryDto;
-import gov.dhs.cbp.reference.api.dto.PagedResponse;
+import gov.dhs.cbp.reference.api.dto.*;
+import gov.dhs.cbp.reference.api.mapper.ChangeRequestMapper;
 import gov.dhs.cbp.reference.api.mapper.CountryMapper;
+import gov.dhs.cbp.reference.api.service.CountryChangeRequestService;
 import gov.dhs.cbp.reference.api.service.CountryService;
+import gov.dhs.cbp.reference.core.entity.ChangeRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,10 +42,18 @@ class CountriesControllerTest {
     @MockBean
     private CountryService countryService;
 
+    @MockBean
+    private CountryChangeRequestService countryChangeRequestService;
+
+    @MockBean
+    private ChangeRequestMapper changeRequestMapper;
+
     @Autowired
     private ObjectMapper objectMapper;
 
     private CountryDto sampleCountry;
+    private ChangeRequest testChangeRequest;
+    private ChangeRequestDto testChangeRequestDto;
 
     @BeforeEach
     void setUp() {
@@ -56,6 +66,24 @@ class CountriesControllerTest {
         sampleCountry.setNumericCode("840");
         sampleCountry.setCodeSystem("ISO3166-1");
         sampleCountry.setValidFrom(LocalDate.now());
+
+        testChangeRequest = new ChangeRequest();
+        testChangeRequest.setId(UUID.randomUUID());
+        testChangeRequest.setCrNumber("CR-2025-123456");
+        testChangeRequest.setStatus("PENDING");
+        testChangeRequest.setOperationType("CREATE");
+        testChangeRequest.setTitle("Create new country: United States");
+        testChangeRequest.setDescription("Adding United States country record");
+        testChangeRequest.setReason("Initial setup");
+        testChangeRequest.setRequesterId("user123");
+
+        testChangeRequestDto = new ChangeRequestDto();
+        testChangeRequestDto.setId(testChangeRequest.getId());
+        testChangeRequestDto.setCrNumber(testChangeRequest.getCrNumber());
+        testChangeRequestDto.setStatus(testChangeRequest.getStatus());
+        testChangeRequestDto.setOperationType(testChangeRequest.getOperationType());
+        testChangeRequestDto.setTitle(testChangeRequest.getTitle());
+        testChangeRequestDto.setSubmittedBy(testChangeRequest.getRequesterId());
     }
 
     @Test
@@ -320,5 +348,112 @@ class CountriesControllerTest {
     void testGetCountryById_WithInvalidUuidFormat() throws Exception {
         mockMvc.perform(get("/v1/countries/{id}", "invalid-uuid"))
                 .andExpect(status().isBadRequest());
+    }
+
+    // New tests for change request workflow
+    @Test
+    void testCreateCountry_ShouldCreateChangeRequest() throws Exception {
+        ChangeRequestCreateDto createDto = new ChangeRequestCreateDto(sampleCountry, "Initial creation");
+
+        when(countryChangeRequestService.createChangeRequest(
+                any(CountryDto.class),
+                eq("CREATE"),
+                anyString(),
+                anyString()
+        )).thenReturn(testChangeRequest);
+
+        when(changeRequestMapper.toDto(testChangeRequest)).thenReturn(testChangeRequestDto);
+
+        mockMvc.perform(post("/v1/countries")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createDto)))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.id").value(testChangeRequest.getId().toString()))
+                .andExpect(jsonPath("$.crNumber").value("CR-2025-123456"))
+                .andExpect(jsonPath("$.status").value("PENDING"));
+    }
+
+    @Test
+    void testUpdateCountry_ShouldCreateChangeRequest() throws Exception {
+        UUID countryId = sampleCountry.getId();
+        sampleCountry.setCountryName("United States of America");
+        ChangeRequestCreateDto updateDto = new ChangeRequestCreateDto(sampleCountry, "Updating country name");
+
+        testChangeRequest.setOperationType("UPDATE");
+        when(countryChangeRequestService.createChangeRequest(
+                any(CountryDto.class),
+                eq("UPDATE"),
+                anyString(),
+                anyString()
+        )).thenReturn(testChangeRequest);
+
+        when(changeRequestMapper.toDto(testChangeRequest)).thenReturn(testChangeRequestDto);
+
+        mockMvc.perform(put("/v1/countries/{id}", countryId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateDto)))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.id").value(testChangeRequest.getId().toString()))
+                .andExpect(jsonPath("$.status").value("PENDING"));
+    }
+
+    @Test
+    void testDeleteCountry_ShouldCreateChangeRequest() throws Exception {
+        UUID countryId = sampleCountry.getId();
+        when(countryService.findById(countryId)).thenReturn(Optional.of(sampleCountry));
+
+        testChangeRequest.setOperationType("DELETE");
+        when(countryChangeRequestService.createChangeRequest(
+                any(CountryDto.class),
+                eq("DELETE"),
+                anyString(),
+                anyString()
+        )).thenReturn(testChangeRequest);
+
+        when(changeRequestMapper.toDto(testChangeRequest)).thenReturn(testChangeRequestDto);
+
+        mockMvc.perform(delete("/v1/countries/{id}", countryId)
+                        .param("reason", "No longer needed"))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.id").value(testChangeRequest.getId().toString()))
+                .andExpect(jsonPath("$.status").value("PENDING"));
+    }
+
+    @Test
+    void testApproveChangeRequest_ShouldApproveSuccessfully() throws Exception {
+        ApprovalRequestDto approvalRequest = new ApprovalRequestDto("approver123", "Looks good");
+
+        testChangeRequest.setStatus("APPROVED");
+        when(countryChangeRequestService.approveChangeRequest(
+                eq(testChangeRequest.getId()),
+                anyString(),
+                anyString()
+        )).thenReturn(testChangeRequest);
+        when(changeRequestMapper.toDto(testChangeRequest)).thenReturn(testChangeRequestDto);
+
+        mockMvc.perform(post("/v1/countries/change-requests/{id}/approve", testChangeRequest.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(approvalRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(testChangeRequest.getId().toString()));
+    }
+
+    @Test
+    void testRejectChangeRequest_ShouldRejectSuccessfully() throws Exception {
+        RejectionRequestDto rejectionRequest = new RejectionRequestDto("rejector123", "Invalid data");
+
+        testChangeRequest.setStatus("REJECTED");
+        when(countryChangeRequestService.rejectChangeRequest(
+                eq(testChangeRequest.getId()),
+                anyString(),
+                anyString()
+        )).thenReturn(testChangeRequest);
+        when(changeRequestMapper.toDto(testChangeRequest)).thenReturn(testChangeRequestDto);
+
+        mockMvc.perform(post("/v1/countries/change-requests/{id}/reject", testChangeRequest.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(rejectionRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(testChangeRequest.getId().toString()));
     }
 }

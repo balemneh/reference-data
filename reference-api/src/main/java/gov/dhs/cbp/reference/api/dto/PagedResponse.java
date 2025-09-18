@@ -94,4 +94,20 @@ public class PagedResponse<T> {
     public boolean isLast() {
         return page >= totalPages - 1;
     }
+
+    public int getPageNumber() {
+        return page;
+    }
+
+    public void setPageNumber(int pageNumber) {
+        this.page = pageNumber;
+    }
+
+    public int getPageSize() {
+        return size;
+    }
+
+    public void setPageSize(int pageSize) {
+        this.size = pageSize;
+    }
 }

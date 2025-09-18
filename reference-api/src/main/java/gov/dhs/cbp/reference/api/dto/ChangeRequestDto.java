@@ -8,13 +8,21 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 public class ChangeRequestDto {
-    
+
     private UUID id;
-    
+
+    private String crNumber;
+
     @NotBlank
     @Size(max = 100)
     private String changeType;
-    
+
+    private String operationType;
+
+    private String title;
+
+    private String submittedBy;
+
     @NotBlank
     @Size(max = 100)
     private String entityType;
@@ -230,8 +238,40 @@ public class ChangeRequestDto {
     public String getWorkflowInstanceId() {
         return workflowInstanceId;
     }
-    
+
     public void setWorkflowInstanceId(String workflowInstanceId) {
         this.workflowInstanceId = workflowInstanceId;
+    }
+
+    public String getCrNumber() {
+        return crNumber;
+    }
+
+    public void setCrNumber(String crNumber) {
+        this.crNumber = crNumber;
+    }
+
+    public String getOperationType() {
+        return operationType;
+    }
+
+    public void setOperationType(String operationType) {
+        this.operationType = operationType;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getSubmittedBy() {
+        return submittedBy;
+    }
+
+    public void setSubmittedBy(String submittedBy) {
+        this.submittedBy = submittedBy;
     }
 }
