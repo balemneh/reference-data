@@ -20,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Application service that orchestrates the change request workflow.
@@ -238,7 +237,9 @@ public class ChangeRequestApplicationService {
         try {
             Map<String, Object> metadata = new HashMap<>();
             if (changeRequest.getMetadata() != null) {
-                metadata = objectMapper.readValue(changeRequest.getMetadata(), Map.class);
+                @SuppressWarnings("unchecked")
+                Map<String, Object> existingMetadata = objectMapper.readValue(changeRequest.getMetadata(), Map.class);
+                metadata = existingMetadata;
             }
             metadata.put("effectiveDate", effectiveDate.toString());
             metadata.put("scheduledAt", LocalDateTime.now().toString());
