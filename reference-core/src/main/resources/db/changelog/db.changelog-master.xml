@@ -7,13 +7,18 @@
 
     <!-- Schema Definitions -->
     <include file="schema/001-initial-schema.xml" relativeToChangelogFile="true"/>
-    
+
     <include file="schema/002-code-system-tables.xml" relativeToChangelogFile="true"/>
     <include file="schema/003-countries-tables.xml" relativeToChangelogFile="true"/>
     <include file="schema/004-airports-tables.xml" relativeToChangelogFile="true"/>
     <include file="schema/005-ports-tables.xml" relativeToChangelogFile="true"/>
     <include file="schema/006-workflow-tables.xml" relativeToChangelogFile="true"/>
     <include file="schema/006-create-system-configuration-tables.xml" relativeToChangelogFile="true"/>
+
+    <!-- Change Request Workflow Schema Changes -->
+    <include file="schema/007-change-request-tracking.xml" relativeToChangelogFile="true"/>
+    <include file="schema/008-bulk-import-staging.xml" relativeToChangelogFile="true"/>
+    <include file="schema/009-audit-log.xml" relativeToChangelogFile="true"/>
 
     <!-- Indexes -->
     <include file="indexes/001-indexes.xml" relativeToChangelogFile="true"/>

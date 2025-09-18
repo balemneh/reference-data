@@ -1,0 +1,542 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="009-001-create-audit-log-table" author="reference-data">
+        <comment>Create audit_log table for comprehensive audit trail of all system actions</comment>
+
+        <createTable tableName="audit_log" schemaName="reference_data">
+            <!-- Primary key and basic identification -->
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="correlation_id" type="UUID"/>
+            <column name="trace_id" type="VARCHAR(64)"/>
+
+            <!-- What happened -->
+            <column name="action" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="entity_type" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="entity_id" type="UUID"/>
+            <column name="entity_version" type="BIGINT"/>
+            <column name="operation_type" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- Who performed the action -->
+            <column name="user_id" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_name" type="VARCHAR(255)"/>
+            <column name="user_email" type="VARCHAR(255)"/>
+            <column name="user_roles" type="JSONB"/>
+            <column name="impersonated_by" type="VARCHAR(100)"/>
+
+            <!-- When it happened -->
+            <column name="event_timestamp" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="business_date" type="DATE"/>
+
+            <!-- Where it came from -->
+            <column name="source_system" type="VARCHAR(100)"/>
+            <column name="application_name" type="VARCHAR(100)"/>
+            <column name="application_version" type="VARCHAR(50)"/>
+            <column name="client_ip" type="VARCHAR(45)"/>
+            <column name="user_agent" type="VARCHAR(500)"/>
+            <column name="session_id" type="VARCHAR(100)"/>
+
+            <!-- Context and reason -->
+            <column name="change_request_id" type="UUID"/>
+            <column name="workflow_instance_id" type="VARCHAR(100)"/>
+            <column name="business_justification" type="TEXT"/>
+            <column name="reason_code" type="VARCHAR(50)"/>
+
+            <!-- What changed -->
+            <column name="old_values" type="JSONB"/>
+            <column name="new_values" type="JSONB"/>
+            <column name="changed_fields" type="JSONB"/>
+            <column name="delta" type="JSONB"/>
+
+            <!-- Result and status -->
+            <column name="status" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_code" type="VARCHAR(50)"/>
+            <column name="error_message" type="TEXT"/>
+            <column name="error_details" type="JSONB"/>
+
+            <!-- Performance and technical details -->
+            <column name="execution_time_ms" type="BIGINT"/>
+            <column name="affected_rows" type="INTEGER"/>
+            <column name="database_transaction_id" type="VARCHAR(100)"/>
+
+            <!-- Data quality and compliance -->
+            <column name="data_classification" type="VARCHAR(50)"/>
+            <column name="sensitivity_level" type="VARCHAR(20)"/>
+            <column name="compliance_tags" type="JSONB"/>
+            <column name="retention_policy" type="VARCHAR(50)"/>
+
+            <!-- Additional context -->
+            <column name="tags" type="JSONB"/>
+            <column name="custom_attributes" type="JSONB"/>
+            <column name="metadata" type="JSONB"/>
+
+            <!-- System information -->
+            <column name="hostname" type="VARCHAR(255)"/>
+            <column name="process_id" type="VARCHAR(50)"/>
+            <column name="thread_id" type="VARCHAR(50)"/>
+        </createTable>
+
+        <!-- Add foreign key constraints -->
+        <addForeignKeyConstraint baseTableName="audit_log"
+                                 baseColumnNames="change_request_id"
+                                 baseTableSchemaName="reference_data"
+                                 referencedTableName="change_requests"
+                                 referencedColumnNames="id"
+                                 referencedTableSchemaName="reference_data"
+                                 constraintName="fk_audit_change_request"
+                                 onDelete="SET NULL"/>
+
+        <!-- Add check constraints for valid enum values -->
+        <sql>
+            ALTER TABLE reference_data.audit_log
+            ADD CONSTRAINT chk_audit_operation_type
+            CHECK (operation_type IN ('CREATE', 'READ', 'UPDATE', 'DELETE', 'BULK_INSERT', 'BULK_UPDATE', 'BULK_DELETE', 'LOGIN', 'LOGOUT', 'AUTHORIZE', 'EXPORT', 'IMPORT', 'SYNC', 'VALIDATE', 'APPROVE', 'REJECT', 'SUBMIT', 'CANCEL', 'SYSTEM'));
+        </sql>
+
+        <sql>
+            ALTER TABLE reference_data.audit_log
+            ADD CONSTRAINT chk_audit_status
+            CHECK (status IN ('SUCCESS', 'FAILURE', 'WARNING', 'PENDING', 'CANCELLED', 'TIMEOUT'));
+        </sql>
+
+        <sql>
+            ALTER TABLE reference_data.audit_log
+            ADD CONSTRAINT chk_audit_sensitivity_level
+            CHECK (sensitivity_level IS NULL OR sensitivity_level IN ('PUBLIC', 'INTERNAL', 'CONFIDENTIAL', 'RESTRICTED', 'SECRET'));
+        </sql>
+
+        <sql>
+            ALTER TABLE reference_data.audit_log
+            ADD CONSTRAINT chk_audit_data_classification
+            CHECK (data_classification IS NULL OR data_classification IN ('PUBLIC', 'INTERNAL', 'SENSITIVE', 'CLASSIFIED', 'PII', 'PHI'));
+        </sql>
+
+        <rollback>
+            <dropTable tableName="audit_log" schemaName="reference_data"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="009-002-create-audit-log-indexes" author="reference-data">
+        <comment>Create indexes for audit_log table for optimal query performance</comment>
+
+        <!-- Primary query indexes -->
+        <createIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_timestamp">
+            <column name="event_timestamp"/>
+        </createIndex>
+
+        <createIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_user_timestamp">
+            <column name="user_id"/>
+            <column name="event_timestamp"/>
+        </createIndex>
+
+        <createIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_entity">
+            <column name="entity_type"/>
+            <column name="entity_id"/>
+            <column name="event_timestamp"/>
+        </createIndex>
+
+        <createIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_action_status">
+            <column name="action"/>
+            <column name="status"/>
+            <column name="event_timestamp"/>
+        </createIndex>
+
+        <!-- Change request tracking -->
+        <createIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_change_request">
+            <column name="change_request_id"/>
+            <column name="event_timestamp"/>
+        </createIndex>
+
+        <!-- Workflow tracking -->
+        <createIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_workflow">
+            <column name="workflow_instance_id"/>
+            <column name="event_timestamp"/>
+        </createIndex>
+
+        <!-- Correlation and tracing -->
+        <createIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_correlation">
+            <column name="correlation_id"/>
+            <column name="event_timestamp"/>
+        </createIndex>
+
+        <createIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_trace">
+            <column name="trace_id"/>
+        </createIndex>
+
+        <!-- Session and security tracking -->
+        <createIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_session">
+            <column name="session_id"/>
+            <column name="event_timestamp"/>
+        </createIndex>
+
+        <createIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_client_ip">
+            <column name="client_ip"/>
+            <column name="event_timestamp"/>
+        </createIndex>
+
+        <!-- Source system tracking -->
+        <createIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_source_system">
+            <column name="source_system"/>
+            <column name="event_timestamp"/>
+        </createIndex>
+
+        <!-- Compliance and data classification -->
+        <createIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_sensitivity">
+            <column name="sensitivity_level"/>
+            <column name="data_classification"/>
+            <column name="event_timestamp"/>
+        </createIndex>
+
+        <!-- Business date for historical queries -->
+        <createIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_business_date">
+            <column name="business_date"/>
+            <column name="event_timestamp"/>
+        </createIndex>
+
+        <!-- Performance monitoring -->
+        <createIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_performance">
+            <column name="execution_time_ms"/>
+            <column name="event_timestamp"/>
+        </createIndex>
+
+        <!-- GIN indexes for JSONB columns (PostgreSQL specific) -->
+        <createIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_old_values_gin">
+            <column name="old_values"/>
+        </createIndex>
+
+        <createIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_new_values_gin">
+            <column name="new_values"/>
+        </createIndex>
+
+        <createIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_tags_gin">
+            <column name="tags"/>
+        </createIndex>
+
+        <createIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_metadata_gin">
+            <column name="metadata"/>
+        </createIndex>
+
+        <rollback>
+            <dropIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_timestamp"/>
+            <dropIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_user_timestamp"/>
+            <dropIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_entity"/>
+            <dropIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_action_status"/>
+            <dropIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_change_request"/>
+            <dropIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_workflow"/>
+            <dropIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_correlation"/>
+            <dropIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_trace"/>
+            <dropIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_session"/>
+            <dropIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_client_ip"/>
+            <dropIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_source_system"/>
+            <dropIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_sensitivity"/>
+            <dropIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_business_date"/>
+            <dropIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_performance"/>
+            <dropIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_old_values_gin"/>
+            <dropIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_new_values_gin"/>
+            <dropIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_tags_gin"/>
+            <dropIndex tableName="audit_log" schemaName="reference_data" indexName="idx_audit_metadata_gin"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="009-003-create-audit-trigger-function" author="reference-data" dbms="postgresql">
+        <comment>Create PostgreSQL trigger function for automatic audit logging</comment>
+
+        <sql>
+            CREATE OR REPLACE FUNCTION reference_data.audit_trigger_function()
+            RETURNS TRIGGER AS $$
+            DECLARE
+                audit_id UUID;
+                old_data JSONB;
+                new_data JSONB;
+                changed_fields JSONB;
+                delta_data JSONB;
+                current_user_id VARCHAR(100);
+                current_app_name VARCHAR(100);
+                current_correlation_id UUID;
+            BEGIN
+                -- Generate audit record ID
+                audit_id := gen_random_uuid();
+
+                -- Get current context (from application settings or defaults)
+                current_user_id := COALESCE(current_setting('audit.user_id', true), current_user);
+                current_app_name := COALESCE(current_setting('application_name', true), 'unknown');
+
+                -- Try to get correlation ID from session
+                BEGIN
+                    current_correlation_id := CAST(current_setting('audit.correlation_id', true) AS UUID);
+                EXCEPTION WHEN OTHERS THEN
+                    current_correlation_id := NULL;
+                END;
+
+                -- Process the trigger operation
+                IF TG_OP = 'DELETE' THEN
+                    old_data := row_to_json(OLD)::JSONB;
+                    new_data := NULL;
+                    changed_fields := NULL;
+                    delta_data := jsonb_build_object('deleted', old_data);
+                ELSIF TG_OP = 'INSERT' THEN
+                    old_data := NULL;
+                    new_data := row_to_json(NEW)::JSONB;
+                    changed_fields := NULL;
+                    delta_data := jsonb_build_object('inserted', new_data);
+                ELSIF TG_OP = 'UPDATE' THEN
+                    old_data := row_to_json(OLD)::JSONB;
+                    new_data := row_to_json(NEW)::JSONB;
+
+                    -- Calculate changed fields
+                    SELECT jsonb_object_agg(key, jsonb_build_object('old', value, 'new', new_data->key))
+                    INTO changed_fields
+                    FROM jsonb_each(old_data)
+                    WHERE value IS DISTINCT FROM new_data->key;
+
+                    delta_data := jsonb_build_object('updated', changed_fields);
+                END IF;
+
+                -- Insert audit record
+                INSERT INTO reference_data.audit_log (
+                    id,
+                    correlation_id,
+                    action,
+                    entity_type,
+                    entity_id,
+                    entity_version,
+                    operation_type,
+                    user_id,
+                    event_timestamp,
+                    source_system,
+                    application_name,
+                    change_request_id,
+                    old_values,
+                    new_values,
+                    changed_fields,
+                    delta,
+                    status,
+                    affected_rows,
+                    hostname,
+                    metadata
+                ) VALUES (
+                    audit_id,
+                    current_correlation_id,
+                    TG_OP,
+                    TG_TABLE_NAME,
+                    COALESCE(NEW.id, OLD.id),
+                    COALESCE(NEW.version, OLD.version),
+                    TG_OP,
+                    current_user_id,
+                    NOW(),
+                    current_app_name,
+                    current_app_name,
+                    COALESCE(NEW.change_request_id, OLD.change_request_id),
+                    old_data,
+                    new_data,
+                    changed_fields,
+                    delta_data,
+                    'SUCCESS',
+                    1,
+                    inet_server_addr()::TEXT,
+                    jsonb_build_object(
+                        'table_schema', TG_TABLE_SCHEMA,
+                        'table_name', TG_TABLE_NAME,
+                        'trigger_name', TG_NAME,
+                        'process_id', pg_backend_pid()
+                    )
+                );
+
+                -- Return appropriate record
+                IF TG_OP = 'DELETE' THEN
+                    RETURN OLD;
+                ELSE
+                    RETURN NEW;
+                END IF;
+            END;
+            $$ LANGUAGE plpgsql;
+        </sql>
+
+        <rollback>
+            <sql>DROP FUNCTION IF EXISTS reference_data.audit_trigger_function();</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="009-004-create-audit-triggers" author="reference-data" dbms="postgresql">
+        <comment>Create audit triggers for all versioned tables</comment>
+
+        <!-- Countries audit trigger -->
+        <sql>
+            CREATE TRIGGER audit_countries_trigger
+                AFTER INSERT OR UPDATE OR DELETE ON reference_data.countries_v
+                FOR EACH ROW EXECUTE FUNCTION reference_data.audit_trigger_function();
+        </sql>
+
+        <!-- Airports audit trigger -->
+        <sql>
+            CREATE TRIGGER audit_airports_trigger
+                AFTER INSERT OR UPDATE OR DELETE ON reference_data.airports_v
+                FOR EACH ROW EXECUTE FUNCTION reference_data.audit_trigger_function();
+        </sql>
+
+        <!-- Ports audit trigger -->
+        <sql>
+            CREATE TRIGGER audit_ports_trigger
+                AFTER INSERT OR UPDATE OR DELETE ON reference_data.ports_v
+                FOR EACH ROW EXECUTE FUNCTION reference_data.audit_trigger_function();
+        </sql>
+
+        <!-- Change requests audit trigger -->
+        <sql>
+            CREATE TRIGGER audit_change_requests_trigger
+                AFTER INSERT OR UPDATE OR DELETE ON reference_data.change_requests
+                FOR EACH ROW EXECUTE FUNCTION reference_data.audit_trigger_function();
+        </sql>
+
+        <!-- Bulk import staging audit trigger -->
+        <sql>
+            CREATE TRIGGER audit_bulk_import_staging_trigger
+                AFTER INSERT OR UPDATE OR DELETE ON reference_data.bulk_import_staging
+                FOR EACH ROW EXECUTE FUNCTION reference_data.audit_trigger_function();
+        </sql>
+
+        <!-- Bulk import batches audit trigger -->
+        <sql>
+            CREATE TRIGGER audit_bulk_import_batches_trigger
+                AFTER INSERT OR UPDATE OR DELETE ON reference_data.bulk_import_batches
+                FOR EACH ROW EXECUTE FUNCTION reference_data.audit_trigger_function();
+        </sql>
+
+        <rollback>
+            <sql>DROP TRIGGER IF EXISTS audit_countries_trigger ON reference_data.countries_v;</sql>
+            <sql>DROP TRIGGER IF EXISTS audit_airports_trigger ON reference_data.airports_v;</sql>
+            <sql>DROP TRIGGER IF EXISTS audit_ports_trigger ON reference_data.ports_v;</sql>
+            <sql>DROP TRIGGER IF EXISTS audit_change_requests_trigger ON reference_data.change_requests;</sql>
+            <sql>DROP TRIGGER IF EXISTS audit_bulk_import_staging_trigger ON reference_data.bulk_import_staging;</sql>
+            <sql>DROP TRIGGER IF EXISTS audit_bulk_import_batches_trigger ON reference_data.bulk_import_batches;</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="009-005-create-audit-helper-functions" author="reference-data" dbms="postgresql">
+        <comment>Create helper functions for audit log analysis and reporting</comment>
+
+        <!-- Function to get audit trail for an entity -->
+        <sql>
+            <![CDATA[
+            CREATE OR REPLACE FUNCTION reference_data.get_entity_audit_trail(
+                p_entity_type VARCHAR,
+                p_entity_id UUID,
+                p_from_date TIMESTAMP DEFAULT NULL,
+                p_to_date TIMESTAMP DEFAULT NULL
+            )
+            RETURNS TABLE (
+                event_timestamp TIMESTAMP,
+                action VARCHAR,
+                user_id VARCHAR,
+                change_request_id UUID,
+                old_values JSONB,
+                new_values JSONB,
+                changed_fields JSONB
+            ) AS $$
+            BEGIN
+                RETURN QUERY
+                SELECT
+                    a.event_timestamp,
+                    a.action,
+                    a.user_id,
+                    a.change_request_id,
+                    a.old_values,
+                    a.new_values,
+                    a.changed_fields
+                FROM reference_data.audit_log a
+                WHERE a.entity_type = p_entity_type
+                  AND a.entity_id = p_entity_id
+                  AND (p_from_date IS NULL OR a.event_timestamp >= p_from_date)
+                  AND (p_to_date IS NULL OR a.event_timestamp <= p_to_date)
+                ORDER BY a.event_timestamp DESC;
+            END;
+            $$ LANGUAGE plpgsql;
+            ]]>
+        </sql>
+
+        <!-- Function to get user activity summary -->
+        <sql>
+            <![CDATA[
+            CREATE OR REPLACE FUNCTION reference_data.get_user_activity_summary(
+                p_user_id VARCHAR,
+                p_from_date TIMESTAMP DEFAULT NULL,
+                p_to_date TIMESTAMP DEFAULT NULL
+            )
+            RETURNS TABLE (
+                action VARCHAR,
+                entity_type VARCHAR,
+                count BIGINT,
+                first_occurrence TIMESTAMP,
+                last_occurrence TIMESTAMP
+            ) AS $$
+            BEGIN
+                RETURN QUERY
+                SELECT
+                    a.action,
+                    a.entity_type,
+                    COUNT(*) as count,
+                    MIN(a.event_timestamp) as first_occurrence,
+                    MAX(a.event_timestamp) as last_occurrence
+                FROM reference_data.audit_log a
+                WHERE a.user_id = p_user_id
+                  AND (p_from_date IS NULL OR a.event_timestamp >= p_from_date)
+                  AND (p_to_date IS NULL OR a.event_timestamp <= p_to_date)
+                GROUP BY a.action, a.entity_type
+                ORDER BY count DESC;
+            END;
+            $$ LANGUAGE plpgsql;
+            ]]>
+        </sql>
+
+        <rollback>
+            <sql>DROP FUNCTION IF EXISTS reference_data.get_entity_audit_trail(VARCHAR, UUID, TIMESTAMP, TIMESTAMP);</sql>
+            <sql>DROP FUNCTION IF EXISTS reference_data.get_user_activity_summary(VARCHAR, TIMESTAMP, TIMESTAMP);</sql>
+        </rollback>
+    </changeSet>
+
+    <!-- H2 equivalent (simplified for testing) -->
+    <changeSet id="009-006-create-audit-h2-support" author="reference-data" dbms="h2">
+        <comment>H2 version - simplified audit support for testing</comment>
+
+        <sql>
+            CREATE ALIAS IF NOT EXISTS AUDIT_LOG_ENTRY AS $$
+            void auditLogEntry(java.sql.Connection conn, String action, String entityType, String entityId, String userId) throws SQLException {
+                String sql = "INSERT INTO reference_data.audit_log (id, action, entity_type, entity_id, user_id, event_timestamp, status) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                try (java.sql.PreparedStatement stmt = conn.prepareStatement(sql)) {
+                    stmt.setString(1, java.util.UUID.randomUUID().toString());
+                    stmt.setString(2, action);
+                    stmt.setString(3, entityType);
+                    stmt.setString(4, entityId);
+                    stmt.setString(5, userId);
+                    stmt.setTimestamp(6, new java.sql.Timestamp(System.currentTimeMillis()));
+                    stmt.setString(7, "SUCCESS");
+                    stmt.executeUpdate();
+                }
+            }
+            $$;
+        </sql>
+
+        <rollback>
+            <sql>DROP ALIAS IF EXISTS AUDIT_LOG_ENTRY;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

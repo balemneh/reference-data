@@ -62,7 +62,7 @@
             <column name="recorded_by" type="VARCHAR(100)">
                 <constraints nullable="false"/>
             </column>
-            <column name="change_request_id" type="VARCHAR(100)"/>
+            <column name="change_request_id" type="UUID"/>
             <column name="is_correction" type="BOOLEAN" defaultValueBoolean="false"/>
             <column name="metadata" type="TEXT"/>
             <column name="is_active" type="BOOLEAN" defaultValueBoolean="true"/>
@@ -179,7 +179,7 @@
             <column name="recorded_by" type="VARCHAR(100)">
                 <constraints nullable="false"/>
             </column>
-            <column name="change_request_id" type="VARCHAR(100)"/>
+            <column name="change_request_id" type="UUID"/>
             <column name="is_correction" type="BOOLEAN" defaultValueBoolean="false"/>
             <column name="metadata" type="TEXT"/>
             <column name="is_active" type="BOOLEAN" defaultValueBoolean="true"/>
@@ -225,7 +225,7 @@
             <column name="recorded_by" type="VARCHAR(100)">
                 <constraints nullable="false"/>
             </column>
-            <column name="change_request_id" type="VARCHAR(100)"/>
+            <column name="change_request_id" type="UUID"/>
             <column name="is_correction" type="BOOLEAN" defaultValueBoolean="false"/>
             <column name="metadata" type="TEXT"/>
             <column name="is_active" type="BOOLEAN" defaultValueBoolean="true"/>
@@ -264,7 +264,168 @@
         </createTable>
     </changeSet>
 
-    <changeSet id="007-insert-test-data" author="test">
+    <changeSet id="007-create-bulk-import-staging-table" author="test">
+        <createTable tableName="bulk_import_staging">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="import_batch_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="change_request_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="operation_type" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="source_system" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="row_number" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="natural_key" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="raw_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="normalized_data" type="TEXT"/>
+            <column name="target_table" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="validation_status" type="VARCHAR(20)" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="processing_status" type="VARCHAR(20)" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="target_record_id" type="UUID"/>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_by" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="008-create-bulk-import-batches-table" author="test">
+        <createTable tableName="bulk_import_batches">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="batch_name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="change_request_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="source_system" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(20)" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_records" type="INTEGER" defaultValueNumeric="0"/>
+            <column name="records_processed" type="INTEGER" defaultValueNumeric="0"/>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="009-create-audit-log-table" author="test">
+        <createTable tableName="audit_log">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="action" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="entity_type" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="entity_id" type="UUID"/>
+            <column name="operation_type" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_id" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="event_timestamp" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="change_request_id" type="UUID"/>
+            <column name="old_values" type="TEXT"/>
+            <column name="new_values" type="TEXT"/>
+            <column name="status" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="010-add-foreign-key-constraints" author="test">
+        <!-- Add foreign key constraints -->
+        <addForeignKeyConstraint baseTableName="countries_v"
+                                 baseColumnNames="change_request_id"
+                                 referencedTableName="change_requests"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_countries_change_request"/>
+
+        <addForeignKeyConstraint baseTableName="airports_v"
+                                 baseColumnNames="change_request_id"
+                                 referencedTableName="change_requests"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_airports_change_request"/>
+
+        <addForeignKeyConstraint baseTableName="ports_v"
+                                 baseColumnNames="change_request_id"
+                                 referencedTableName="change_requests"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_ports_change_request"/>
+
+        <addForeignKeyConstraint baseTableName="bulk_import_staging"
+                                 baseColumnNames="change_request_id"
+                                 referencedTableName="change_requests"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_staging_change_request"/>
+
+        <addForeignKeyConstraint baseTableName="bulk_import_staging"
+                                 baseColumnNames="import_batch_id"
+                                 referencedTableName="bulk_import_batches"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_staging_batch"/>
+
+        <addForeignKeyConstraint baseTableName="bulk_import_batches"
+                                 baseColumnNames="change_request_id"
+                                 referencedTableName="change_requests"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_batch_change_request"/>
+
+        <addForeignKeyConstraint baseTableName="audit_log"
+                                 baseColumnNames="change_request_id"
+                                 referencedTableName="change_requests"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_audit_change_request"/>
+    </changeSet>
+
+    <changeSet id="011-insert-test-data" author="test">
         <insert tableName="code_system">
             <column name="id" value="00000000-0000-0000-0000-000000000001"/>
             <column name="code" value="ISO3166-1"/>

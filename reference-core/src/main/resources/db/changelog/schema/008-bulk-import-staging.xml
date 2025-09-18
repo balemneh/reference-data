@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="008-001-create-bulk-import-staging-table" author="reference-data">
+        <comment>Create bulk_import_staging table for managing bulk data imports</comment>
+
+        <createTable tableName="bulk_import_staging" schemaName="reference_data">
+            <!-- Primary key and basic tracking -->
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="import_batch_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="change_request_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- Data type and operation information -->
+            <column name="data_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="operation_type" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="source_system" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="source_file_name" type="VARCHAR(500)"/>
+            <column name="source_file_checksum" type="VARCHAR(64)"/>
+
+            <!-- Record identification -->
+            <column name="row_number" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="source_record_id" type="VARCHAR(100)"/>
+            <column name="natural_key" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- Raw and normalized data -->
+            <column name="raw_data" type="JSONB">
+                <constraints nullable="false"/>
+            </column>
+            <column name="normalized_data" type="JSONB"/>
+            <column name="target_table" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- Validation and processing status -->
+            <column name="validation_status" type="VARCHAR(20)" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="validation_errors" type="JSONB"/>
+            <column name="validation_warnings" type="JSONB"/>
+            <column name="processing_status" type="VARCHAR(20)" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="processing_errors" type="JSONB"/>
+
+            <!-- Target record information -->
+            <column name="target_record_id" type="UUID"/>
+            <column name="target_version" type="BIGINT"/>
+            <column name="conflict_resolution" type="VARCHAR(50)"/>
+            <column name="merge_strategy" type="VARCHAR(50)"/>
+
+            <!-- Quality scores and confidence -->
+            <column name="data_quality_score" type="DECIMAL(5,2)"/>
+            <column name="confidence_score" type="DECIMAL(5,2)"/>
+            <column name="requires_manual_review" type="BOOLEAN" defaultValueBoolean="false"/>
+            <column name="review_notes" type="TEXT"/>
+
+            <!-- Audit trail -->
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_by" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- Processing timestamps -->
+            <column name="validated_at" type="TIMESTAMP"/>
+            <column name="validated_by" type="VARCHAR(100)"/>
+            <column name="processed_at" type="TIMESTAMP"/>
+            <column name="processed_by" type="VARCHAR(100)"/>
+            <column name="approved_at" type="TIMESTAMP"/>
+            <column name="approved_by" type="VARCHAR(100)"/>
+
+            <!-- Metadata and lineage -->
+            <column name="data_lineage" type="JSONB"/>
+            <column name="transformation_rules" type="JSONB"/>
+            <column name="business_rules_applied" type="JSONB"/>
+            <column name="metadata" type="JSONB"/>
+        </createTable>
+
+        <!-- Add foreign key constraints -->
+        <addForeignKeyConstraint baseTableName="bulk_import_staging"
+                                 baseColumnNames="change_request_id"
+                                 baseTableSchemaName="reference_data"
+                                 referencedTableName="change_requests"
+                                 referencedColumnNames="id"
+                                 referencedTableSchemaName="reference_data"
+                                 constraintName="fk_staging_change_request"/>
+
+        <!-- Add check constraints for valid enum values -->
+        <sql>
+            ALTER TABLE reference_data.bulk_import_staging
+            ADD CONSTRAINT chk_staging_operation_type
+            CHECK (operation_type IN ('INSERT', 'UPDATE', 'DELETE', 'UPSERT', 'MERGE'));
+        </sql>
+
+        <sql>
+            ALTER TABLE reference_data.bulk_import_staging
+            ADD CONSTRAINT chk_staging_validation_status
+            CHECK (validation_status IN ('PENDING', 'VALID', 'INVALID', 'WARNING', 'SKIPPED'));
+        </sql>
+
+        <sql>
+            ALTER TABLE reference_data.bulk_import_staging
+            ADD CONSTRAINT chk_staging_processing_status
+            CHECK (processing_status IN ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'SKIPPED', 'REQUIRES_REVIEW'));
+        </sql>
+
+        <sql>
+            ALTER TABLE reference_data.bulk_import_staging
+            ADD CONSTRAINT chk_staging_data_type
+            CHECK (data_type IN ('COUNTRIES', 'AIRPORTS', 'PORTS', 'CARRIERS', 'LANGUAGES', 'CURRENCIES', 'UNITS', 'CODE_MAPPINGS'));
+        </sql>
+
+        <sql>
+            ALTER TABLE reference_data.bulk_import_staging
+            ADD CONSTRAINT chk_staging_conflict_resolution
+            CHECK (conflict_resolution IS NULL OR conflict_resolution IN ('OVERWRITE', 'MERGE', 'SKIP', 'MANUAL_REVIEW'));
+        </sql>
+
+        <sql>
+            ALTER TABLE reference_data.bulk_import_staging
+            ADD CONSTRAINT chk_staging_merge_strategy
+            CHECK (merge_strategy IS NULL OR merge_strategy IN ('LAST_WINS', 'FIRST_WINS', 'MERGE_FIELDS', 'MANUAL_REVIEW'));
+        </sql>
+
+        <rollback>
+            <dropTable tableName="bulk_import_staging" schemaName="reference_data"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="008-002-create-bulk-import-staging-indexes" author="reference-data">
+        <comment>Create indexes for bulk_import_staging table for optimal performance</comment>
+
+        <!-- Primary indexes for querying -->
+        <createIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_batch_id">
+            <column name="import_batch_id"/>
+        </createIndex>
+
+        <createIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_change_request">
+            <column name="change_request_id"/>
+        </createIndex>
+
+        <createIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_data_type_status">
+            <column name="data_type"/>
+            <column name="processing_status"/>
+        </createIndex>
+
+        <createIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_validation_status">
+            <column name="validation_status"/>
+            <column name="processing_status"/>
+        </createIndex>
+
+        <!-- Natural key index for duplicate detection -->
+        <createIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_natural_key">
+            <column name="data_type"/>
+            <column name="natural_key"/>
+            <column name="import_batch_id"/>
+        </createIndex>
+
+        <!-- Source system tracking -->
+        <createIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_source_system">
+            <column name="source_system"/>
+            <column name="created_at"/>
+        </createIndex>
+
+        <!-- Target record linking -->
+        <createIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_target_record">
+            <column name="target_record_id"/>
+            <column name="target_version"/>
+        </createIndex>
+
+        <!-- Manual review queue -->
+        <createIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_manual_review">
+            <column name="requires_manual_review"/>
+            <column name="processing_status"/>
+            <column name="created_at"/>
+        </createIndex>
+
+        <!-- Audit and timestamp indexes -->
+        <createIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_created_at">
+            <column name="created_at"/>
+        </createIndex>
+
+        <createIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_processed_at">
+            <column name="processed_at"/>
+        </createIndex>
+
+        <!-- GIN indexes for JSONB columns (PostgreSQL specific) -->
+        <createIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_raw_data_gin">
+            <column name="raw_data"/>
+        </createIndex>
+
+        <createIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_normalized_data_gin">
+            <column name="normalized_data"/>
+        </createIndex>
+
+        <rollback>
+            <dropIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_batch_id"/>
+            <dropIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_change_request"/>
+            <dropIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_data_type_status"/>
+            <dropIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_validation_status"/>
+            <dropIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_natural_key"/>
+            <dropIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_source_system"/>
+            <dropIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_target_record"/>
+            <dropIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_manual_review"/>
+            <dropIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_created_at"/>
+            <dropIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_processed_at"/>
+            <dropIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_raw_data_gin"/>
+            <dropIndex tableName="bulk_import_staging" schemaName="reference_data" indexName="idx_staging_normalized_data_gin"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="008-003-create-bulk-import-batches-table" author="reference-data">
+        <comment>Create bulk_import_batches table to track import batch metadata</comment>
+
+        <createTable tableName="bulk_import_batches" schemaName="reference_data">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="batch_name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="change_request_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- Source information -->
+            <column name="source_system" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="source_file_name" type="VARCHAR(500)"/>
+            <column name="source_file_size" type="BIGINT"/>
+            <column name="source_file_checksum" type="VARCHAR(64)"/>
+            <column name="source_file_format" type="VARCHAR(50)"/>
+
+            <!-- Data type and processing configuration -->
+            <column name="data_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="import_mode" type="VARCHAR(50)" defaultValue="STANDARD">
+                <constraints nullable="false"/>
+            </column>
+            <column name="validation_rules" type="JSONB"/>
+            <column name="transformation_config" type="JSONB"/>
+            <column name="business_rules_config" type="JSONB"/>
+
+            <!-- Status and progress tracking -->
+            <column name="status" type="VARCHAR(20)" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_records" type="INTEGER" defaultValueNumeric="0"/>
+            <column name="records_processed" type="INTEGER" defaultValueNumeric="0"/>
+            <column name="records_valid" type="INTEGER" defaultValueNumeric="0"/>
+            <column name="records_invalid" type="INTEGER" defaultValueNumeric="0"/>
+            <column name="records_warnings" type="INTEGER" defaultValueNumeric="0"/>
+            <column name="records_skipped" type="INTEGER" defaultValueNumeric="0"/>
+
+            <!-- Quality metrics -->
+            <column name="overall_quality_score" type="DECIMAL(5,2)"/>
+            <column name="validation_pass_rate" type="DECIMAL(5,2)"/>
+            <column name="processing_success_rate" type="DECIMAL(5,2)"/>
+
+            <!-- Timing information -->
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="started_at" type="TIMESTAMP"/>
+            <column name="completed_at" type="TIMESTAMP"/>
+            <column name="duration_seconds" type="INTEGER"/>
+
+            <!-- Error and notification tracking -->
+            <column name="error_summary" type="JSONB"/>
+            <column name="notification_config" type="JSONB"/>
+            <column name="notification_sent" type="BOOLEAN" defaultValueBoolean="false"/>
+
+            <!-- Metadata -->
+            <column name="metadata" type="JSONB"/>
+        </createTable>
+
+        <!-- Add foreign key constraint -->
+        <addForeignKeyConstraint baseTableName="bulk_import_batches"
+                                 baseColumnNames="change_request_id"
+                                 baseTableSchemaName="reference_data"
+                                 referencedTableName="change_requests"
+                                 referencedColumnNames="id"
+                                 referencedTableSchemaName="reference_data"
+                                 constraintName="fk_batch_change_request"/>
+
+        <!-- Add check constraints -->
+        <sql>
+            ALTER TABLE reference_data.bulk_import_batches
+            ADD CONSTRAINT chk_batch_status
+            CHECK (status IN ('PENDING', 'VALIDATING', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED'));
+        </sql>
+
+        <sql>
+            ALTER TABLE reference_data.bulk_import_batches
+            ADD CONSTRAINT chk_batch_import_mode
+            CHECK (import_mode IN ('STANDARD', 'INCREMENTAL', 'FULL_REPLACE', 'MERGE', 'VALIDATION_ONLY'));
+        </sql>
+
+        <!-- Add indexes -->
+        <createIndex tableName="bulk_import_batches" schemaName="reference_data" indexName="idx_batch_change_request">
+            <column name="change_request_id"/>
+        </createIndex>
+
+        <createIndex tableName="bulk_import_batches" schemaName="reference_data" indexName="idx_batch_data_type_status">
+            <column name="data_type"/>
+            <column name="status"/>
+        </createIndex>
+
+        <createIndex tableName="bulk_import_batches" schemaName="reference_data" indexName="idx_batch_source_system">
+            <column name="source_system"/>
+            <column name="created_at"/>
+        </createIndex>
+
+        <createIndex tableName="bulk_import_batches" schemaName="reference_data" indexName="idx_batch_created_at">
+            <column name="created_at"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="bulk_import_batches" schemaName="reference_data"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="008-004-add-batch-id-constraint-to-staging" author="reference-data">
+        <comment>Add foreign key constraint from staging to batches table</comment>
+
+        <addForeignKeyConstraint baseTableName="bulk_import_staging"
+                                 baseColumnNames="import_batch_id"
+                                 baseTableSchemaName="reference_data"
+                                 referencedTableName="bulk_import_batches"
+                                 referencedColumnNames="id"
+                                 referencedTableSchemaName="reference_data"
+                                 constraintName="fk_staging_batch"/>
+
+        <rollback>
+            <dropForeignKeyConstraint baseTableName="bulk_import_staging"
+                                      baseTableSchemaName="reference_data"
+                                      constraintName="fk_staging_batch"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
