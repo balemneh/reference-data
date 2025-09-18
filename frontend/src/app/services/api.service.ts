@@ -4,6 +4,7 @@ import { Observable, throwError, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import {
+  ChangeRequestDto,
   ChangeRequestFilter,
   ChangeRequestBatchOperation,
   BatchOperationResponse,
@@ -11,6 +12,9 @@ import {
   ApprovalHistoryEntry,
   ChangeRequestDiff
 } from '../models/change-request.models';
+
+// Re-export commonly used interfaces
+export type { ChangeRequestDto } from '../models/change-request.models';
 
 export interface PagedResponse<T> {
   content: T[];
@@ -109,8 +113,6 @@ export interface AirportDto {
   version: number;
 }
 
-// Import ChangeRequestDto from models
-export { ChangeRequestDto } from '../models/change-request.models';
 
 @Injectable({
   providedIn: 'root'
@@ -793,6 +795,116 @@ export class ApiService {
       );
   }
 
+  // ==================== BULK IMPORT API METHODS ====================
 
+  /**
+   * Initiate bulk import by uploading a file
+   */
+  initiateBulkImport(formData: FormData): Observable<{batchId: string, message: string, success: boolean}> {
+    return this.http.post<{batchId: string, message: string, success: boolean}>(`${this.apiUrl}/v1/bulk-import/initiate`, formData)
+      .pipe(
+        catchError((error) => {
+          console.error('Error initiating bulk import:', error);
+          return throwError(() => error);
+        })
+      );
+  }
 
+  /**
+   * Validate bulk import data for a specific batch
+   */
+  validateBulkImport(batchId: string): Observable<{
+    batchId: string;
+    validCount: number;
+    invalidCount: number;
+    warningCount: number;
+    message: string;
+    success: boolean;
+    errors?: any[];
+    warnings?: any[];
+    previewData?: any[];
+  }> {
+    return this.http.post<{
+      batchId: string;
+      validCount: number;
+      invalidCount: number;
+      warningCount: number;
+      message: string;
+      success: boolean;
+      errors?: any[];
+      warnings?: any[];
+      previewData?: any[];
+    }>(`${this.apiUrl}/v1/bulk-import/validate/${batchId}`, {})
+      .pipe(
+        catchError((error) => {
+          console.error('Error validating bulk import:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  /**
+   * Process bulk import for a specific batch
+   */
+  processBulkImport(batchId: string, justification?: any): Observable<{
+    batchId: string;
+    processedCount: number;
+    failedCount: number;
+    message: string;
+    success: boolean;
+  }> {
+    const body = justification ? { justification } : {};
+    return this.http.post<{
+      batchId: string;
+      processedCount: number;
+      failedCount: number;
+      message: string;
+      success: boolean;
+    }>(`${this.apiUrl}/v1/bulk-import/process/${batchId}`, body)
+      .pipe(
+        catchError((error) => {
+          console.error('Error processing bulk import:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  /**
+   * Get bulk import status for a specific batch
+   */
+  getBulkImportStatus(batchId: string): Observable<{
+    batchId: string;
+    status: string;
+    progress: number;
+    totalRecords: number;
+    processedCount: number;
+    failedCount: number;
+    validCount: number;
+    invalidCount: number;
+    warningCount: number;
+    startTime: string;
+    endTime?: string;
+    errorMessage?: string;
+  }> {
+    return this.http.get<{
+      batchId: string;
+      status: string;
+      progress: number;
+      totalRecords: number;
+      processedCount: number;
+      failedCount: number;
+      validCount: number;
+      invalidCount: number;
+      warningCount: number;
+      startTime: string;
+      endTime?: string;
+      errorMessage?: string;
+    }>(`${this.apiUrl}/v1/bulk-import/status/${batchId}`)
+      .pipe(
+        catchError((error) => {
+          console.error('Error getting bulk import status:', error);
+          return throwError(() => error);
+        })
+      );
+  }
 }

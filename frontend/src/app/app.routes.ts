@@ -17,6 +17,7 @@ import { HelpApiDocsComponent } from './components/help/api-docs';
 import { HelpTutorialsComponent } from './components/help/tutorials';
 import { NotificationsComponent } from './components/notifications/notifications';
 import { FeatureFlagsComponent } from './components/admin/feature-flags/feature-flags.component';
+import { BulkImportWizardComponent } from './components/bulk-import/bulk-import-wizard.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
@@ -31,6 +32,7 @@ export const routes: Routes = [
       { path: 'change-requests', component: ChangeRequestsComponent },
       { path: 'activity-log', component: ActivityLogComponent },
       { path: 'import-export', component: ImportExportComponent },
+      { path: 'bulk-import', component: BulkImportWizardComponent },
       { path: 'reports', component: ReportsComponent },
       { path: 'analytics', component: AnalyticsComponent },
       { path: 'settings', component: SettingsComponent },

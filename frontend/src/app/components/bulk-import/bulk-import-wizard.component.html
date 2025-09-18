@@ -1,0 +1,722 @@
+<!-- Bulk Import Wizard -->
+<div class="bulk-import-wizard">
+  <!-- Page Header -->
+  <div class="usa-section usa-section--light">
+    <div class="grid-container">
+      <div class="grid-row">
+        <div class="grid-col-12">
+          <nav class="usa-breadcrumb" aria-label="Breadcrumbs">
+            <ol class="usa-breadcrumb__list">
+              <li class="usa-breadcrumb__list-item">
+                <a href="/" class="usa-breadcrumb__link">Home</a>
+              </li>
+              <li class="usa-breadcrumb__list-item">
+                <a href="/import-export" class="usa-breadcrumb__link">Import/Export</a>
+              </li>
+              <li class="usa-breadcrumb__list-item usa-current" aria-current="page">
+                Bulk Import Wizard
+              </li>
+            </ol>
+          </nav>
+
+          <div class="display-flex flex-align-center margin-top-2">
+            <h1 class="font-heading-xl margin-0">Bulk Data Import Wizard</h1>
+            <div class="margin-left-auto">
+              <button
+                class="usa-button usa-button--outline"
+                type="button"
+                (click)="cancelWizard()"
+                [disabled]="isProcessing">
+                <i class="fas fa-times margin-right-1"></i>
+                Cancel
+              </button>
+            </div>
+          </div>
+
+          <p class="font-body-lg text-base-dark margin-top-1 margin-bottom-0">
+            Import {{dataType.toLowerCase()}} data using our guided wizard process
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress Indicator -->
+  <div class="usa-section padding-top-2 padding-bottom-2 bg-base-lightest">
+    <div class="grid-container">
+      <div class="grid-row">
+        <div class="grid-col-12">
+          <div class="usa-step-indicator usa-step-indicator--counters-sm">
+            <ol class="usa-step-indicator__segments">
+              <li
+                *ngFor="let step of wizardSteps; let i = index"
+                class="usa-step-indicator__segment"
+                [class.usa-step-indicator__segment--complete]="isStepCompleted(step.step)"
+                [class.usa-step-indicator__segment--current]="isStepActive(step.step)">
+                <span class="usa-step-indicator__segment-label">
+                  {{step.label}}
+                  <span class="usa-sr-only">{{isStepCompleted(step.step) ? 'completed' : isStepActive(step.step) ? 'current' : 'not completed'}}</span>
+                </span>
+              </li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Alert -->
+  <div *ngIf="error" class="usa-section padding-top-2 padding-bottom-1">
+    <div class="grid-container">
+      <div class="grid-row">
+        <div class="grid-col-12">
+          <div class="usa-alert usa-alert--error" role="alert">
+            <div class="usa-alert__body">
+              <h4 class="usa-alert__heading">Error</h4>
+              <p class="usa-alert__text">{{error}}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="usa-section">
+    <div class="grid-container">
+      <div class="grid-row">
+        <div class="grid-col-12">
+
+          <!-- Step 1: File Upload -->
+          <div *ngIf="currentStep === 'upload'" class="wizard-step">
+            <div class="usa-form-group">
+              <h2 class="font-heading-lg margin-bottom-2">Step 1: Select File to Import</h2>
+
+              <!-- Data Type Selection -->
+              <fieldset class="usa-fieldset margin-bottom-4">
+                <legend class="usa-legend">Data Type</legend>
+                <div class="usa-radio">
+                  <input
+                    class="usa-radio__input"
+                    id="data-type-countries"
+                    type="radio"
+                    name="dataType"
+                    value="COUNTRIES"
+                    [(ngModel)]="dataType"
+                    [disabled]="selectedFile !== null">
+                  <label class="usa-radio__label" for="data-type-countries">
+                    <i class="fas fa-globe-americas margin-right-1"></i>
+                    {{DATA_TYPE_CONFIG.COUNTRIES.label}}
+                    <span class="display-block font-body-2xs text-base-dark">
+                      {{DATA_TYPE_CONFIG.COUNTRIES.description}}
+                    </span>
+                  </label>
+                </div>
+                <div class="usa-radio">
+                  <input
+                    class="usa-radio__input"
+                    id="data-type-ports"
+                    type="radio"
+                    name="dataType"
+                    value="PORTS"
+                    [(ngModel)]="dataType"
+                    [disabled]="selectedFile !== null">
+                  <label class="usa-radio__label" for="data-type-ports">
+                    <i class="fas fa-anchor margin-right-1"></i>
+                    {{DATA_TYPE_CONFIG.PORTS.label}}
+                    <span class="display-block font-body-2xs text-base-dark">
+                      {{DATA_TYPE_CONFIG.PORTS.description}}
+                    </span>
+                  </label>
+                </div>
+                <div class="usa-radio">
+                  <input
+                    class="usa-radio__input"
+                    id="data-type-airports"
+                    type="radio"
+                    name="dataType"
+                    value="AIRPORTS"
+                    [(ngModel)]="dataType"
+                    [disabled]="selectedFile !== null">
+                  <label class="usa-radio__label" for="data-type-airports">
+                    <i class="fas fa-plane margin-right-1"></i>
+                    {{DATA_TYPE_CONFIG.AIRPORTS.label}}
+                    <span class="display-block font-body-2xs text-base-dark">
+                      {{DATA_TYPE_CONFIG.AIRPORTS.description}}
+                    </span>
+                  </label>
+                </div>
+              </fieldset>
+
+              <!-- File Upload Area -->
+              <div class="file-upload-section">
+                <label class="usa-label" for="file-input">Upload Data File</label>
+                <div class="usa-hint margin-bottom-2">
+                  Supported formats: CSV, JSON, XLSX. Maximum file size: 50MB
+                </div>
+
+                <!-- Drop Zone -->
+                <div
+                  #dropZone
+                  class="file-drop-zone"
+                  [class.drag-over]="isDragOver"
+                  [class.has-file]="selectedFile"
+                  (dragover)="onDragOver($event)"
+                  (dragleave)="onDragLeave($event)"
+                  (drop)="onDrop($event)"
+                  (click)="fileInput.click()">
+
+                  <div *ngIf="!selectedFile" class="drop-zone-content">
+                    <i class="fas fa-cloud-upload-alt fa-3x text-base-light margin-bottom-2"></i>
+                    <p class="font-body-lg text-bold">Drag and drop your file here</p>
+                    <p class="text-base-dark margin-bottom-2">or</p>
+                    <button type="button" class="usa-button usa-button--outline">
+                      Choose File
+                    </button>
+                  </div>
+
+                  <div *ngIf="selectedFile" class="selected-file-info">
+                    <div class="display-flex flex-align-center margin-bottom-2">
+                      <i class="fas fa-file-alt fa-2x text-primary margin-right-2"></i>
+                      <div class="flex-fill">
+                        <p class="font-body-lg text-bold margin-0">{{selectedFile.file.name}}</p>
+                        <p class="text-base-dark margin-0">
+                          {{formatFileSize(selectedFile.size)}} • {{selectedFile.format}} format
+                        </p>
+                        <p class="text-base-dark margin-0">
+                          Modified: {{formatDate(selectedFile.lastModified)}}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        class="usa-button usa-button--unstyled text-secondary"
+                        (click)="removeSelectedFile(); $event.stopPropagation()">
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+
+                    <div class="usa-alert usa-alert--info usa-alert--slim">
+                      <div class="usa-alert__body">
+                        <p class="usa-alert__text">
+                          <strong>Ready for validation.</strong> Click "Next" to proceed with data validation.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <input
+                  #fileInput
+                  type="file"
+                  class="usa-sr-only"
+                  accept=".csv,.json,.xlsx"
+                  (change)="onFileSelected($event)">
+              </div>
+
+              <!-- Required Fields Info -->
+              <div class="margin-top-4">
+                <h3 class="font-heading-md margin-bottom-2">Required Fields for {{DATA_TYPE_CONFIG[dataType].label}}</h3>
+                <div class="usa-alert usa-alert--info">
+                  <div class="usa-alert__body">
+                    <p class="usa-alert__text">
+                      <strong>Required fields:</strong>
+                      <span *ngFor="let field of DATA_TYPE_CONFIG[dataType].requiredFields; let last = last">
+                        <code>{{field}}</code><span *ngIf="!last">, </span>
+                      </span>
+                    </p>
+                    <p class="usa-alert__text margin-top-1">
+                      <strong>Optional fields:</strong>
+                      <span *ngFor="let field of DATA_TYPE_CONFIG[dataType].optionalFields; let last = last">
+                        <code>{{field}}</code><span *ngIf="!last">, </span>
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: Validation -->
+          <div *ngIf="currentStep === 'validate'" class="wizard-step">
+            <h2 class="font-heading-lg margin-bottom-2">Step 2: Data Validation</h2>
+
+            <div *ngIf="isValidating" class="text-center padding-4">
+              <div class="usa-alert usa-alert--info">
+                <div class="usa-alert__body">
+                  <h4 class="usa-alert__heading">Validating Data</h4>
+                  <p class="usa-alert__text">
+                    Please wait while we validate your {{selectedFile?.file.name}} file...
+                  </p>
+                </div>
+              </div>
+              <div class="margin-top-2">
+                <div class="usa-spinner" aria-label="Loading"></div>
+              </div>
+            </div>
+
+            <div *ngIf="validationResult && !isValidating">
+              <!-- Validation Summary -->
+              <div class="validation-summary margin-bottom-4">
+                <div class="grid-row grid-gap">
+                  <div class="grid-col-6 tablet:grid-col-3">
+                    <div class="stat-card bg-green-cool-5 border-left-05 border-green-cool-50">
+                      <div class="stat-number text-green-cool-70">{{validationResult.validRecords}}</div>
+                      <div class="stat-label">Valid Records</div>
+                    </div>
+                  </div>
+                  <div class="grid-col-6 tablet:grid-col-3">
+                    <div class="stat-card bg-red-warm-5 border-left-05 border-red-warm-50">
+                      <div class="stat-number text-red-warm-70">{{validationResult.invalidRecords}}</div>
+                      <div class="stat-label">Invalid Records</div>
+                    </div>
+                  </div>
+                  <div class="grid-col-6 tablet:grid-col-3">
+                    <div class="stat-card bg-yellow-10 border-left-05 border-yellow-50">
+                      <div class="stat-number text-yellow-70">{{validationResult.warningCount}}</div>
+                      <div class="stat-label">Warnings</div>
+                    </div>
+                  </div>
+                  <div class="grid-col-6 tablet:grid-col-3">
+                    <div class="stat-card bg-blue-cool-5 border-left-05 border-blue-cool-50">
+                      <div class="stat-number text-blue-cool-70">{{validationResult.totalRecords}}</div>
+                      <div class="stat-label">Total Records</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Validation Status Alert -->
+              <div *ngIf="validationResult.isValid" class="usa-alert usa-alert--success margin-bottom-4">
+                <div class="usa-alert__body">
+                  <h4 class="usa-alert__heading">Validation Passed</h4>
+                  <p class="usa-alert__text">
+                    Your data has been successfully validated.
+                    {{validationResult.validRecords}} records are ready for import.
+                    <span *ngIf="validationResult.warningCount > 0">
+                      There are {{validationResult.warningCount}} warnings that you should review.
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              <div *ngIf="!validationResult.isValid" class="usa-alert usa-alert--error margin-bottom-4">
+                <div class="usa-alert__body">
+                  <h4 class="usa-alert__heading">Validation Failed</h4>
+                  <p class="usa-alert__text">
+                    Your data contains {{validationResult.invalidRecords}} invalid records that must be fixed before import.
+                    Please review the errors below and correct your data file.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Error/Warning Filter and Download -->
+              <div class="display-flex flex-align-center flex-justify margin-bottom-3">
+                <div class="display-flex flex-align-center">
+                  <label for="error-filter" class="usa-label margin-right-1 margin-bottom-0">Filter:</label>
+                  <select
+                    id="error-filter"
+                    class="usa-select width-auto"
+                    [(ngModel)]="errorFilter"
+                    (change)="updateErrorFilter()">
+                    <option value="ALL">All Issues ({{validationResult.errors.length + validationResult.warnings.length}})</option>
+                    <option value="ERROR">Errors Only ({{validationResult.errors.length}})</option>
+                    <option value="WARNING">Warnings Only ({{validationResult.warnings.length}})</option>
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  class="usa-button usa-button--outline usa-button--inverse"
+                  (click)="downloadValidationReport()">
+                  <i class="fas fa-download margin-right-1"></i>
+                  Download Report
+                </button>
+              </div>
+
+              <!-- Validation Issues Table -->
+              <div *ngIf="filteredErrors.length > 0" class="validation-issues margin-bottom-4">
+                <h3 class="font-heading-md margin-bottom-2">Validation Issues</h3>
+                <div class="usa-table-container--scrollable">
+                  <table class="usa-table usa-table--borderless usa-table--striped">
+                    <thead>
+                      <tr>
+                        <th scope="col">Row</th>
+                        <th scope="col">Field</th>
+                        <th scope="col">Value</th>
+                        <th scope="col">Issue</th>
+                        <th scope="col">Severity</th>
+                        <th scope="col">Suggestion</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let issue of filteredErrors">
+                        <td>{{issue.row}}</td>
+                        <td><code>{{issue.field}}</code></td>
+                        <td class="text-pre">{{issue.value || '(empty)'}}</td>
+                        <td>{{issue.message}}</td>
+                        <td>
+                          <span [class]="getSeverityClass(issue.severity)">
+                            <i [class]="'fas fa-' + getSeverityIcon(issue.severity) + ' margin-right-05'"></i>
+                            {{issue.severity}}
+                          </span>
+                        </td>
+                        <td class="text-base-dark font-body-xs">{{issue.suggestion || '—'}}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Retry Button for Failed Validation -->
+              <div *ngIf="!validationResult.isValid" class="text-center margin-top-4">
+                <p class="text-base-dark margin-bottom-2">
+                  Fix the issues in your file and upload a corrected version.
+                </p>
+                <button
+                  type="button"
+                  class="usa-button usa-button--outline"
+                  (click)="goToStep('upload')">
+                  <i class="fas fa-upload margin-right-1"></i>
+                  Upload Corrected File
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3: Review Data -->
+          <div *ngIf="currentStep === 'review'" class="wizard-step">
+            <h2 class="font-heading-lg margin-bottom-2">Step 3: Review Import Data</h2>
+
+            <div *ngIf="validationResult">
+              <!-- Data Preview Controls -->
+              <div class="display-flex flex-align-center flex-justify margin-bottom-3">
+                <div>
+                  <h3 class="font-heading-md margin-bottom-0">Data Preview</h3>
+                  <p class="text-base-dark margin-top-05">
+                    Showing {{previewSize}} of {{validationResult.validRecords}} valid records
+                  </p>
+                </div>
+                <div class="display-flex flex-align-center">
+                  <button
+                    type="button"
+                    class="usa-button usa-button--unstyled"
+                    (click)="previousPreviewPage()"
+                    [disabled]="previewPage === 0">
+                    <i class="fas fa-chevron-left"></i>
+                  </button>
+                  <span class="margin-x-2 text-tabular">
+                    Page {{previewPage + 1}} of {{previewTotalPages}}
+                  </span>
+                  <button
+                    type="button"
+                    class="usa-button usa-button--unstyled"
+                    (click)="nextPreviewPage()"
+                    [disabled]="previewPage >= previewTotalPages - 1">
+                    <i class="fas fa-chevron-right"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Data Preview Table -->
+              <div class="usa-table-container--scrollable margin-bottom-4">
+                <table class="usa-table usa-table--striped">
+                  <thead>
+                    <tr>
+                      <th scope="col">#</th>
+                      <th *ngFor="let column of previewColumns" scope="col">{{column}}</th>
+                      <th scope="col">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      *ngFor="let row of paginatedPreviewData; let i = index"
+                      [class]="'row-' + getRowValidationStatus(previewPage * previewSize + i)">
+                      <td>{{previewPage * previewSize + i + 1}}</td>
+                      <td *ngFor="let column of previewColumns" class="text-pre">
+                        <div class="position-relative">
+                          {{row[column] || '—'}}
+                          <div *ngIf="getCellValidationMessages(previewPage * previewSize + i, column).length > 0"
+                               class="cell-validation-indicator"
+                               [title]="getCellValidationMessages(previewPage * previewSize + i, column)[0]?.message">
+                            <i [class]="'fas fa-' + getSeverityIcon(getCellValidationMessages(previewPage * previewSize + i, column)[0]?.severity)"></i>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span [class]="'status-badge status-' + getRowValidationStatus(previewPage * previewSize + i)">
+                          {{getRowValidationStatus(previewPage * previewSize + i)}}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Import Summary -->
+              <div class="usa-summary-box margin-bottom-4">
+                <div class="usa-summary-box__body">
+                  <h3 class="usa-summary-box__heading">Import Summary</h3>
+                  <div class="usa-summary-box__text">
+                    <ul>
+                      <li><strong>{{validationResult.validRecords}}</strong> records will be imported</li>
+                      <li><strong>{{validationResult.invalidRecords}}</strong> records will be skipped due to errors</li>
+                      <li *ngIf="validationResult.warningCount > 0">
+                        <strong>{{validationResult.warningCount}}</strong> records have warnings but will be imported
+                      </li>
+                      <li>Data type: <strong>{{DATA_TYPE_CONFIG[dataType].label}}</strong></li>
+                      <li>Source file: <strong>{{selectedFile?.file.name}}</strong></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 4: Submit Import -->
+          <div *ngIf="currentStep === 'submit'" class="wizard-step">
+            <h2 class="font-heading-lg margin-bottom-2">Step 4: Business Justification & Submit</h2>
+
+            <form [formGroup]="justificationForm" class="usa-form">
+              <div class="grid-row grid-gap">
+                <div class="grid-col-12 desktop:grid-col-8">
+
+                  <div class="usa-form-group">
+                    <label class="usa-label" for="reason">
+                      <abbr title="required" class="usa-hint usa-hint--required">*</abbr>
+                      Reason for Import
+                    </label>
+                    <div class="usa-hint">Provide a clear business justification for this data import</div>
+                    <textarea
+                      class="usa-textarea"
+                      id="reason"
+                      formControlName="reason"
+                      rows="3"
+                      maxlength="500"></textarea>
+                    <div *ngIf="justificationForm.get('reason')?.invalid && justificationForm.get('reason')?.touched"
+                         class="usa-error-message">
+                      Reason is required (minimum 10 characters)
+                    </div>
+                  </div>
+
+                  <div class="usa-form-group">
+                    <label class="usa-label" for="impact">
+                      <abbr title="required" class="usa-hint usa-hint--required">*</abbr>
+                      Impact Description
+                    </label>
+                    <div class="usa-hint">Describe the expected impact of this import on existing data</div>
+                    <textarea
+                      class="usa-textarea"
+                      id="impact"
+                      formControlName="impactDescription"
+                      rows="3"
+                      maxlength="1000"></textarea>
+                    <div *ngIf="justificationForm.get('impactDescription')?.invalid && justificationForm.get('impactDescription')?.touched"
+                         class="usa-error-message">
+                      Impact description is required (minimum 20 characters)
+                    </div>
+                  </div>
+
+                  <div class="grid-row grid-gap">
+                    <div class="grid-col-12 tablet:grid-col-6">
+                      <div class="usa-form-group">
+                        <label class="usa-label" for="approver">
+                          <abbr title="required" class="usa-hint usa-hint--required">*</abbr>
+                          Approving Manager
+                        </label>
+                        <input
+                          class="usa-input"
+                          id="approver"
+                          type="text"
+                          formControlName="approverName"
+                          maxlength="100">
+                        <div *ngIf="justificationForm.get('approverName')?.invalid && justificationForm.get('approverName')?.touched"
+                             class="usa-error-message">
+                          Approver name is required
+                        </div>
+                      </div>
+                    </div>
+                    <div class="grid-col-12 tablet:grid-col-6">
+                      <fieldset class="usa-fieldset">
+                        <legend class="usa-legend">
+                          <abbr title="required" class="usa-hint usa-hint--required">*</abbr>
+                          Priority Level
+                        </legend>
+                        <div class="usa-radio">
+                          <input class="usa-radio__input" id="urgency-low" type="radio" value="LOW" formControlName="urgency">
+                          <label class="usa-radio__label" for="urgency-low">Low</label>
+                        </div>
+                        <div class="usa-radio">
+                          <input class="usa-radio__input" id="urgency-medium" type="radio" value="MEDIUM" formControlName="urgency">
+                          <label class="usa-radio__label" for="urgency-medium">Medium</label>
+                        </div>
+                        <div class="usa-radio">
+                          <input class="usa-radio__input" id="urgency-high" type="radio" value="HIGH" formControlName="urgency">
+                          <label class="usa-radio__label" for="urgency-high">High</label>
+                        </div>
+                        <div class="usa-radio">
+                          <input class="usa-radio__input" id="urgency-critical" type="radio" value="CRITICAL" formControlName="urgency">
+                          <label class="usa-radio__label" for="urgency-critical">Critical</label>
+                        </div>
+                      </fieldset>
+                    </div>
+                  </div>
+
+                  <div class="grid-row grid-gap">
+                    <div class="grid-col-12 tablet:grid-col-6">
+                      <div class="usa-form-group">
+                        <label class="usa-label" for="scheduled-date">Scheduled Import Date</label>
+                        <div class="usa-hint">Leave blank for immediate processing</div>
+                        <input
+                          class="usa-input"
+                          id="scheduled-date"
+                          type="datetime-local"
+                          formControlName="scheduledDate">
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="usa-form-group">
+                    <label class="usa-label" for="rollback-plan">Rollback Plan</label>
+                    <div class="usa-hint">Optional: Describe how to reverse this import if needed</div>
+                    <textarea
+                      class="usa-textarea"
+                      id="rollback-plan"
+                      formControlName="rollbackPlan"
+                      rows="2"
+                      maxlength="500"></textarea>
+                  </div>
+                </div>
+
+                <div class="grid-col-12 desktop:grid-col-4">
+                  <!-- Import Summary Card -->
+                  <div class="usa-card">
+                    <div class="usa-card__container">
+                      <div class="usa-card__header">
+                        <h3 class="usa-card__heading">Import Summary</h3>
+                      </div>
+                      <div class="usa-card__body">
+                        <dl class="import-summary">
+                          <dt>Data Type:</dt>
+                          <dd>{{DATA_TYPE_CONFIG[dataType].label}}</dd>
+
+                          <dt>Source File:</dt>
+                          <dd class="text-pre">{{selectedFile?.file.name}}</dd>
+
+                          <dt>File Size:</dt>
+                          <dd>{{selectedFile ? formatFileSize(selectedFile.size) : '—'}}</dd>
+
+                          <dt>Valid Records:</dt>
+                          <dd class="text-green text-bold">{{validationResult?.validRecords || 0}}</dd>
+
+                          <dt>Invalid Records:</dt>
+                          <dd class="text-red">{{validationResult?.invalidRecords || 0}}</dd>
+
+                          <dt *ngIf="validationResult && validationResult.warningCount > 0">Warnings:</dt>
+                          <dd *ngIf="validationResult && validationResult.warningCount > 0" class="text-yellow">{{validationResult.warningCount}}</dd>
+                        </dl>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Processing Status -->
+                  <div *ngIf="processingProgress" class="usa-card margin-top-2">
+                    <div class="usa-card__container">
+                      <div class="usa-card__header">
+                        <h3 class="usa-card__heading">Processing Status</h3>
+                      </div>
+                      <div class="usa-card__body">
+                        <div class="text-center">
+                          <div *ngIf="processingProgress.status === 'PROCESSING'" class="margin-bottom-2">
+                            <div class="usa-spinner" aria-label="Processing"></div>
+                          </div>
+                          <p class="font-body-lg text-bold">{{processingProgress.status}}</p>
+                          <div *ngIf="processingProgress.status === 'PROCESSING'" class="usa-range margin-bottom-2">
+                            <input
+                              class="usa-range__input"
+                              id="progress"
+                              type="range"
+                              min="0"
+                              max="100"
+                              [value]="processingProgress.progress"
+                              disabled>
+                          </div>
+                          <p *ngIf="processingProgress.status === 'COMPLETED'" class="text-green">
+                            <i class="fas fa-check-circle margin-right-1"></i>
+                            {{processingProgress.processedCount}} records imported successfully
+                          </p>
+                          <p *ngIf="processingProgress.failedCount > 0" class="text-red">
+                            <i class="fas fa-exclamation-triangle margin-right-1"></i>
+                            {{processingProgress.failedCount}} records failed
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- Navigation Controls -->
+          <div class="wizard-navigation margin-top-6 padding-top-4 border-top-1px border-base-lighter">
+            <div class="display-flex flex-justify">
+              <div>
+                <button
+                  *ngIf="canGoBack"
+                  type="button"
+                  class="usa-button usa-button--outline"
+                  (click)="previousStep()">
+                  <i class="fas fa-chevron-left margin-right-1"></i>
+                  Previous
+                </button>
+              </div>
+
+              <div class="display-flex gap-2">
+                <button
+                  *ngIf="currentStep === 'submit' && processingProgress?.status === 'COMPLETED'"
+                  type="button"
+                  class="usa-button usa-button--outline"
+                  (click)="startNewImport()">
+                  <i class="fas fa-plus margin-right-1"></i>
+                  New Import
+                </button>
+
+                <button
+                  *ngIf="currentStep !== 'submit' && canProceedToNext"
+                  type="button"
+                  class="usa-button"
+                  (click)="nextStep()"
+                  [disabled]="isProcessing || isValidating || isUploading">
+                  <span *ngIf="isValidating || isUploading">
+                    <div class="usa-spinner usa-spinner--small margin-right-1"></div>
+                    {{isUploading ? 'Uploading...' : 'Validating...'}}
+                  </span>
+                  <span *ngIf="!isValidating && !isUploading">
+                    Next
+                    <i class="fas fa-chevron-right margin-left-1"></i>
+                  </span>
+                </button>
+
+                <button
+                  *ngIf="currentStep === 'submit' && !processingProgress"
+                  type="button"
+                  class="usa-button"
+                  (click)="submitImport()"
+                  [disabled]="!justificationForm.valid || isProcessing">
+                  <span *ngIf="isProcessing">
+                    <div class="usa-spinner usa-spinner--small margin-right-1"></div>
+                    Processing...
+                  </span>
+                  <span *ngIf="!isProcessing">
+                    <i class="fas fa-upload margin-right-1"></i>
+                    Submit Import
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
