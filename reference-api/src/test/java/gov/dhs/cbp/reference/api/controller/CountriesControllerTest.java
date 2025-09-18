@@ -74,7 +74,7 @@ class CountriesControllerTest {
         testChangeRequest.setOperationType("CREATE");
         testChangeRequest.setTitle("Create new country: United States");
         testChangeRequest.setDescription("Adding United States country record");
-        testChangeRequest.setReason("Initial setup");
+        testChangeRequest.setBusinessJustification("Initial setup");
         testChangeRequest.setRequesterId("user123");
 
         testChangeRequestDto = new ChangeRequestDto();
