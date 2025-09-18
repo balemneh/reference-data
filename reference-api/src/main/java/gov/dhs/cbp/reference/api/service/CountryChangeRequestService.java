@@ -17,7 +17,6 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -402,6 +401,7 @@ public class CountryChangeRequestService {
     }
 
     // Helper class for approval data
+    @SuppressWarnings("unused") // Fields are used during JSON serialization
     private static class ApprovalData {
         public final String approver;
         public final String comments;
@@ -415,6 +415,7 @@ public class CountryChangeRequestService {
     }
 
     // Helper class for operation results
+    @SuppressWarnings("unused") // Fields are used during JSON serialization
     private static class OperationResult {
         public final String operation;
         public final UUID entityId;
