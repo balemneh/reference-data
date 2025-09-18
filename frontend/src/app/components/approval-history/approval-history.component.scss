@@ -1,0 +1,379 @@
+/* Approval History Component Styles */
+
+.approval-history {
+  @apply w-full;
+}
+
+.approval-history__loading,
+.approval-history__error,
+.approval-history__empty {
+  @apply py-4;
+}
+
+.approval-history__content {
+  @apply space-y-4;
+}
+
+/* Timeline Styles */
+.approval-history__timeline {
+  @apply relative;
+
+  .usa-process-list {
+    @apply list-none p-0 m-0;
+
+    &__item {
+      @apply relative flex items-start pb-6;
+
+      &:not(:last-child)::after {
+        content: '';
+        @apply absolute left-6 top-12 w-0.5 h-full bg-gray-300 z-0;
+      }
+
+      &--complete {
+        .approval-history__timeline-icon {
+          @apply bg-blue-600 text-white;
+        }
+      }
+    }
+  }
+}
+
+.approval-history__timeline-icon {
+  @apply w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center mr-4 flex-shrink-0 z-10 relative;
+
+  .usa-icon {
+    @apply w-6 h-6;
+
+    &.text-blue { @apply text-blue-600; }
+    &.text-purple { @apply text-purple-600; }
+    &.text-green { @apply text-green-600; }
+    &.text-red { @apply text-red-600; }
+    &.text-gray { @apply text-gray-600; }
+    &.text-emerald { @apply text-emerald-600; }
+  }
+
+  &[data-action="APPROVED"] {
+    @apply bg-green-100;
+  }
+
+  &[data-action="REJECTED"] {
+    @apply bg-red-100;
+  }
+
+  &[data-action="SUBMITTED"] {
+    @apply bg-blue-100;
+  }
+
+  &[data-action="REVIEWED"] {
+    @apply bg-purple-100;
+  }
+
+  &[data-action="CANCELLED"] {
+    @apply bg-gray-100;
+  }
+
+  &[data-action="APPLIED"] {
+    @apply bg-emerald-100;
+  }
+}
+
+.approval-history__timeline-content {
+  @apply flex-1 min-w-0;
+}
+
+.approval-history__entry-header {
+  @apply mb-2;
+}
+
+.approval-history__entry-title {
+  @apply flex flex-wrap items-center gap-2 mb-1;
+}
+
+.approval-history__action {
+  @apply font-semibold text-gray-900;
+}
+
+.approval-history__status-change {
+  @apply text-sm text-gray-600;
+}
+
+.approval-history__entry-meta {
+  @apply flex flex-wrap items-center gap-3 text-sm text-gray-600;
+
+  @media (max-width: 640px) {
+    @apply flex-col items-start gap-1;
+  }
+}
+
+.approval-history__performer {
+  @apply flex items-center space-x-2;
+}
+
+.approval-history__avatar {
+  @apply w-6 h-6 bg-blue-600 text-white text-xs font-semibold rounded-full flex items-center justify-center;
+}
+
+.approval-history__timestamp {
+  @apply text-gray-500;
+}
+
+.approval-history__comments {
+  @apply mt-3;
+}
+
+.approval-history__comments-toggle {
+  @apply flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md p-1 -ml-1;
+
+  .usa-icon {
+    @apply w-4 h-4;
+  }
+
+  .approval-history__chevron {
+    @apply transform transition-transform;
+
+    &--expanded {
+      @apply rotate-180;
+    }
+  }
+
+  &:hover {
+    @apply bg-blue-50;
+  }
+}
+
+.approval-history__comments-content {
+  @apply mt-2 ml-6;
+}
+
+.approval-history__comment {
+  @apply bg-gray-50 border border-gray-200 rounded-md p-3;
+
+  p {
+    @apply text-sm text-gray-700 m-0 whitespace-pre-wrap;
+  }
+}
+
+.approval-history__full-date {
+  @apply mt-2 text-xs text-gray-500;
+}
+
+/* List View Styles */
+.approval-history__list {
+  .usa-collection {
+    @apply border border-gray-300 rounded-md;
+
+    &__item {
+      @apply border-b border-gray-200 last:border-b-0;
+
+      &:hover {
+        @apply bg-gray-50;
+      }
+    }
+
+    &__body {
+      @apply p-4;
+    }
+  }
+}
+
+.approval-history__list-header {
+  @apply flex justify-between items-start mb-2;
+
+  @media (max-width: 640px) {
+    @apply flex-col space-y-2;
+  }
+}
+
+.approval-history__list-title {
+  @apply flex items-center space-x-2;
+
+  .usa-icon {
+    @apply w-5 h-5;
+
+    &.text-blue { @apply text-blue-600; }
+    &.text-purple { @apply text-purple-600; }
+    &.text-green { @apply text-green-600; }
+    &.text-red { @apply text-red-600; }
+    &.text-gray { @apply text-gray-600; }
+    &.text-emerald { @apply text-emerald-600; }
+  }
+}
+
+.approval-history__list-meta {
+  @apply flex items-center space-x-3 text-sm text-gray-600;
+
+  @media (max-width: 640px) {
+    @apply space-x-2;
+  }
+}
+
+.approval-history__list-comments {
+  @apply mt-2 pl-7;
+
+  p {
+    @apply text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-md p-3 m-0 whitespace-pre-wrap;
+  }
+}
+
+/* Summary */
+.approval-history__summary {
+  @apply pt-4 border-t border-gray-200;
+}
+
+.approval-history__summary-text {
+  @apply flex items-center space-x-2 text-sm text-gray-600 m-0;
+
+  .usa-icon {
+    @apply w-4 h-4;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .approval-history__timeline-icon {
+    @apply w-10 h-10 mr-3;
+
+    .usa-icon {
+      @apply w-5 h-5;
+    }
+  }
+
+  .approval-history__entry-title {
+    @apply text-sm;
+  }
+
+  .approval-history__entry-meta {
+    @apply text-xs;
+  }
+
+  .approval-history__avatar {
+    @apply w-5 h-5 text-xs;
+  }
+}
+
+/* Print styles */
+@media print {
+  .approval-history__comments-toggle {
+    @apply hidden;
+  }
+
+  .approval-history__comments-content {
+    @apply block ml-0;
+  }
+
+  .approval-history__timeline-icon {
+    @apply bg-gray-300;
+  }
+
+  .approval-history__comment {
+    @apply bg-transparent border border-gray-400;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .approval-history__timeline-icon {
+    @apply border-2 border-black;
+  }
+
+  .approval-history__comment {
+    @apply border-2 border-black;
+  }
+
+  .approval-history__timeline-icon[data-action="APPROVED"] {
+    @apply bg-white;
+
+    .usa-icon {
+      @apply text-black;
+    }
+  }
+
+  .approval-history__timeline-icon[data-action="REJECTED"] {
+    @apply bg-white;
+
+    .usa-icon {
+      @apply text-black;
+    }
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .approval-history__timeline-icon {
+    @apply bg-gray-700;
+  }
+
+  .approval-history__action {
+    @apply text-gray-100;
+  }
+
+  .approval-history__status-change,
+  .approval-history__entry-meta,
+  .approval-history__timestamp {
+    @apply text-gray-300;
+  }
+
+  .approval-history__comment {
+    @apply bg-gray-800 border-gray-600;
+
+    p {
+      @apply text-gray-200;
+    }
+  }
+
+  .approval-history__comments-toggle {
+    @apply text-blue-400 hover:text-blue-300;
+
+    &:hover {
+      @apply bg-blue-900 bg-opacity-30;
+    }
+  }
+
+  .usa-collection {
+    @apply border-gray-600;
+
+    &__item {
+      @apply border-gray-600;
+
+      &:hover {
+        @apply bg-gray-800;
+      }
+    }
+  }
+}
+
+/* Accessibility improvements */
+.approval-history__comments-toggle {
+  &:focus-visible {
+    @apply ring-2 ring-blue-500 ring-opacity-50 outline-none;
+  }
+}
+
+/* Animation for smooth expansion */
+.approval-history__comments-content {
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .approval-history__chevron,
+  .approval-history__comments-content {
+    @apply transition-none;
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}

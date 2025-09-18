@@ -1,412 +1,1180 @@
-<!-- Change Requests Management Page -->
-<div class="grid-container">
+<!-- Enhanced Change Request Approval Dashboard -->
+<div class="change-requests-dashboard">
+
   <!-- Page Header -->
-  <div class="cbp-page-header cbp-fade-in">
-    <div class="cbp-page-header__content">
-      <div class="cbp-page-header__text">
-        <h1 class="cbp-page-header__title cbp-text-gradient">Change Requests Management</h1>
-        <p class="cbp-page-header__subtitle">Review and manage pending data modification requests with full audit trail</p>
+  <div class="change-requests-header">
+    <div class="usa-grid-row">
+      <div class="usa-grid-col-12">
+        <h1 class="change-requests-title">
+          <svg class="usa-icon usa-icon--size-5" aria-hidden="true" focusable="false" role="img">
+            <use xlink:href="/assets/img/sprite.svg#assignment"></use>
+          </svg>
+          Change Request Approval Dashboard
+        </h1>
+        <p class="change-requests-subtitle">
+          Review and approve changes to reference data across all systems
+        </p>
       </div>
-      <div class="cbp-page-header__actions">
-        <div class="cbp-badge-container">
-          <span class="cbp-badge cbp-badge--warning" *ngIf="pendingRequests.length > 0">
-            {{ pendingRequests.length }} Pending
-          </span>
-          <span class="cbp-badge cbp-badge--success" *ngIf="pendingRequests.length === 0">
-            All Caught Up
-          </span>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="change-requests-stats" *ngIf="!loading">
+    <div class="usa-grid-row">
+      <div class="usa-grid-col-6 tablet:usa-grid-col-3">
+        <div class="stats-card stats-card--total">
+          <div class="stats-card__content">
+            <div class="stats-card__number">{{ stats.total }}</div>
+            <div class="stats-card__label">Total Requests</div>
+          </div>
+          <svg class="stats-card__icon" aria-hidden="true" focusable="false" role="img">
+            <use xlink:href="/assets/img/sprite.svg#assignment"></use>
+          </svg>
+        </div>
+      </div>
+      <div class="usa-grid-col-6 tablet:usa-grid-col-3">
+        <div class="stats-card stats-card--pending">
+          <div class="stats-card__content">
+            <div class="stats-card__number">{{ stats.pending }}</div>
+            <div class="stats-card__label">Pending Review</div>
+          </div>
+          <svg class="stats-card__icon" aria-hidden="true" focusable="false" role="img">
+            <use xlink:href="/assets/img/sprite.svg#schedule"></use>
+          </svg>
+        </div>
+      </div>
+      <div class="usa-grid-col-6 tablet:usa-grid-col-3">
+        <div class="stats-card stats-card--overdue">
+          <div class="stats-card__content">
+            <div class="stats-card__number">{{ stats.overdue }}</div>
+            <div class="stats-card__label">Overdue</div>
+          </div>
+          <svg class="stats-card__icon" aria-hidden="true" focusable="false" role="img">
+            <use xlink:href="/assets/img/sprite.svg#warning"></use>
+          </svg>
+        </div>
+      </div>
+      <div class="usa-grid-col-6 tablet:usa-grid-col-3">
+        <div class="stats-card stats-card--approved">
+          <div class="stats-card__content">
+            <div class="stats-card__number">{{ stats.approved }}</div>
+            <div class="stats-card__label">Approved</div>
+          </div>
+          <svg class="stats-card__icon" aria-hidden="true" focusable="false" role="img">
+            <use xlink:href="/assets/img/sprite.svg#check_circle"></use>
+          </svg>
         </div>
       </div>
     </div>
   </div>
 
   <!-- Success Message -->
-  <div *ngIf="successMessage" class="cbp-alert cbp-alert--success cbp-slide-up margin-bottom-3" role="alert">
-    <div class="cbp-alert__content">
-      <span class="cbp-alert__icon">✓</span>
-      <div class="cbp-alert__body">
-        <h4 class="cbp-alert__title">Success</h4>
-        <p class="cbp-alert__text">{{ successMessage }}</p>
-      </div>
+  <div *ngIf="successMessage" class="usa-alert usa-alert--success" role="alert">
+    <div class="usa-alert__body">
+      <h3 class="usa-alert__heading">Success</h3>
+      <p class="usa-alert__text">{{ successMessage }}</p>
     </div>
   </div>
 
   <!-- Error Message -->
-  <div *ngIf="error" class="cbp-alert cbp-alert--error cbp-slide-up margin-bottom-3" role="alert">
-    <div class="cbp-alert__content">
-      <span class="cbp-alert__icon">⚠</span>
-      <div class="cbp-alert__body">
-        <h4 class="cbp-alert__title">Error</h4>
-        <p class="cbp-alert__text">{{ error }}</p>
-      </div>
+  <div *ngIf="error" class="usa-alert usa-alert--error" role="alert">
+    <div class="usa-alert__body">
+      <h3 class="usa-alert__heading">Error</h3>
+      <p class="usa-alert__text">{{ error }}</p>
     </div>
   </div>
 
-  <!-- Filters and Actions Bar -->
-  <div class="cbp-filters-container cbp-slide-up">
-    <div class="cbp-filters-card">
-      <div class="cbp-filters-header">
-        <div class="cbp-filters-title">
-          <h3>Filter & Search</h3>
-        </div>
-        <div class="cbp-filters-count" *ngIf="changeRequests.length > 0">
-          <span class="cbp-count-badge">{{ changeRequests.length }}</span> results
-        </div>
-      </div>
-      
-      <div class="cbp-filters-content">
-        <!-- Search -->
-        <div class="cbp-search-field">
-          <label class="cbp-field-label" for="search-requests">
-            Search Requests
-          </label>
-          <div class="cbp-search-input">
-            <input
-              #searchInput
-              class="cbp-input cbp-input--search"
-              id="search-requests"
-              type="search"
-              placeholder="Search by description, ID, or requester..."
-              (input)="onSearchInput($event)"
-              [value]="searchTerm"
-            />
-            <button 
-              class="cbp-search-clear" 
-              type="button" 
-              *ngIf="searchTerm" 
-              (click)="clearSearch()"
-              aria-label="Clear search"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
+  <!-- Filters and Search -->
+  <div class="change-requests-filters">
+    <form [formGroup]="filterForm" class="filters-form">
 
-        <div class="cbp-filters-row">
-          <!-- Status Filter -->
-          <div class="cbp-filter-field">
-            <label class="cbp-field-label" for="status-filter">
-              Status
-            </label>
-            <select 
-              class="cbp-select" 
-              id="status-filter" 
-              (change)="onStatusFilterChange($any($event.target).value)"
-            >
-              <option value="">All Statuses</option>
-              <option *ngFor="let status of availableStatuses" [value]="status">{{ status }}</option>
-            </select>
+      <!-- Primary Search and Quick Filters -->
+      <div class="filters-primary">
+        <div class="usa-grid-row">
+          <div class="usa-grid-col-12 tablet:usa-grid-col-6 desktop:usa-grid-col-4">
+            <div class="usa-search">
+              <div role="search">
+                <label class="usa-sr-only" for="search-field-en-small">Search change requests</label>
+                <input
+                  #searchInput
+                  class="usa-input"
+                  id="search-field-en-small"
+                  type="search"
+                  name="search"
+                  placeholder="Search by ID, description, or requester..."
+                  (input)="onSearchInput($event)"
+                  [value]="searchTerm"
+                >
+                <button class="usa-button" type="submit" (click)="$event.preventDefault()">
+                  <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                    <use xlink:href="/assets/img/sprite.svg#search"></use>
+                  </svg>
+                  <span class="usa-sr-only">Search</span>
+                </button>
+              </div>
+            </div>
           </div>
 
-          <!-- Entity Type Filter -->
-          <div class="cbp-filter-field">
-            <label class="cbp-field-label" for="entity-type-filter">
-              Entity Type
-            </label>
-            <select 
-              class="cbp-select" 
-              id="entity-type-filter" 
-              (change)="onEntityTypeFilterChange($any($event.target).value)"
-            >
-              <option value="">All Types</option>
-              <option *ngFor="let type of availableEntityTypes" [value]="type">{{ type }}</option>
-            </select>
-          </div>
-
-          <!-- Bulk Actions -->
-          <div class="cbp-filter-actions">
-            <div class="cbp-bulk-actions" *ngIf="hasSelectedItems">
-              <button 
-                class="cbp-button cbp-button--secondary cbp-button--small" 
-                (click)="bulkApprove()" 
-                [disabled]="!hasSelectedItems">
-                ✓ Approve
+          <div class="usa-grid-col-12 tablet:usa-grid-col-6 desktop:usa-grid-col-8">
+            <div class="filters-quick">
+              <button
+                type="button"
+                class="usa-button usa-button--outline"
+                [class.usa-button--active]="advancedFiltersVisible"
+                (click)="toggleAdvancedFilters()"
+                [attr.aria-expanded]="advancedFiltersVisible"
+              >
+                <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                  <use xlink:href="/assets/img/sprite.svg#filter_list"></use>
+                </svg>
+                Advanced Filters
+                <span *ngIf="hasActiveFilters()" class="filter-count">({{ getFilterCount() }})</span>
               </button>
-              <button 
-                class="cbp-button cbp-button--outline cbp-button--small" 
-                (click)="bulkReject()" 
-                [disabled]="!hasSelectedItems">
-                ✗ Reject
-              </button>
-              <button 
-                class="cbp-button cbp-button--outline cbp-button--small" 
-                (click)="exportSelected()" 
-                [disabled]="!hasSelectedItems">
-                ⬇ Export
+
+              <button
+                *ngIf="hasActiveFilters()"
+                type="button"
+                class="usa-button usa-button--unstyled"
+                (click)="clearAllFilters()"
+              >
+                <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                  <use xlink:href="/assets/img/sprite.svg#close"></use>
+                </svg>
+                Clear Filters
               </button>
             </div>
           </div>
         </div>
       </div>
-    </div>
+
+      <!-- Advanced Filters Panel -->
+      <div *ngIf="advancedFiltersVisible" class="filters-advanced">
+        <div class="usa-grid-row">
+
+          <!-- Status Filter -->
+          <div class="usa-grid-col-12 tablet:usa-grid-col-6 desktop:usa-grid-col-3">
+            <fieldset class="usa-fieldset">
+              <legend class="usa-legend">Status</legend>
+              <div class="filter-checkboxes">
+                <div *ngFor="let status of availableStatuses" class="usa-checkbox">
+                  <input
+                    class="usa-checkbox__input"
+                    [id]="'status-' + status.value"
+                    type="checkbox"
+                    [value]="status.value"
+                    [formControl]="filterForm.get('status')!"
+                  >
+                  <label class="usa-checkbox__label" [for]="'status-' + status.value">
+                    <span [class]="'usa-tag usa-tag--small ' + 'usa-tag--' + status.color">
+                      {{ status.label }}
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </fieldset>
+          </div>
+
+          <!-- Entity Type Filter -->
+          <div class="usa-grid-col-12 tablet:usa-grid-col-6 desktop:usa-grid-col-3">
+            <fieldset class="usa-fieldset">
+              <legend class="usa-legend">Entity Type</legend>
+              <div class="filter-checkboxes">
+                <div *ngFor="let entityType of availableEntityTypes" class="usa-checkbox">
+                  <input
+                    class="usa-checkbox__input"
+                    [id]="'entity-' + entityType.value"
+                    type="checkbox"
+                    [value]="entityType.value"
+                    [formControl]="filterForm.get('entityType')!"
+                  >
+                  <label class="usa-checkbox__label" [for]="'entity-' + entityType.value">
+                    <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                      <use [attr.xlink:href]="'/assets/img/sprite.svg#' + entityType.icon"></use>
+                    </svg>
+                    {{ entityType.label }}
+                  </label>
+                </div>
+              </div>
+            </fieldset>
+          </div>
+
+          <!-- Priority Filter -->
+          <div class="usa-grid-col-12 tablet:usa-grid-col-6 desktop:usa-grid-col-3">
+            <fieldset class="usa-fieldset">
+              <legend class="usa-legend">Priority</legend>
+              <div class="filter-checkboxes">
+                <div *ngFor="let priority of availablePriorities" class="usa-checkbox">
+                  <input
+                    class="usa-checkbox__input"
+                    [id]="'priority-' + priority.value"
+                    type="checkbox"
+                    [value]="priority.value"
+                    [formControl]="filterForm.get('priority')!"
+                  >
+                  <label class="usa-checkbox__label" [for]="'priority-' + priority.value">
+                    <span [class]="'priority-indicator priority-indicator--' + priority.color">
+                      {{ priority.label }}
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </fieldset>
+          </div>
+
+          <!-- Change Type Filter -->
+          <div class="usa-grid-col-12 tablet:usa-grid-col-6 desktop:usa-grid-col-3">
+            <fieldset class="usa-fieldset">
+              <legend class="usa-legend">Change Type</legend>
+              <div class="filter-checkboxes">
+                <div *ngFor="let changeType of availableChangeTypes" class="usa-checkbox">
+                  <input
+                    class="usa-checkbox__input"
+                    [id]="'change-' + changeType.value"
+                    type="checkbox"
+                    [value]="changeType.value"
+                    [formControl]="filterForm.get('changeType')!"
+                  >
+                  <label class="usa-checkbox__label" [for]="'change-' + changeType.value">
+                    <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                      <use [attr.xlink:href]="'/assets/img/sprite.svg#' + changeType.icon"></use>
+                    </svg>
+                    {{ changeType.label }}
+                  </label>
+                </div>
+              </div>
+            </fieldset>
+          </div>
+
+        </div>
+
+        <!-- Additional Filters Row -->
+        <div class="usa-grid-row">
+          <div class="usa-grid-col-12 tablet:usa-grid-col-6 desktop:usa-grid-col-3">
+            <label class="usa-label" for="requested-by">Requested By</label>
+            <input
+              class="usa-input"
+              id="requested-by"
+              type="text"
+              formControlName="requestedBy"
+              placeholder="Filter by requester name..."
+            >
+          </div>
+
+          <div class="usa-grid-col-12 tablet:usa-grid-col-6 desktop:usa-grid-col-3">
+            <label class="usa-label" for="date-from">Date From</label>
+            <input
+              class="usa-input"
+              id="date-from"
+              type="date"
+              formControlName="dateFrom"
+            >
+          </div>
+
+          <div class="usa-grid-col-12 tablet:usa-grid-col-6 desktop:usa-grid-col-3">
+            <label class="usa-label" for="date-to">Date To</label>
+            <input
+              class="usa-input"
+              id="date-to"
+              type="date"
+              formControlName="dateTo"
+            >
+          </div>
+
+          <div class="usa-grid-col-12 tablet:usa-grid-col-6 desktop:usa-grid-col-3">
+            <label class="usa-label" for="department">Department</label>
+            <input
+              class="usa-input"
+              id="department"
+              type="text"
+              formControlName="department"
+              placeholder="Filter by department..."
+            >
+          </div>
+        </div>
+      </div>
+
+    </form>
   </div>
 
-  <!-- Data Table -->
-  <div class="cbp-table-container cbp-slide-up-delay">
-    <div class="cbp-table-card">
-      <!-- Loading State -->
-      <div *ngIf="loading" class="cbp-loading-state">
-        <div class="cbp-spinner"></div>
-        <p>Loading change requests...</p>
+  <!-- Toolbar -->
+  <div class="change-requests-toolbar">
+    <div class="usa-grid-row">
+      <div class="usa-grid-col-12 tablet:usa-grid-col-6">
+
+        <!-- Bulk Actions -->
+        <div class="bulk-actions" *ngIf="hasSelectedItems">
+          <span class="bulk-actions__label">{{ selectedRequests.size }} selected:</span>
+          <button
+            type="button"
+            class="usa-button usa-button--success usa-button--small"
+            (click)="performBatchOperation('approve')"
+            [disabled]="batchProcessing"
+          >
+            <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+              <use xlink:href="/assets/img/sprite.svg#check_circle"></use>
+            </svg>
+            Batch Approve
+          </button>
+          <button
+            type="button"
+            class="usa-button usa-button--error usa-button--small"
+            (click)="performBatchOperation('reject')"
+            [disabled]="batchProcessing"
+          >
+            <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+              <use xlink:href="/assets/img/sprite.svg#cancel"></use>
+            </svg>
+            Batch Reject
+          </button>
+        </div>
+
+        <!-- View Mode Toggle -->
+        <div class="view-mode-toggle" *ngIf="!hasSelectedItems">
+          <div class="usa-button-group usa-button-group--segmented">
+            <button
+              type="button"
+              class="usa-button usa-button--outline"
+              [class.usa-button--active]="viewMode === 'table'"
+              (click)="switchViewMode('table')"
+            >
+              <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                <use xlink:href="/assets/img/sprite.svg#view_list"></use>
+              </svg>
+              Table
+            </button>
+            <button
+              type="button"
+              class="usa-button usa-button--outline"
+              [class.usa-button--active]="viewMode === 'cards'"
+              (click)="switchViewMode('cards')"
+            >
+              <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                <use xlink:href="/assets/img/sprite.svg#view_module"></use>
+              </svg>
+              Cards
+            </button>
+          </div>
+        </div>
+
       </div>
 
-      <!-- Table -->
-      <div *ngIf="!loading" class="cbp-table-wrapper">
-        <table class="cbp-table">
-          <thead>
-            <tr>
-              <th class="cbp-table__select">
-                <input 
-                  type="checkbox" 
-                  class="cbp-checkbox"
-                  [checked]="selectAll"
-                  (change)="toggleSelectAll()"
-                  [disabled]="changeRequests.length === 0"
-                />
-              </th>
-              <th class="cbp-table__sortable" (click)="sort('changeType')">
-                Change Type
-              </th>
-              <th class="cbp-table__sortable" (click)="sort('entityType')">
-                Entity Type
-              </th>
-              <th class="cbp-table__sortable" (click)="sort('description')">
-                Description
-              </th>
-              <th class="cbp-table__sortable" (click)="sort('requestedBy')">
-                Requested By
-              </th>
-              <th class="cbp-table__sortable" (click)="sort('status')">
-                Status
-              </th>
-              <th class="cbp-table__sortable" (click)="sort('createdAt')">
-                Created
-              </th>
-              <th class="cbp-table__actions">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr class="cbp-table__row" 
-                *ngFor="let request of changeRequests; let i = index" 
-                [class.cbp-table__row--selected]="request && isSelected(request.id)">
-              <td class="cbp-table__select">
-                <input 
-                  type="checkbox" 
-                  class="cbp-checkbox"
-                  [checked]="request && isSelected(request.id)"
-                  (change)="toggleSelection(request?.id)"
-                />
-              </td>
-              <td class="cbp-table__change-type">
-                <span class="cbp-badge cbp-badge--type cbp-badge--{{ request?.changeType?.toLowerCase() || 'unknown' }}">
-                  {{ request?.changeType || 'N/A' }}
-                </span>
-              </td>
-              <td class="cbp-table__entity-type">
-                <span class="cbp-entity-type">
-                  <span class="cbp-entity-icon">•</span>
-                  {{ request?.entityType || 'N/A' }}
-                </span>
-              </td>
-              <td class="cbp-table__description">
-                {{ request?.description || 'No description' }}
-              </td>
-              <td class="cbp-table__requester">
-                <span class="cbp-user">{{ request?.requestedBy || 'Unknown' }}</span>
-              </td>
-              <td class="cbp-table__status">
-                <span class="cbp-status cbp-status--{{ request?.status?.toLowerCase() || 'unknown' }}">
-                  {{ request?.status || 'UNKNOWN' }}
-                </span>
-              </td>
-              <td class="cbp-table__created">
-                <span class="cbp-date">{{ formatDate(request?.createdAt) }}</span>
-              </td>
-              <td class="cbp-table__actions">
-                <div class="cbp-action-buttons">
-                  <button 
-                    class="cbp-action-button cbp-action-button--view"
-                    (click)="viewDetails(request)"
-                    title="View details"
-                    aria-label="View details">
-                    <svg class="cbp-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
-                    </svg>
-                  </button>
-                  <button 
-                    *ngIf="canApprove(request)"
-                    class="cbp-action-button cbp-action-button--approve"
-                    (click)="approveRequest(request)"
-                    title="Approve request"
-                    aria-label="Approve request">
-                    <svg class="cbp-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                    </svg>
-                  </button>
-                  <button 
-                    *ngIf="canReject(request)"
-                    class="cbp-action-button cbp-action-button--reject"
-                    (click)="rejectRequest(request)"
-                    title="Reject request"
-                    aria-label="Reject request">
-                    <svg class="cbp-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                    </svg>
-                  </button>
-                </div>
-              </td>
-            </tr>
+      <div class="usa-grid-col-12 tablet:usa-grid-col-6">
+        <div class="toolbar-actions">
+          <!-- Export Button -->
+          <button
+            type="button"
+            class="usa-button usa-button--outline usa-button--small"
+            (click)="exportSelected()"
+            [disabled]="loading"
+          >
+            <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+              <use xlink:href="/assets/img/sprite.svg#download"></use>
+            </svg>
+            Export
+          </button>
 
-            <!-- No Data -->
-            <tr *ngIf="changeRequests.length === 0" class="cbp-table-row cbp-table-row--empty">
-              <td colspan="8" class="cbp-table-cell cbp-table-cell--empty">
-                <div class="cbp-empty-state">
-                  <p class="cbp-empty-state__title">No Change Requests Found</p>
-                  <p class="cbp-empty-state__subtitle">Try adjusting your search or filter criteria</p>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Pagination -->
-      <div *ngIf="totalPages > 1" class="cbp-pagination">
-        <button 
-          class="cbp-pagination__button cbp-pagination__button--prev"
-          [disabled]="currentPage === 0"
-          (click)="previousPage()">
-          ← Previous
-        </button>
-        
-        <span class="cbp-pagination__info">
-          Page {{ currentPage + 1 }} of {{ totalPages }}
-        </span>
-        
-        <button 
-          class="cbp-pagination__button cbp-pagination__button--next"
-          [disabled]="currentPage === totalPages - 1"
-          (click)="nextPage()">
-          Next →
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Details Modal - Only shows when showModal is true -->
-<div *ngIf="showModal" class="cbp-modal-overlay" (click)="closeModal()">
-  <div class="cbp-modal" (click)="$event.stopPropagation()">
-    <div class="cbp-modal-header">
-      <h2>Change Request Details</h2>
-      <button class="cbp-modal-close" (click)="closeModal()">&times;</button>
-    </div>
-    <div class="cbp-modal-body" *ngIf="selectedRequest">
-      <dl class="cbp-details-list">
-        <dt>ID:</dt>
-        <dd>{{ selectedRequest.id }}</dd>
-        
-        <dt>Change Type:</dt>
-        <dd>{{ selectedRequest.changeType }}</dd>
-        
-        <dt>Entity Type:</dt>
-        <dd>{{ selectedRequest.entityType }}</dd>
-        
-        <dt>Status:</dt>
-        <dd>
-          <span class="cbp-badge" 
-                [class.cbp-badge--success]="selectedRequest.status === 'APPROVED'"
-                [class.cbp-badge--warning]="selectedRequest.status === 'PENDING'"
-                [class.cbp-badge--error]="selectedRequest.status === 'REJECTED'">
-            {{ selectedRequest.status }}
-          </span>
-        </dd>
-        
-        <dt>Description:</dt>
-        <dd>{{ selectedRequest.description }}</dd>
-        
-        <dt>Requested By:</dt>
-        <dd>{{ selectedRequest.requestedBy }}</dd>
-        
-        <dt>Created:</dt>
-        <dd>{{ formatDate(selectedRequest.createdAt) }}</dd>
-        
-        <dt>Updated:</dt>
-        <dd>{{ formatDate(selectedRequest.updatedAt) }}</dd>
-      </dl>
-
-      <div class="margin-top-3">
-        <button class="usa-button" (click)="showJson = !showJson">
-          {{ showJson ? 'Hide' : 'Show' }} JSON Data
-        </button>
-        
-        <div *ngIf="showJson" class="margin-top-2">
-          <pre class="bg-base-lightest padding-2 radius-md">{{ selectedRequest | json }}</pre>
+          <!-- Refresh Button -->
+          <button
+            type="button"
+            class="usa-button usa-button--outline usa-button--small"
+            (click)="loadChangeRequests()"
+            [disabled]="loading"
+          >
+            <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+              <use xlink:href="/assets/img/sprite.svg#refresh"></use>
+            </svg>
+            Refresh
+          </button>
         </div>
       </div>
     </div>
-    <div class="cbp-modal-footer">
-      <button class="usa-button usa-button--outline" (click)="closeModal()">Close</button>
-      <button *ngIf="selectedRequest && canApprove(selectedRequest)" 
-              class="usa-button" 
-              (click)="approveRequest(selectedRequest)">
-        Approve
-      </button>
-      <button *ngIf="selectedRequest && canReject(selectedRequest)" 
-              class="usa-button usa-button--secondary" 
-              (click)="rejectRequest(selectedRequest)">
-        Reject
-      </button>
-    </div>
   </div>
-</div>
 
-<!-- Approval/Rejection Dialog Modal - Only shows when showApprovalDialog is true -->
-<div *ngIf="showApprovalDialog" class="cbp-modal-overlay" (click)="closeApprovalDialog()">
-  <div class="cbp-modal" (click)="$event.stopPropagation()">
-    <div class="cbp-modal-header">
-      <h2>{{ mode === 'approve' ? 'Approve' : 'Reject' }} Change Request</h2>
-      <button class="cbp-modal-close" (click)="closeApprovalDialog()">&times;</button>
-    </div>
-    <div class="cbp-modal-body">
-      <p>Are you sure you want to {{ mode === 'approve' ? 'approve' : 'reject' }} this change request?</p>
-      
-      <div class="margin-top-3">
-        <label class="usa-label" [for]="mode === 'approve' ? 'approval-notes' : 'rejection-notes'">
-          {{ mode === 'approve' ? 'Approval' : 'Rejection' }} Notes
-        </label>
-        <textarea 
-          *ngIf="mode === 'approve'"
-          class="usa-textarea" 
-          id="approval-notes"
-          [(ngModel)]="approvalNotes"
-          rows="4"
-          placeholder="Enter approval notes..."
-        ></textarea>
-        <textarea 
-          *ngIf="mode === 'reject'"
-          class="usa-textarea" 
-          id="rejection-notes"
-          [(ngModel)]="rejectionNotes"
-          rows="4"
-          placeholder="Enter rejection reason..."
-        ></textarea>
+  <!-- Loading State -->
+  <div *ngIf="loading" class="change-requests-loading">
+    <div class="usa-alert usa-alert--info usa-alert--no-icon">
+      <div class="usa-alert__body">
+        <p class="usa-alert__text">Loading change requests...</p>
       </div>
     </div>
-    <div class="cbp-modal-footer">
-      <button class="usa-button usa-button--outline" (click)="closeApprovalDialog()">Cancel</button>
-      <button 
-        *ngIf="mode === 'approve'"
-        class="usa-button" 
-        (click)="confirmApproval()">
-        Confirm Approval
-      </button>
-      <button 
-        *ngIf="mode === 'reject'"
-        class="usa-button usa-button--secondary" 
-        (click)="confirmRejection()">
-        Confirm Rejection
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && changeRequests.length === 0" class="change-requests-empty">
+    <div class="empty-state">
+      <svg class="empty-state__icon" aria-hidden="true" focusable="false" role="img">
+        <use xlink:href="/assets/img/sprite.svg#assignment"></use>
+      </svg>
+      <h3 class="empty-state__title">No Change Requests Found</h3>
+      <p class="empty-state__description">
+        There are no change requests matching your current filters.
+      </p>
+      <button
+        *ngIf="hasActiveFilters()"
+        type="button"
+        class="usa-button usa-button--outline"
+        (click)="clearAllFilters()"
+      >
+        Clear All Filters
       </button>
     </div>
   </div>
+
+  <!-- Table View -->
+  <div *ngIf="!loading && changeRequests.length > 0 && viewMode === 'table'" class="change-requests-table">
+    <div class="usa-table-container--scrollable">
+      <table class="usa-table usa-table--striped usa-table--borderless">
+        <thead>
+          <tr>
+            <th scope="col" class="checkbox-column">
+              <input
+                class="usa-checkbox__input"
+                id="select-all"
+                type="checkbox"
+                [checked]="selectAll"
+                (change)="toggleSelectAll()"
+              >
+              <label class="usa-checkbox__label" for="select-all">
+                <span class="usa-sr-only">Select all</span>
+              </label>
+            </th>
+            <th scope="col" class="sortable-column" (click)="sortBy('id')">
+              ID
+              <svg class="usa-icon sort-icon" aria-hidden="true" focusable="false" role="img">
+                <use [attr.xlink:href]="'/assets/img/sprite.svg#' + getSortIcon('id')"></use>
+              </svg>
+            </th>
+            <th scope="col">Type</th>
+            <th scope="col" class="sortable-column" (click)="sortBy('description')">
+              Description
+              <svg class="usa-icon sort-icon" aria-hidden="true" focusable="false" role="img">
+                <use [attr.xlink:href]="'/assets/img/sprite.svg#' + getSortIcon('description')"></use>
+              </svg>
+            </th>
+            <th scope="col" class="sortable-column" (click)="sortBy('status')">
+              Status
+              <svg class="usa-icon sort-icon" aria-hidden="true" focusable="false" role="img">
+                <use [attr.xlink:href]="'/assets/img/sprite.svg#' + getSortIcon('status')"></use>
+              </svg>
+            </th>
+            <th scope="col" class="sortable-column" (click)="sortBy('priority')">
+              Priority
+              <svg class="usa-icon sort-icon" aria-hidden="true" focusable="false" role="img">
+                <use [attr.xlink:href]="'/assets/img/sprite.svg#' + getSortIcon('priority')"></use>
+              </svg>
+            </th>
+            <th scope="col" class="sortable-column" (click)="sortBy('requestedBy')">
+              Requested By
+              <svg class="usa-icon sort-icon" aria-hidden="true" focusable="false" role="img">
+                <use [attr.xlink:href]="'/assets/img/sprite.svg#' + getSortIcon('requestedBy')"></use>
+              </svg>
+            </th>
+            <th scope="col" class="sortable-column" (click)="sortBy('createdAt')">
+              Created
+              <svg class="usa-icon sort-icon" aria-hidden="true" focusable="false" role="img">
+                <use [attr.xlink:href]="'/assets/img/sprite.svg#' + getSortIcon('createdAt')"></use>
+              </svg>
+            </th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let request of changeRequests; trackBy: trackByRequestId"
+              [class.table-row--overdue]="isOverdue(request)"
+              [class.table-row--selected]="isSelected(request.id)">
+
+            <!-- Selection Checkbox -->
+            <td class="checkbox-column">
+              <input
+                class="usa-checkbox__input"
+                [id]="'select-' + request.id"
+                type="checkbox"
+                [checked]="isSelected(request.id)"
+                (change)="toggleSelection(request.id)"
+              >
+              <label class="usa-checkbox__label" [for]="'select-' + request.id">
+                <span class="usa-sr-only">Select request {{ request.id }}</span>
+              </label>
+            </td>
+
+            <!-- ID -->
+            <td>
+              <code class="request-id">{{ request.id | slice:0:8 }}</code>
+              <span *ngIf="isOverdue(request)" class="overdue-indicator" title="Overdue">
+                <svg class="usa-icon usa-icon--size-3" aria-hidden="true" focusable="false" role="img">
+                  <use xlink:href="/assets/img/sprite.svg#warning"></use>
+                </svg>
+              </span>
+            </td>
+
+            <!-- Type -->
+            <td>
+              <div class="entity-type">
+                <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                  <use [attr.xlink:href]="'/assets/img/sprite.svg#' + getEntityTypeIcon(request.entityType)"></use>
+                </svg>
+                <span>{{ request.entityType }}</span>
+                <span [class]="'usa-tag usa-tag--small'">
+                  {{ request.changeType }}
+                </span>
+              </div>
+            </td>
+
+            <!-- Description -->
+            <td>
+              <div class="description-cell">
+                <span class="description-text" [title]="request.description">
+                  {{ request.description | slice:0:60 }}{{ request.description.length > 60 ? '...' : '' }}
+                </span>
+              </div>
+            </td>
+
+            <!-- Status -->
+            <td>
+              <span [class]="'usa-tag ' + getStatusClass(request.status)">
+                {{ request.status }}
+              </span>
+            </td>
+
+            <!-- Priority -->
+            <td>
+              <span [class]="'priority-indicator priority-indicator--' + getPriorityColor(request.priority)">
+                {{ request.priority }}
+              </span>
+            </td>
+
+            <!-- Requested By -->
+            <td>
+              <div class="requester-info">
+                <span class="requester-name">{{ request.requestedBy }}</span>
+                <time class="request-time" [title]="formatDate(request.createdAt)">
+                  {{ getRelativeTime(request.createdAt) }}
+                </time>
+              </div>
+            </td>
+
+            <!-- Created -->
+            <td>
+              <time [attr.datetime]="request.createdAt">
+                {{ formatDate(request.createdAt) }}
+              </time>
+            </td>
+
+            <!-- Actions -->
+            <td>
+              <div class="action-buttons">
+                <button
+                  type="button"
+                  class="usa-button usa-button--outline usa-button--small"
+                  (click)="viewRequest(request)"
+                  [attr.aria-label]="'View details for request ' + request.id"
+                >
+                  <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                    <use xlink:href="/assets/img/sprite.svg#visibility"></use>
+                  </svg>
+                  View
+                </button>
+
+                <button
+                  *ngIf="canApprove(request)"
+                  type="button"
+                  class="usa-button usa-button--success usa-button--small"
+                  (click)="approveRequest(request)"
+                  [attr.aria-label]="'Approve request ' + request.id"
+                >
+                  <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                    <use xlink:href="/assets/img/sprite.svg#check_circle"></use>
+                  </svg>
+                  Approve
+                </button>
+
+                <button
+                  *ngIf="canReject(request)"
+                  type="button"
+                  class="usa-button usa-button--error usa-button--small"
+                  (click)="rejectRequest(request)"
+                  [attr.aria-label]="'Reject request ' + request.id"
+                >
+                  <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                    <use xlink:href="/assets/img/sprite.svg#cancel"></use>
+                  </svg>
+                  Reject
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div *ngIf="!loading && totalPages > 1" class="change-requests-pagination">
+    <nav aria-label="Pagination Navigation" role="navigation">
+      <ul class="usa-pagination__list">
+        <li class="usa-pagination__item usa-pagination__arrow">
+          <button
+            type="button"
+            class="usa-pagination__link usa-pagination__previous-page"
+            [disabled]="currentPage === 0"
+            (click)="previousPage()"
+            aria-label="Previous page"
+          >
+            <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+              <use xlink:href="/assets/img/sprite.svg#navigate_before"></use>
+            </svg>
+            <span class="usa-pagination__link-text">Previous</span>
+          </button>
+        </li>
+
+        <li *ngFor="let page of pageNumbers" class="usa-pagination__item usa-pagination__page-no">
+          <button
+            type="button"
+            class="usa-pagination__button"
+            [class.usa-current]="page - 1 === currentPage"
+            (click)="goToPage(page - 1)"
+            [attr.aria-label]="'Page ' + page"
+            [attr.aria-current]="page - 1 === currentPage ? 'page' : null"
+          >
+            {{ page }}
+          </button>
+        </li>
+
+        <li class="usa-pagination__item usa-pagination__arrow">
+          <button
+            type="button"
+            class="usa-pagination__link usa-pagination__next-page"
+            [disabled]="currentPage >= totalPages - 1"
+            (click)="nextPage()"
+            aria-label="Next page"
+          >
+            <span class="usa-pagination__link-text">Next</span>
+            <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+              <use xlink:href="/assets/img/sprite.svg#navigate_next"></use>
+            </svg>
+          </button>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="pagination-info">
+      <p>
+        Showing {{ currentPage * pageSize + 1 }} to {{ getMinValue((currentPage + 1) * pageSize, totalElements) }}
+        of {{ totalElements }} results
+      </p>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div *ngIf="showModal && selectedRequest" class="usa-modal-wrapper is-visible" role="dialog" aria-labelledby="modal-heading" aria-modal="true">
+    <div class="usa-modal-overlay" (click)="closeModal()">
+      <div class="usa-modal usa-modal--lg" (click)="$event.stopPropagation()">
+        <div class="usa-modal__content">
+
+          <!-- Modal Header -->
+          <div class="usa-modal__header">
+            <h1 class="usa-modal__heading" id="modal-heading">
+              Change Request Details
+            </h1>
+            <button
+              type="button"
+              class="usa-button usa-modal__close"
+              (click)="closeModal()"
+              aria-label="Close modal"
+            >
+              <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                <use xlink:href="/assets/img/sprite.svg#close"></use>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Modal Navigation Tabs -->
+          <div class="modal-tabs">
+            <ul class="usa-button-group usa-button-group--segmented">
+              <li class="usa-button-group__item">
+                <button
+                  type="button"
+                  class="usa-button usa-button--outline"
+                  [class.usa-button--active]="modalTab === 'details'"
+                  (click)="switchModalTab('details')"
+                >
+                  <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                    <use xlink:href="/assets/img/sprite.svg#info"></use>
+                  </svg>
+                  Details
+                </button>
+              </li>
+              <li class="usa-button-group__item">
+                <button
+                  type="button"
+                  class="usa-button usa-button--outline"
+                  [class.usa-button--active]="modalTab === 'diff'"
+                  (click)="switchModalTab('diff')"
+                >
+                  <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                    <use xlink:href="/assets/img/sprite.svg#compare_arrows"></use>
+                  </svg>
+                  Changes
+                </button>
+              </li>
+              <li class="usa-button-group__item">
+                <button
+                  type="button"
+                  class="usa-button usa-button--outline"
+                  [class.usa-button--active]="modalTab === 'history'"
+                  (click)="switchModalTab('history')"
+                >
+                  <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                    <use xlink:href="/assets/img/sprite.svg#history"></use>
+                  </svg>
+                  History
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="usa-modal__body">
+
+            <!-- Details Tab -->
+            <div *ngIf="modalTab === 'details'" class="modal-tab-content">
+              <div class="request-details">
+
+                <!-- Basic Information -->
+                <div class="detail-section">
+                  <h3>Basic Information</h3>
+                  <dl class="detail-list">
+                    <dt>Request ID</dt>
+                    <dd><code>{{ selectedRequest.id }}</code></dd>
+
+                    <dt>Status</dt>
+                    <dd>
+                      <span [class]="'usa-tag ' + getStatusClass(selectedRequest.status)">
+                        {{ selectedRequest.status }}
+                      </span>
+                    </dd>
+
+                    <dt>Priority</dt>
+                    <dd>
+                      <span [class]="'priority-indicator priority-indicator--' + getPriorityColor(selectedRequest.priority)">
+                        {{ selectedRequest.priority }}
+                      </span>
+                      <span *ngIf="isOverdue(selectedRequest)" class="overdue-indicator ml-2" title="Overdue">
+                        <svg class="usa-icon usa-icon--size-3" aria-hidden="true" focusable="false" role="img">
+                          <use xlink:href="/assets/img/sprite.svg#warning"></use>
+                        </svg>
+                        Overdue
+                      </span>
+                    </dd>
+
+                    <dt>Entity Type</dt>
+                    <dd>
+                      <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                        <use [attr.xlink:href]="'/assets/img/sprite.svg#' + getEntityTypeIcon(selectedRequest.entityType)"></use>
+                      </svg>
+                      {{ selectedRequest.entityType }}
+                    </dd>
+
+                    <dt>Change Type</dt>
+                    <dd>
+                      <span class="usa-tag usa-tag--small">
+                        {{ selectedRequest.changeType }}
+                      </span>
+                    </dd>
+
+                    <dt>Description</dt>
+                    <dd>{{ selectedRequest.description }}</dd>
+                  </dl>
+                </div>
+
+                <!-- Request Information -->
+                <div class="detail-section">
+                  <h3>Request Information</h3>
+                  <dl class="detail-list">
+                    <dt>Requested By</dt>
+                    <dd>{{ selectedRequest.requestedBy }}</dd>
+
+                    <dt>Requested At</dt>
+                    <dd>
+                      <time [attr.datetime]="selectedRequest.requestedAt">
+                        {{ formatDate(selectedRequest.requestedAt) }}
+                      </time>
+                      <small class="text-gray-600">({{ getRelativeTime(selectedRequest.requestedAt) }})</small>
+                    </dd>
+
+                    <dt>Created At</dt>
+                    <dd>
+                      <time [attr.datetime]="selectedRequest.createdAt">
+                        {{ formatDate(selectedRequest.createdAt) }}
+                      </time>
+                    </dd>
+
+                    <dt>Last Updated</dt>
+                    <dd>
+                      <time [attr.datetime]="selectedRequest.updatedAt">
+                        {{ formatDate(selectedRequest.updatedAt) }}
+                      </time>
+                    </dd>
+                  </dl>
+                </div>
+
+                <!-- Review Information -->
+                <div *ngIf="selectedRequest.reviewedBy || selectedRequest.reviewedAt || selectedRequest.comments" class="detail-section">
+                  <h3>Review Information</h3>
+                  <dl class="detail-list">
+                    <dt *ngIf="selectedRequest.reviewedBy">Reviewed By</dt>
+                    <dd *ngIf="selectedRequest.reviewedBy">{{ selectedRequest.reviewedBy }}</dd>
+
+                    <dt *ngIf="selectedRequest.reviewedAt">Reviewed At</dt>
+                    <dd *ngIf="selectedRequest.reviewedAt">
+                      <time [attr.datetime]="selectedRequest.reviewedAt">
+                        {{ formatDate(selectedRequest.reviewedAt) }}
+                      </time>
+                    </dd>
+
+                    <dt *ngIf="selectedRequest.comments">Comments</dt>
+                    <dd *ngIf="selectedRequest.comments" class="comment-text">{{ selectedRequest.comments }}</dd>
+                  </dl>
+                </div>
+
+                <!-- Data Preview -->
+                <div *ngIf="selectedRequest.oldValues || selectedRequest.newValues" class="detail-section">
+                  <h3>Data Preview</h3>
+
+                  <button
+                    type="button"
+                    class="usa-button usa-button--outline usa-button--small"
+                    (click)="showJson = !showJson"
+                    [attr.aria-expanded]="showJson"
+                  >
+                    <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                      <use [attr.xlink:href]="'/assets/img/sprite.svg#' + (showJson ? 'unfold_less' : 'unfold_more')"></use>
+                    </svg>
+                    {{ showJson ? 'Hide' : 'Show' }} Raw JSON
+                  </button>
+
+                  <div *ngIf="showJson" class="json-preview">
+                    <div *ngIf="selectedRequest.oldValues" class="json-section">
+                      <h4>Current Values</h4>
+                      <pre><code>{{ selectedRequest.oldValues | json }}</code></pre>
+                    </div>
+
+                    <div *ngIf="selectedRequest.newValues" class="json-section">
+                      <h4>Proposed Values</h4>
+                      <pre><code>{{ selectedRequest.newValues | json }}</code></pre>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Diff Tab -->
+            <div *ngIf="modalTab === 'diff'" class="modal-tab-content">
+              <app-diff-viewer
+                [oldValues]="selectedRequest.oldValues"
+                [newValues]="selectedRequest.newValues"
+                [showLineNumbers]="true"
+                [highlightChanges]="true"
+                [viewMode]="'SIDE_BY_SIDE'"
+              ></app-diff-viewer>
+            </div>
+
+            <!-- History Tab -->
+            <div *ngIf="modalTab === 'history'" class="modal-tab-content">
+              <app-approval-history
+                [changeRequestId]="selectedRequest.id"
+                [showTimeline]="true"
+                [showDetails]="true"
+              ></app-approval-history>
+            </div>
+
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="usa-modal__footer">
+            <ul class="usa-button-group">
+              <li class="usa-button-group__item">
+                <button
+                  type="button"
+                  class="usa-button usa-button--outline"
+                  (click)="closeModal()"
+                >
+                  Close
+                </button>
+              </li>
+              <li *ngIf="canApprove(selectedRequest)" class="usa-button-group__item">
+                <button
+                  type="button"
+                  class="usa-button usa-button--success"
+                  (click)="approveRequest(selectedRequest); closeModal()"
+                >
+                  <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                    <use xlink:href="/assets/img/sprite.svg#check_circle"></use>
+                  </svg>
+                  Approve
+                </button>
+              </li>
+              <li *ngIf="canReject(selectedRequest)" class="usa-button-group__item">
+                <button
+                  type="button"
+                  class="usa-button usa-button--error"
+                  (click)="rejectRequest(selectedRequest); closeModal()"
+                >
+                  <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                    <use xlink:href="/assets/img/sprite.svg#cancel"></use>
+                  </svg>
+                  Reject
+                </button>
+              </li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Approval/Rejection Dialog -->
+  <div *ngIf="showApprovalDialog && selectedRequest" class="usa-modal-wrapper is-visible" role="dialog" aria-labelledby="approval-modal-heading" aria-modal="true">
+    <div class="usa-modal-overlay" (click)="closeApprovalDialog()">
+      <div class="usa-modal" (click)="$event.stopPropagation()">
+        <div class="usa-modal__content">
+          <div class="usa-modal__header">
+            <h1 class="usa-modal__heading" id="approval-modal-heading">
+              {{ mode === 'approve' ? 'Approve' : 'Reject' }} Change Request
+            </h1>
+            <button
+              type="button"
+              class="usa-button usa-modal__close"
+              (click)="closeApprovalDialog()"
+              aria-label="Close modal"
+            >
+              <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                <use xlink:href="/assets/img/sprite.svg#close"></use>
+              </svg>
+            </button>
+          </div>
+
+          <div class="usa-modal__body">
+            <div class="approval-form">
+
+              <!-- Request Summary -->
+              <div class="request-summary">
+                <h3>Request Summary</h3>
+                <dl>
+                  <dt>ID</dt>
+                  <dd><code>{{ selectedRequest.id }}</code></dd>
+
+                  <dt>Description</dt>
+                  <dd>{{ selectedRequest.description }}</dd>
+
+                  <dt>Requested By</dt>
+                  <dd>{{ selectedRequest.requestedBy }}</dd>
+                </dl>
+              </div>
+
+              <!-- Comments Section -->
+              <div class="form-section">
+                <label class="usa-label" [for]="mode === 'approve' ? 'approval-notes' : 'rejection-notes'">
+                  {{ mode === 'approve' ? 'Approval' : 'Rejection' }} Comments
+                  <span *ngIf="mode === 'reject'" class="text-red-600">*</span>
+                </label>
+                <span class="usa-hint">
+                  {{ mode === 'approve'
+                    ? 'Optional comments about this approval.'
+                    : 'Please provide a reason for rejection. This will be sent to the requester.' }}
+                </span>
+                <textarea
+                  class="usa-textarea"
+                  [id]="mode === 'approve' ? 'approval-notes' : 'rejection-notes'"
+                  rows="4"
+                  [(ngModel)]="mode === 'approve' ? approvalNotes : rejectionNotes"
+                  [placeholder]="mode === 'approve'
+                    ? 'Add optional comments about this approval...'
+                    : 'Explain why this request is being rejected...'"
+                  [required]="mode === 'reject'"
+                ></textarea>
+              </div>
+
+              <!-- Additional Options -->
+              <div class="form-section">
+                <fieldset class="usa-fieldset">
+                  <legend class="usa-legend">Additional Options</legend>
+
+                  <div class="usa-checkbox">
+                    <input
+                      class="usa-checkbox__input"
+                      id="notify-requester"
+                      type="checkbox"
+                      [(ngModel)]="notifyRequesters"
+                    >
+                    <label class="usa-checkbox__label" for="notify-requester">
+                      Send notification to requester
+                    </label>
+                  </div>
+
+                  <div *ngIf="mode === 'approve'" class="usa-checkbox">
+                    <input
+                      class="usa-checkbox__input"
+                      id="urgent-processing"
+                      type="checkbox"
+                      [(ngModel)]="urgentProcessing"
+                    >
+                    <label class="usa-checkbox__label" for="urgent-processing">
+                      Mark for urgent processing
+                    </label>
+                  </div>
+                </fieldset>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="usa-modal__footer">
+            <ul class="usa-button-group">
+              <li class="usa-button-group__item">
+                <button
+                  type="button"
+                  class="usa-button usa-button--outline"
+                  (click)="closeApprovalDialog()"
+                >
+                  Cancel
+                </button>
+              </li>
+              <li class="usa-button-group__item">
+                <button
+                  type="button"
+                  [class]="'usa-button ' + (mode === 'approve' ? 'usa-button--success' : 'usa-button--error')"
+                  (click)="mode === 'approve' ? confirmApproval() : confirmRejection()"
+                  [disabled]="mode === 'reject' && !rejectionNotes.trim()"
+                >
+                  <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                    <use [attr.xlink:href]="'/assets/img/sprite.svg#' + (mode === 'approve' ? 'check_circle' : 'cancel')"></use>
+                  </svg>
+                  {{ mode === 'approve' ? 'Approve Request' : 'Reject Request' }}
+                </button>
+              </li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Batch Operation Dialog -->
+  <div *ngIf="showBatchDialog" class="usa-modal-wrapper is-visible" role="dialog" aria-labelledby="batch-modal-heading" aria-modal="true">
+    <div class="usa-modal-overlay" (click)="closeBatchDialog()">
+      <div class="usa-modal" (click)="$event.stopPropagation()">
+        <div class="usa-modal__content">
+          <div class="usa-modal__header">
+            <h1 class="usa-modal__heading" id="batch-modal-heading">
+              Batch {{ mode === 'batch-approve' ? 'Approval' : 'Rejection' }}
+            </h1>
+            <button
+              type="button"
+              class="usa-button usa-modal__close"
+              (click)="closeBatchDialog()"
+              aria-label="Close modal"
+            >
+              <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                <use xlink:href="/assets/img/sprite.svg#close"></use>
+              </svg>
+            </button>
+          </div>
+
+          <div class="usa-modal__body">
+            <div class="batch-form">
+
+              <!-- Batch Summary -->
+              <div class="batch-summary">
+                <div class="usa-alert usa-alert--info">
+                  <div class="usa-alert__body">
+                    <p class="usa-alert__text">
+                      You are about to {{ mode === 'batch-approve' ? 'approve' : 'reject' }}
+                      <strong>{{ selectedRequests.size }}</strong> change request{{ selectedRequests.size > 1 ? 's' : '' }}.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Comments Section -->
+              <div class="form-section">
+                <label class="usa-label" for="batch-comments">
+                  Batch {{ mode === 'batch-approve' ? 'Approval' : 'Rejection' }} Comments
+                  <span *ngIf="mode === 'batch-reject'" class="text-red-600">*</span>
+                </label>
+                <span class="usa-hint">
+                  {{ mode === 'batch-approve'
+                    ? 'Optional comments that will be added to all approved requests.'
+                    : 'Please provide a reason for rejection. This will be added to all rejected requests.' }}
+                </span>
+                <textarea
+                  class="usa-textarea"
+                  id="batch-comments"
+                  rows="4"
+                  [(ngModel)]="batchComments"
+                  [placeholder]="mode === 'batch-approve'
+                    ? 'Add optional comments for all approvals...'
+                    : 'Explain why these requests are being rejected...'"
+                  [required]="mode === 'batch-reject'"
+                ></textarea>
+              </div>
+
+              <!-- Options -->
+              <div class="form-section">
+                <fieldset class="usa-fieldset">
+                  <legend class="usa-legend">Batch Options</legend>
+
+                  <div class="usa-checkbox">
+                    <input
+                      class="usa-checkbox__input"
+                      id="batch-notify-requesters"
+                      type="checkbox"
+                      [(ngModel)]="notifyRequesters"
+                    >
+                    <label class="usa-checkbox__label" for="batch-notify-requesters">
+                      Send notifications to all requesters
+                    </label>
+                  </div>
+                </fieldset>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="usa-modal__footer">
+            <ul class="usa-button-group">
+              <li class="usa-button-group__item">
+                <button
+                  type="button"
+                  class="usa-button usa-button--outline"
+                  (click)="closeBatchDialog()"
+                  [disabled]="batchProcessing"
+                >
+                  Cancel
+                </button>
+              </li>
+              <li class="usa-button-group__item">
+                <button
+                  type="button"
+                  [class]="'usa-button ' + (mode === 'batch-approve' ? 'usa-button--success' : 'usa-button--error')"
+                  (click)="confirmBatchOperation()"
+                  [disabled]="batchProcessing || (mode === 'batch-reject' && !batchComments.trim())"
+                >
+                  <svg *ngIf="!batchProcessing" class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                    <use [attr.xlink:href]="'/assets/img/sprite.svg#' + (mode === 'batch-approve' ? 'check_circle' : 'cancel')"></use>
+                  </svg>
+                  {{ batchProcessing ? 'Processing...' : (mode === 'batch-approve' ? 'Approve All' : 'Reject All') }}
+                </button>
+              </li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>

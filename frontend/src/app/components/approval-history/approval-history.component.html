@@ -1,0 +1,197 @@
+<!-- Approval History Component -->
+<div class="approval-history">
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="approval-history__loading" role="status" aria-live="polite">
+    <div class="usa-alert usa-alert--info usa-alert--no-icon">
+      <div class="usa-alert__body">
+        <p class="usa-alert__text">Loading approval history...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="approval-history__error" role="alert">
+    <div class="usa-alert usa-alert--error">
+      <div class="usa-alert__body">
+        <h3 class="usa-alert__heading">Error Loading History</h3>
+        <p class="usa-alert__text">{{ error }}</p>
+        <button
+          type="button"
+          class="usa-button usa-button--outline usa-button--small"
+          (click)="reload()"
+        >
+          <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+            <use xlink:href="/assets/img/sprite.svg#refresh"></use>
+          </svg>
+          Retry
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && !error && isEmpty()" class="approval-history__empty">
+    <div class="usa-alert usa-alert--info usa-alert--no-icon">
+      <div class="usa-alert__body">
+        <p class="usa-alert__text">No approval history available.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Content -->
+  <div *ngIf="!loading && !error && !isEmpty()" class="approval-history__content">
+
+    <!-- Timeline View -->
+    <div *ngIf="showTimeline" class="approval-history__timeline">
+      <div class="usa-process-list">
+        <li
+          *ngFor="let entry of historyEntries; trackBy: trackByEntryId"
+          class="usa-process-list__item"
+          [class.usa-process-list__item--complete]="entry.action !== 'SUBMITTED'"
+        >
+          <!-- Timeline Icon -->
+          <div class="approval-history__timeline-icon" [attr.data-action]="entry.action">
+            <svg
+              class="usa-icon"
+              [class]="'text-' + getActionColor(entry.action)"
+              aria-hidden="true"
+              focusable="false"
+              role="img"
+            >
+              <use [attr.xlink:href]="'/assets/img/sprite.svg#' + getActionIcon(entry.action)"></use>
+            </svg>
+          </div>
+
+          <!-- Timeline Content -->
+          <div class="approval-history__timeline-content">
+            <div class="approval-history__entry-header">
+              <div class="approval-history__entry-title">
+                <span class="approval-history__action">{{ getActionLabel(entry.action) }}</span>
+                <span *ngIf="getStatusChangeText(entry)" class="approval-history__status-change">
+                  {{ getStatusChangeText(entry) }}
+                </span>
+              </div>
+              <div class="approval-history__entry-meta">
+                <span class="approval-history__performer">
+                  <span class="approval-history__avatar">{{ getInitials(entry.performedBy) }}</span>
+                  {{ entry.performedBy }}
+                </span>
+                <time
+                  class="approval-history__timestamp"
+                  [attr.datetime]="entry.performedAt"
+                  [attr.title]="formatDate(entry.performedAt)"
+                >
+                  {{ formatRelativeTime(entry.performedAt) }}
+                </time>
+              </div>
+            </div>
+
+            <!-- Comments Section -->
+            <div
+              *ngIf="hasComments(entry)"
+              class="approval-history__comments"
+            >
+              <button
+                type="button"
+                class="approval-history__comments-toggle"
+                [class.approval-history__comments-toggle--expanded]="isExpanded(entry.id)"
+                (click)="toggleExpanded(entry.id)"
+                [attr.aria-expanded]="isExpanded(entry.id)"
+                [attr.aria-controls]="'comments-' + entry.id"
+              >
+                <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                  <use xlink:href="/assets/img/sprite.svg#chat_bubble_outline"></use>
+                </svg>
+                {{ isExpanded(entry.id) ? 'Hide' : 'Show' }} Comments
+                <svg
+                  class="usa-icon approval-history__chevron"
+                  [class.approval-history__chevron--expanded]="isExpanded(entry.id)"
+                  aria-hidden="true"
+                  focusable="false"
+                  role="img"
+                >
+                  <use xlink:href="/assets/img/sprite.svg#expand_more"></use>
+                </svg>
+              </button>
+
+              <div
+                *ngIf="isExpanded(entry.id)"
+                class="approval-history__comments-content"
+                [id]="'comments-' + entry.id"
+              >
+                <div class="approval-history__comment">
+                  <p>{{ entry.comments }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Full Date -->
+            <div *ngIf="showDetails" class="approval-history__full-date">
+              <time [attr.datetime]="entry.performedAt">
+                {{ formatDate(entry.performedAt) }}
+              </time>
+            </div>
+          </div>
+        </li>
+      </div>
+    </div>
+
+    <!-- List View (without timeline) -->
+    <div *ngIf="!showTimeline" class="approval-history__list">
+      <div class="usa-collection">
+        <div
+          *ngFor="let entry of historyEntries; trackBy: trackByEntryId"
+          class="usa-collection__item"
+        >
+          <div class="usa-collection__body">
+            <div class="approval-history__list-header">
+              <div class="approval-history__list-title">
+                <svg
+                  class="usa-icon"
+                  [class]="'text-' + getActionColor(entry.action)"
+                  aria-hidden="true"
+                  focusable="false"
+                  role="img"
+                >
+                  <use [attr.xlink:href]="'/assets/img/sprite.svg#' + getActionIcon(entry.action)"></use>
+                </svg>
+                <span class="approval-history__action">{{ getActionLabel(entry.action) }}</span>
+                <span *ngIf="getStatusChangeText(entry)" class="approval-history__status-change">
+                  - {{ getStatusChangeText(entry) }}
+                </span>
+              </div>
+              <div class="approval-history__list-meta">
+                <span class="approval-history__performer">{{ entry.performedBy }}</span>
+                <time
+                  class="approval-history__timestamp"
+                  [attr.datetime]="entry.performedAt"
+                  [attr.title]="formatDate(entry.performedAt)"
+                >
+                  {{ formatRelativeTime(entry.performedAt) }}
+                </time>
+              </div>
+            </div>
+
+            <div *ngIf="hasComments(entry)" class="approval-history__list-comments">
+              <p>{{ entry.comments }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div *ngIf="showDetails && historyEntries.length > 3" class="approval-history__summary">
+      <p class="approval-history__summary-text">
+        <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+          <use xlink:href="/assets/img/sprite.svg#info"></use>
+        </svg>
+        Showing {{ historyEntries.length }}
+        {{ historyEntries.length === 1 ? 'entry' : 'entries' }}
+        {{ maxItems ? 'of the most recent activity' : 'of activity' }}
+      </p>
+    </div>
+
+  </div>
+</div>

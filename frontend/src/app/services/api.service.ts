@@ -3,6 +3,14 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
+import {
+  ChangeRequestFilter,
+  ChangeRequestBatchOperation,
+  BatchOperationResponse,
+  ChangeRequestStats,
+  ApprovalHistoryEntry,
+  ChangeRequestDiff
+} from '../models/change-request.models';
 
 export interface PagedResponse<T> {
   content: T[];
@@ -101,23 +109,8 @@ export interface AirportDto {
   version: number;
 }
 
-export interface ChangeRequestDto {
-  id: string;
-  entityType: string;
-  entityId?: string;
-  changeType: 'CREATE' | 'UPDATE' | 'DELETE';
-  description: string;
-  oldValues?: any;
-  newValues?: any;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
-  requestedBy: string;
-  requestedAt: string;
-  reviewedBy?: string;
-  reviewedAt?: string;
-  comments?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+// Import ChangeRequestDto from models
+export { ChangeRequestDto } from '../models/change-request.models';
 
 @Injectable({
   providedIn: 'root'
@@ -458,17 +451,29 @@ export class ApiService {
       );
   }
 
-  // Change Requests
+  // Change Requests - Enhanced
   getChangeRequests(params?: {
     status?: string;
     entityType?: string;
     page?: number;
     size?: number;
+    priority?: string;
+    changeType?: string;
+    requestedBy?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    sort?: string;
   }): Observable<PagedResponse<ChangeRequestDto>> {
     let httpParams = new HttpParams();
     if (params) {
       if (params.status) httpParams = httpParams.set('status', params.status);
       if (params.entityType) httpParams = httpParams.set('entityType', params.entityType);
+      if (params.priority) httpParams = httpParams.set('priority', params.priority);
+      if (params.changeType) httpParams = httpParams.set('changeType', params.changeType);
+      if (params.requestedBy) httpParams = httpParams.set('requestedBy', params.requestedBy);
+      if (params.dateFrom) httpParams = httpParams.set('dateFrom', params.dateFrom);
+      if (params.dateTo) httpParams = httpParams.set('dateTo', params.dateTo);
+      if (params.sort) httpParams = httpParams.set('sort', params.sort);
       if (params.page !== undefined) httpParams = httpParams.set('page', params.page.toString());
       if (params.size !== undefined) httpParams = httpParams.set('size', params.size.toString());
     }
@@ -476,6 +481,31 @@ export class ApiService {
       .pipe(
         catchError((error) => {
           console.error('Error fetching change requests:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  // Advanced change request filtering
+  getChangeRequestsFiltered(filter: ChangeRequestFilter): Observable<PagedResponse<ChangeRequestDto>> {
+    let httpParams = new HttpParams();
+
+    if (filter.status?.length) httpParams = httpParams.set('status', filter.status.join(','));
+    if (filter.entityType?.length) httpParams = httpParams.set('entityType', filter.entityType.join(','));
+    if (filter.priority?.length) httpParams = httpParams.set('priority', filter.priority.join(','));
+    if (filter.changeType?.length) httpParams = httpParams.set('changeType', filter.changeType.join(','));
+    if (filter.requestedBy) httpParams = httpParams.set('requestedBy', filter.requestedBy);
+    if (filter.reviewedBy) httpParams = httpParams.set('reviewedBy', filter.reviewedBy);
+    if (filter.dateFrom) httpParams = httpParams.set('dateFrom', filter.dateFrom);
+    if (filter.dateTo) httpParams = httpParams.set('dateTo', filter.dateTo);
+    if (filter.searchTerm) httpParams = httpParams.set('search', filter.searchTerm);
+    if (filter.tags?.length) httpParams = httpParams.set('tags', filter.tags.join(','));
+    if (filter.department) httpParams = httpParams.set('department', filter.department);
+
+    return this.http.get<PagedResponse<ChangeRequestDto>>(`${this.baseUrl}/v1/change-requests/filter`, { params: httpParams })
+      .pipe(
+        catchError((error) => {
+          console.error('Error filtering change requests:', error);
           return throwError(() => error);
         })
       );
@@ -526,6 +556,140 @@ export class ApiService {
       .pipe(
         catchError((error) => {
           console.error('Error rejecting change request:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  // Batch operations
+  batchApproveChangeRequests(operation: ChangeRequestBatchOperation): Observable<BatchOperationResponse> {
+    return this.http.post<BatchOperationResponse>(`${this.baseUrl}/v1/change-requests/batch/approve`, operation)
+      .pipe(
+        catchError((error) => {
+          console.error('Error batch approving change requests:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  batchRejectChangeRequests(operation: ChangeRequestBatchOperation): Observable<BatchOperationResponse> {
+    return this.http.post<BatchOperationResponse>(`${this.baseUrl}/v1/change-requests/batch/reject`, operation)
+      .pipe(
+        catchError((error) => {
+          console.error('Error batch rejecting change requests:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  batchCancelChangeRequests(operation: ChangeRequestBatchOperation): Observable<BatchOperationResponse> {
+    return this.http.post<BatchOperationResponse>(`${this.baseUrl}/v1/change-requests/batch/cancel`, operation)
+      .pipe(
+        catchError((error) => {
+          console.error('Error batch cancelling change requests:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  // Statistics and analytics
+  getChangeRequestStats(params?: {
+    dateFrom?: string;
+    dateTo?: string;
+    entityType?: string;
+  }): Observable<ChangeRequestStats> {
+    let httpParams = new HttpParams();
+    if (params) {
+      if (params.dateFrom) httpParams = httpParams.set('dateFrom', params.dateFrom);
+      if (params.dateTo) httpParams = httpParams.set('dateTo', params.dateTo);
+      if (params.entityType) httpParams = httpParams.set('entityType', params.entityType);
+    }
+    return this.http.get<ChangeRequestStats>(`${this.baseUrl}/v1/change-requests/stats`, { params: httpParams })
+      .pipe(
+        catchError((error) => {
+          console.error('Error fetching change request stats:', error);
+          // Return fallback stats if API fails
+          return of({
+            total: 0,
+            pending: 0,
+            approved: 0,
+            rejected: 0,
+            cancelled: 0,
+            applied: 0,
+            byEntityType: {},
+            byPriority: {},
+            byChangeType: {},
+            avgProcessingTime: 0
+          });
+        })
+      );
+  }
+
+  // Approval history
+  getChangeRequestHistory(id: string): Observable<ApprovalHistoryEntry[]> {
+    return this.http.get<ApprovalHistoryEntry[]>(`${this.baseUrl}/v1/change-requests/${id}/history`)
+      .pipe(
+        catchError((error) => {
+          console.error('Error fetching change request history:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  // Diff computation
+  getChangeRequestDiff(id: string): Observable<ChangeRequestDiff> {
+    return this.http.get<ChangeRequestDiff>(`${this.baseUrl}/v1/change-requests/${id}/diff`)
+      .pipe(
+        catchError((error) => {
+          console.error('Error computing change request diff:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  // Export functionality
+  exportChangeRequests(filter?: ChangeRequestFilter, format: 'CSV' | 'EXCEL' | 'PDF' = 'CSV'): Observable<Blob> {
+    let httpParams = new HttpParams().set('format', format);
+
+    if (filter) {
+      if (filter.status?.length) httpParams = httpParams.set('status', filter.status.join(','));
+      if (filter.entityType?.length) httpParams = httpParams.set('entityType', filter.entityType.join(','));
+      if (filter.priority?.length) httpParams = httpParams.set('priority', filter.priority.join(','));
+      if (filter.dateFrom) httpParams = httpParams.set('dateFrom', filter.dateFrom);
+      if (filter.dateTo) httpParams = httpParams.set('dateTo', filter.dateTo);
+    }
+
+    return this.http.get(`${this.baseUrl}/v1/change-requests/export`, {
+      params: httpParams,
+      responseType: 'blob'
+    }).pipe(
+      catchError((error) => {
+        console.error('Error exporting change requests:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // Pending approvals for current user
+  getPendingApprovals(userId?: string): Observable<PagedResponse<ChangeRequestDto>> {
+    let httpParams = new HttpParams().set('status', 'PENDING');
+    if (userId) httpParams = httpParams.set('assignedTo', userId);
+
+    return this.http.get<PagedResponse<ChangeRequestDto>>(`${this.baseUrl}/v1/change-requests/pending-approvals`, { params: httpParams })
+      .pipe(
+        catchError((error) => {
+          console.error('Error fetching pending approvals:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  // Overdue requests
+  getOverdueRequests(): Observable<PagedResponse<ChangeRequestDto>> {
+    return this.http.get<PagedResponse<ChangeRequestDto>>(`${this.baseUrl}/v1/change-requests/overdue`)
+      .pipe(
+        catchError((error) => {
+          console.error('Error fetching overdue requests:', error);
           return throwError(() => error);
         })
       );
