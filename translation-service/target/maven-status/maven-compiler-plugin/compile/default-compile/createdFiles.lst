@@ -1,7 +1,0 @@
-gov/dhs/cbp/reference/translation/dto/BatchTranslationResponse$TranslationError.class
-gov/dhs/cbp/reference/translation/dto/BatchTranslationResponse.class
-gov/dhs/cbp/reference/translation/dto/TranslationResponse.class
-gov/dhs/cbp/reference/translation/controller/TranslateController.class
-gov/dhs/cbp/reference/translation/dto/BatchTranslationRequest.class
-gov/dhs/cbp/reference/translation/service/TranslationService.class
-gov/dhs/cbp/reference/translation/dto/TranslationRequest.class

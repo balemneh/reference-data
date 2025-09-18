@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="050-load-change-requests-seed-data" author="reference-data">
+        <comment>Load initial change requests data for testing</comment>
+
+        <sql>
+            INSERT INTO reference_data.change_requests (
+                id, cr_number, title, description, requester_id, assignee_id,
+                data_type, operation_type, status, priority, business_justification,
+                proposed_changes, approval_data, workflow_instance_id,
+                created_at, updated_at, submitted_at, metadata
+            )
+            VALUES
+                (gen_random_uuid(), 'CR-2025-001', 'Add New Country Code for Kosovo',
+                 'Request to add Kosovo as a new country with ISO code XK',
+                 'john.doe@cbp.dhs.gov', 'jane.smith@cbp.dhs.gov',
+                 'COUNTRY', 'CREATE', 'PENDING', 'MEDIUM',
+                 'Kosovo requires separate tracking for customs and border operations',
+                 jsonb_build_object(
+                     'entity_type', 'country',
+                     'action', 'create',
+                     'data', jsonb_build_object(
+                         'country_code', 'XK',
+                         'country_name', 'Kosovo',
+                         'iso2_code', 'XK',
+                         'iso3_code', 'XKS',
+                         'numeric_code', '999'
+                     )
+                 ),
+                 NULL,
+                 NULL,
+                 CURRENT_TIMESTAMP,
+                 CURRENT_TIMESTAMP,
+                 CURRENT_TIMESTAMP,
+                 jsonb_build_object('source', 'manual', 'priority_reason', 'operational_requirement')),
+
+                (gen_random_uuid(), 'CR-2025-002', 'Update Airport Name - JFK',
+                 'Request to update the official name of JFK airport',
+                 'airport.admin@cbp.dhs.gov', 'data.manager@cbp.dhs.gov',
+                 'AIRPORT', 'UPDATE', 'APPROVED', 'LOW',
+                 'Official name change required for accuracy in documents',
+                 jsonb_build_object(
+                     'entity_type', 'airport',
+                     'action', 'update',
+                     'entity_id', 'JFK',
+                     'changes', jsonb_build_object(
+                         'airport_name', jsonb_build_object(
+                             'old_value', 'John F Kennedy International Airport',
+                             'new_value', 'John F. Kennedy International Airport'
+                         )
+                     )
+                 ),
+                 jsonb_build_object(
+                     'approved_by', 'supervisor@cbp.dhs.gov',
+                     'approval_date', CURRENT_TIMESTAMP,
+                     'approval_comments', 'Approved for implementation'
+                 ),
+                 'WF-2025-002',
+                 CURRENT_TIMESTAMP - INTERVAL '3 days',
+                 CURRENT_TIMESTAMP - INTERVAL '1 day',
+                 CURRENT_TIMESTAMP - INTERVAL '3 days',
+                 jsonb_build_object('source', 'manual', 'urgency', 'low')),
+
+                (gen_random_uuid(), 'CR-2025-003', 'Add New Port - Port Elizabeth NJ',
+                 'Request to add Port Elizabeth as a new port entry',
+                 'port.manager@cbp.dhs.gov', NULL,
+                 'PORT', 'CREATE', 'SUBMITTED', 'HIGH',
+                 'New port facility requires immediate setup for customs operations',
+                 jsonb_build_object(
+                     'entity_type', 'port',
+                     'action', 'create',
+                     'data', jsonb_build_object(
+                         'port_code', 'USELZ',
+                         'port_name', 'Port Elizabeth',
+                         'city', 'Elizabeth',
+                         'state_province', 'NJ',
+                         'country_code', 'USA',
+                         'latitude', 40.6634,
+                         'longitude', -74.2107,
+                         'port_type', 'Seaport',
+                         'cbp_port_code', '1099'
+                     )
+                 ),
+                 NULL,
+                 'WF-2025-003',
+                 CURRENT_TIMESTAMP - INTERVAL '1 day',
+                 CURRENT_TIMESTAMP,
+                 CURRENT_TIMESTAMP - INTERVAL '1 day',
+                 jsonb_build_object('source', 'api', 'external_ref', 'PORT-REQ-2025-001')),
+
+                (gen_random_uuid(), 'CR-2025-004', 'Deactivate Obsolete Airport Code',
+                 'Request to deactivate airport code for closed facility',
+                 'compliance@cbp.dhs.gov', 'data.manager@cbp.dhs.gov',
+                 'AIRPORT', 'DELETE', 'REJECTED', 'MEDIUM',
+                 'Airport facility has been permanently closed',
+                 jsonb_build_object(
+                     'entity_type', 'airport',
+                     'action', 'deactivate',
+                     'entity_id', 'OLD',
+                     'reason', 'facility_closure'
+                 ),
+                 jsonb_build_object(
+                     'rejected_by', 'supervisor@cbp.dhs.gov',
+                     'rejection_date', CURRENT_TIMESTAMP,
+                     'rejection_reason', 'Insufficient documentation provided'
+                 ),
+                 'WF-2025-004',
+                 CURRENT_TIMESTAMP - INTERVAL '5 days',
+                 CURRENT_TIMESTAMP - INTERVAL '2 days',
+                 CURRENT_TIMESTAMP - INTERVAL '4 days',
+                 jsonb_build_object('source', 'manual', 'followup_required', true));
+        </sql>
+
+        <rollback>
+            <delete tableName="change_requests" schemaName="reference_data">
+                <where>cr_number LIKE 'CR-2025-%'</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

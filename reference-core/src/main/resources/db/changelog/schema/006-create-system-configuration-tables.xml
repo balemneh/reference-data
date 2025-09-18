@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+    <changeSet id="006-1" author="system">
+        <comment>Create system_configuration table for storing system-wide settings</comment>
+        <createTable tableName="system_configuration" schemaName="reference_data">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="config_key" type="VARCHAR(100)">
+                <constraints unique="true" nullable="false"/>
+            </column>
+            <column name="config_value" type="JSONB">
+                <constraints nullable="false"/>
+            </column>
+            <column name="config_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="VARCHAR(500)"/>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="INTEGER" defaultValueNumeric="1">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_by" type="VARCHAR(100)"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+        </createTable>
+
+        <createIndex tableName="system_configuration" schemaName="reference_data" indexName="idx_sys_config_key">
+            <column name="config_key"/>
+        </createIndex>
+
+        <createIndex tableName="system_configuration" schemaName="reference_data" indexName="idx_sys_config_type">
+            <column name="config_type"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="006-2" author="system">
+        <comment>Create configuration_template table for storing configuration templates</comment>
+        <createTable tableName="configuration_template" schemaName="reference_data">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(200)">
+                <constraints unique="true" nullable="false"/>
+            </column>
+            <column name="description" type="VARCHAR(1000)"/>
+            <column name="environment" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="configuration" type="JSONB">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tags" type="JSONB"/>
+            <column name="is_default" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="configuration_template" schemaName="reference_data" indexName="idx_config_template_env">
+            <column name="environment"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="006-3" author="system">
+        <comment>Create configuration_backup table for storing configuration backups</comment>
+        <createTable tableName="configuration_backup" schemaName="reference_data">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="VARCHAR(1000)"/>
+            <column name="configuration" type="JSONB">
+                <constraints nullable="false"/>
+            </column>
+            <column name="environment" type="VARCHAR(50)"/>
+            <column name="version" type="VARCHAR(50)"/>
+            <column name="checksum" type="VARCHAR(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="configuration_backup" schemaName="reference_data" indexName="idx_config_backup_created">
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="006-4" author="system">
+        <comment>Create configuration_change_log table for audit trail</comment>
+        <createTable tableName="configuration_change_log" schemaName="reference_data">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="section" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="field" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="old_value" type="JSONB"/>
+            <column name="new_value" type="JSONB"/>
+            <column name="change_type" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="risk_level" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="comment" type="TEXT"/>
+            <column name="status" type="VARCHAR(20)" defaultValue="pending">
+                <constraints nullable="false"/>
+            </column>
+            <column name="changed_by" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="changed_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="approved_by" type="VARCHAR(100)"/>
+            <column name="approved_at" type="TIMESTAMP"/>
+            <column name="rejection_reason" type="TEXT"/>
+        </createTable>
+
+        <createIndex tableName="configuration_change_log" schemaName="reference_data" indexName="idx_config_change_status">
+            <column name="status"/>
+        </createIndex>
+
+        <createIndex tableName="configuration_change_log" schemaName="reference_data" indexName="idx_config_change_date">
+            <column name="changed_at"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="006-5" author="system">
+        <comment>Insert default system configuration</comment>
+        <sql>
+            INSERT INTO reference_data.system_configuration (id, config_key, config_value, config_type, description, created_by, created_at)
+            VALUES
+            (gen_random_uuid(), 'general',
+             '{"systemName":"CBP Reference Data Service","timezone":"America/New_York","defaultLocale":"en-US","dateFormat":"MM/DD/YYYY","timeFormat":"12h","fiscalYearStart":"October","maintenanceWindow":"Sunday 2:00 AM - 6:00 AM EST","systemDescription":"Centralized reference data management system for CBP operations"}'::jsonb,
+             'GENERAL', 'General system configuration settings', 'system', CURRENT_TIMESTAMP),
+
+            (gen_random_uuid(), 'security',
+             '{"sessionTimeout":30,"maxLoginAttempts":3,"passwordMinLength":12,"passwordComplexity":true,"twoFactorRequired":true,"ssoEnabled":true,"apiKeyExpiration":90,"ipWhitelist":["10.0.0.0/8","172.16.0.0/12","192.168.0.0/16"],"auditLogRetention":365,"encryptionAlgorithm":"AES-256-GCM"}'::jsonb,
+             'SECURITY', 'Security configuration settings', 'system', CURRENT_TIMESTAMP),
+
+            (gen_random_uuid(), 'dataManagement',
+             '{"retentionPeriods":{"auditLogs":365,"changeRequests":730,"exportFiles":30,"tempFiles":7},"archivalRules":{"autoArchive":true,"archiveThreshold":180,"compressionEnabled":true,"storageLocation":"s3://cbp-refdata-archive"},"backupSchedule":{"frequency":"Daily","retentionCount":30,"storageLocation":"s3://cbp-refdata-backups","encryptBackups":true},"dataValidation":{"strictMode":true,"validateOnImport":true,"requireApprovalForChanges":true}}'::jsonb,
+             'DATA_MANAGEMENT', 'Data management configuration', 'system', CURRENT_TIMESTAMP),
+
+            (gen_random_uuid(), 'integration',
+             '{"webhooks":{"enabled":true,"retryAttempts":3,"timeout":30,"secretRotationDays":90},"apiSettings":{"rateLimit":1000,"requestTimeout":60,"maxPayloadSize":10485760,"corsOrigins":["https://cbp.gov","https://*.cbp.dhs.gov"]},"externalSystems":{"cbpSystems":true,"customIntegrations":["TECS","ACE","APIS","ATS"],"scheduledSyncs":true,"syncInterval":3600}}'::jsonb,
+             'INTEGRATION', 'Integration settings', 'system', CURRENT_TIMESTAMP),
+
+            (gen_random_uuid(), 'notifications',
+             '{"email":{"enabled":true,"smtpServer":"smtp.cbp.dhs.gov","smtpPort":587,"smtpSecurity":"STARTTLS","fromAddress":"refdata-noreply@cbp.dhs.gov","templates":{"changeRequestApproval":true,"systemAlerts":true,"dataUpdates":true,"securityAlerts":true}},"alerts":{"systemHealth":true,"performanceThresholds":{"cpuUsage":80,"memoryUsage":85,"diskUsage":90,"responseTime":2000},"errorThresholds":{"errorRate":5,"consecutiveFailures":10}}}'::jsonb,
+             'NOTIFICATIONS', 'Notification settings', 'system', CURRENT_TIMESTAMP),
+
+            (gen_random_uuid(), 'performance',
+             '{"caching":{"enabled":true,"defaultTtl":3600,"maxCacheSize":1073741824,"evictionPolicy":"LRU"},"rateLimiting":{"enabled":true,"requestsPerMinute":60,"burstLimit":100,"blockDuration":300},"batchProcessing":{"defaultBatchSize":100,"maxBatchSize":1000,"processingTimeout":300,"parallelProcessing":true},"monitoring":{"metricsEnabled":true,"detailedLogging":true,"performanceTracking":true,"alertingEnabled":true}}'::jsonb,
+             'PERFORMANCE', 'Performance settings', 'system', CURRENT_TIMESTAMP),
+
+            (gen_random_uuid(), 'featureFlags',
+             '{"dataManagement":{"bulkImport":true,"exportToExcel":true,"dataValidation":true,"autoBackup":false},"userInterface":{"darkMode":false,"advancedSearch":true,"customDashboards":false,"multiLanguage":false},"integration":{"webhooks":true,"apiV2":false,"graphQL":false,"realtimeSync":true},"security":{"twoFactor":true,"ssoIntegration":false,"apiRateLimiting":true,"encryptionAtRest":true},"performance":{"caching":true,"lazyLoading":true,"compressionEnabled":false,"cdnIntegration":false},"experimental":{"betaFeatures":false,"a_bTesting":false,"debugMode":false,"telemetry":true}}'::jsonb,
+             'GENERAL', 'Feature flags configuration', 'system', CURRENT_TIMESTAMP);
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

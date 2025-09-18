@@ -3,9 +3,9 @@ spring:
     name: reference-api
   
   datasource:
-    url: jdbc:postgresql://localhost:5432/reference_db
-    username: reference_user
-    password: reference_pass
+    url: jdbc:postgresql://localhost:5432/reference_data
+    username: refdata_user
+    password: refdata_pass
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
@@ -33,6 +33,7 @@ spring:
     change-log: classpath:db/changelog/db.changelog-master.xml
   
   security:
+    enabled: false
     oauth2:
       resourceserver:
         jwt:
@@ -67,13 +68,13 @@ management:
     web:
       exposure:
         include: health,info,metrics,prometheus
-  metrics:
-    export:
-      prometheus:
-        enabled: true
   tracing:
     sampling:
       probability: 1.0
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 springdoc:
   api-docs:
@@ -87,6 +88,10 @@ springdoc:
     tags-sorter: alpha
     display-request-duration: true
     
+ff4j:
+  enabled: true
+  autocreate: true
+
 logging:
   level:
     gov.dhs.cbp.reference: DEBUG

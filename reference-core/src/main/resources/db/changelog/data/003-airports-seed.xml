@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="030-load-airports-seed-data" author="reference-data">
+        <comment>Load initial airports data</comment>
+        
+        <!-- Use SQL to insert airports with proper UUID generation -->
+        <sql>
+            INSERT INTO reference_data.airports_v (
+                id, version, code_system_id, iata_code, icao_code, airport_name,
+                city, state_province, country_code, latitude, longitude, elevation,
+                airport_type, timezone, is_active, valid_from, valid_to,
+                recorded_at, recorded_by, change_request_id, is_correction, metadata
+            )
+            SELECT 
+                gen_random_uuid(),
+                1,
+                (SELECT id FROM reference_data.code_system WHERE code = 'IATA'),
+                data.iata_code,
+                data.icao_code,
+                data.airport_name,
+                data.city,
+                data.state_province,
+                data.country_code,
+                data.latitude,
+                data.longitude,
+                data.elevation,
+                'airport',
+                data.timezone,
+                true,
+                CURRENT_DATE,
+                NULL,
+                CURRENT_TIMESTAMP,
+                'system',
+                'SEED-002',
+                false,
+                jsonb_build_object('source', 'seed-data', 'imported_at', CURRENT_TIMESTAMP::text)
+            FROM (
+                VALUES
+                    ('JFK', 'KJFK', 'John F Kennedy International Airport', 'New York', 'NY', 'USA', 40.6413, -73.7781, 13, 'America/New_York'),
+                    ('LAX', 'KLAX', 'Los Angeles International Airport', 'Los Angeles', 'CA', 'USA', 33.9425, -118.4081, 125, 'America/Los_Angeles'),
+                    ('ORD', 'KORD', 'Chicago O''Hare International Airport', 'Chicago', 'IL', 'USA', 41.9786, -87.9047, 668, 'America/Chicago'),
+                    ('DFW', 'KDFW', 'Dallas Fort Worth International Airport', 'Dallas', 'TX', 'USA', 32.8975, -97.0381, 607, 'America/Chicago'),
+                    ('DEN', 'KDEN', 'Denver International Airport', 'Denver', 'CO', 'USA', 39.8617, -104.6731, 5431, 'America/Denver'),
+                    ('ATL', 'KATL', 'Hartsfield Jackson Atlanta International Airport', 'Atlanta', 'GA', 'USA', 33.6367, -84.4281, 1026, 'America/New_York'),
+                    ('SFO', 'KSFO', 'San Francisco International Airport', 'San Francisco', 'CA', 'USA', 37.6189, -122.3750, 13, 'America/Los_Angeles'),
+                    ('SEA', 'KSEA', 'Seattle Tacoma International Airport', 'Seattle', 'WA', 'USA', 47.4489, -122.3094, 433, 'America/Los_Angeles'),
+                    ('MIA', 'KMIA', 'Miami International Airport', 'Miami', 'FL', 'USA', 25.7931, -80.2906, 8, 'America/New_York'),
+                    ('BOS', 'KBOS', 'Logan International Airport', 'Boston', 'MA', 'USA', 42.3631, -71.0064, 20, 'America/New_York'),
+                    ('LHR', 'EGLL', 'London Heathrow Airport', 'London', NULL, 'GBR', 51.4700, -0.4543, 83, 'Europe/London'),
+                    ('CDG', 'LFPG', 'Charles de Gaulle Airport', 'Paris', NULL, 'FRA', 49.0097, 2.5478, 392, 'Europe/Paris'),
+                    ('FRA', 'EDDF', 'Frankfurt Airport', 'Frankfurt', NULL, 'DEU', 50.0333, 8.5706, 364, 'Europe/Berlin'),
+                    ('AMS', 'EHAM', 'Amsterdam Airport Schiphol', 'Amsterdam', NULL, 'NLD', 52.3086, 4.7639, -11, 'Europe/Amsterdam'),
+                    ('MAD', 'LEMD', 'Adolfo Suárez Madrid-Barajas Airport', 'Madrid', NULL, 'ESP', 40.4719, -3.5626, 1998, 'Europe/Madrid'),
+                    ('NRT', 'RJAA', 'Narita International Airport', 'Tokyo', NULL, 'JPN', 35.7653, 140.3858, 141, 'Asia/Tokyo'),
+                    ('HKG', 'VHHH', 'Hong Kong International Airport', 'Hong Kong', NULL, 'CHN', 22.3080, 113.9185, 28, 'Asia/Hong_Kong'),
+                    ('SIN', 'WSSS', 'Singapore Changi Airport', 'Singapore', NULL, 'SGP', 1.3644, 103.9915, 22, 'Asia/Singapore'),
+                    ('DXB', 'OMDB', 'Dubai International Airport', 'Dubai', NULL, 'ARE', 25.2528, 55.3644, 62, 'Asia/Dubai'),
+                    ('SYD', 'YSSY', 'Sydney Kingsford Smith International Airport', 'Sydney', 'NSW', 'AUS', -33.9461, 151.1772, 21, 'Australia/Sydney'),
+                    ('YYZ', 'CYYZ', 'Toronto Pearson International Airport', 'Toronto', 'ON', 'CAN', 43.6772, -79.6306, 569, 'America/Toronto'),
+                    ('YVR', 'CYVR', 'Vancouver International Airport', 'Vancouver', 'BC', 'CAN', 49.1939, -123.1844, 14, 'America/Vancouver'),
+                    ('MEX', 'MMMX', 'Mexico City International Airport', 'Mexico City', NULL, 'MEX', 19.4361, -99.0719, 7316, 'America/Mexico_City'),
+                    ('GRU', 'SBGR', 'São Paulo/Guarulhos International Airport', 'São Paulo', NULL, 'BRA', -23.4356, -46.4731, 2461, 'America/Sao_Paulo'),
+                    ('GIG', 'SBGL', 'Rio de Janeiro-Galeão International Airport', 'Rio de Janeiro', NULL, 'BRA', -22.8100, -43.2506, 28, 'America/Sao_Paulo')
+            ) AS data(iata_code, icao_code, airport_name, city, state_province, country_code, latitude, longitude, elevation, timezone);
+        </sql>
+        
+        <rollback>
+            <delete tableName="airports_v" schemaName="reference_data">
+                <where>change_request_id = 'SEED-002'</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

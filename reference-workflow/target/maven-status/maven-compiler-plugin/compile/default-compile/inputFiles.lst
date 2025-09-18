@@ -1,8 +1,0 @@
-/Users/bruhalemneh/git/reference-data/reference-workflow/src/main/java/gov/dhs/cbp/reference/workflow/config/CamundaConfig.java
-/Users/bruhalemneh/git/reference-data/reference-workflow/src/main/java/gov/dhs/cbp/reference/workflow/controller/WorkflowController.java
-/Users/bruhalemneh/git/reference-data/reference-workflow/src/main/java/gov/dhs/cbp/reference/workflow/delegate/ApplyChangeDelegate.java
-/Users/bruhalemneh/git/reference-data/reference-workflow/src/main/java/gov/dhs/cbp/reference/workflow/delegate/CheckPolicyDelegate.java
-/Users/bruhalemneh/git/reference-data/reference-workflow/src/main/java/gov/dhs/cbp/reference/workflow/delegate/NotificationDelegate.java
-/Users/bruhalemneh/git/reference-data/reference-workflow/src/main/java/gov/dhs/cbp/reference/workflow/delegate/ValidateDataDelegate.java
-/Users/bruhalemneh/git/reference-data/reference-workflow/src/main/java/gov/dhs/cbp/reference/workflow/service/ChangeRequestService.java
-/Users/bruhalemneh/git/reference-data/reference-workflow/src/main/java/gov/dhs/cbp/reference/workflow/service/OpaPolicyService.java

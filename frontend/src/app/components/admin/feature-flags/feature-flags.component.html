@@ -1,0 +1,340 @@
+<div class="grid-container">
+  <!-- Page Header -->
+  <div class="cbp-page-header">
+    <div class="cbp-page-header__content">
+      <div class="cbp-page-header__text">
+        <h1 class="cbp-page-header__title">Feature Flags Management</h1>
+        <p class="cbp-page-header__subtitle">Control system features and reference data types</p>
+      </div>
+      <div class="cbp-page-header__actions">
+        <button class="cbp-button cbp-button--secondary" (click)="resetToDefaults()">
+          <svg class="cbp-button__icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#refresh"></use>
+          </svg>
+          Reset to Defaults
+        </button>
+        <button class="cbp-button cbp-button--secondary" (click)="exportConfig()">
+          <svg class="cbp-button__icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#file_download"></use>
+          </svg>
+          Export Config
+        </button>
+        <button class="cbp-button cbp-button--primary" (click)="showImportExport = true">
+          <svg class="cbp-button__icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#file_upload"></use>
+          </svg>
+          Import Config
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Bar -->
+  <div class="cbp-search-container">
+    <div class="cbp-search-field">
+      <label class="cbp-field-label">
+        <svg class="cbp-label-icon" aria-hidden="true">
+          <use xlink:href="/assets/uswds/img/sprite.svg#search"></use>
+        </svg>
+        Search Feature Flags
+      </label>
+      <div class="cbp-search-input">
+        <input
+          type="text"
+          class="cbp-input cbp-input--search"
+          [(ngModel)]="searchTerm"
+          placeholder="Search for feature flags..."
+        />
+        <button
+          *ngIf="searchTerm"
+          class="cbp-search-clear"
+          (click)="searchTerm = ''"
+        >
+          <svg class="cbp-search-clear-icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#clear"></use>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="cbp-tabs">
+    <div class="cbp-tabs-nav">
+      <button
+        class="cbp-tab"
+        [class.cbp-tab--active]="activeTab === 'reference-data'"
+        (click)="setActiveTab('reference-data')"
+      >
+        <svg class="cbp-tab-icon" aria-hidden="true">
+          <use xlink:href="/assets/uswds/img/sprite.svg#storage"></use>
+        </svg>
+        Reference Data
+        <span class="cbp-tab-badge">{{ getEnabledCount(referenceDataFlags) }}/{{ getTotalCount(referenceDataFlags) }}</span>
+      </button>
+      <button
+        class="cbp-tab"
+        [class.cbp-tab--active]="activeTab === 'features'"
+        (click)="setActiveTab('features')"
+      >
+        <svg class="cbp-tab-icon" aria-hidden="true">
+          <use xlink:href="/assets/uswds/img/sprite.svg#tune"></use>
+        </svg>
+        Features
+        <span class="cbp-tab-badge">{{ getEnabledCount(featuresFlags) }}/{{ getTotalCount(featuresFlags) }}</span>
+      </button>
+      <button
+        class="cbp-tab"
+        [class.cbp-tab--active]="activeTab === 'dashboard'"
+        (click)="setActiveTab('dashboard')"
+      >
+        <svg class="cbp-tab-icon" aria-hidden="true">
+          <use xlink:href="/assets/uswds/img/sprite.svg#dashboard"></use>
+        </svg>
+        Dashboard
+        <span class="cbp-tab-badge">{{ getEnabledCount(dashboardFlags) }}/{{ getTotalCount(dashboardFlags) }}</span>
+      </button>
+      <button
+        class="cbp-tab"
+        [class.cbp-tab--active]="activeTab === 'experimental'"
+        (click)="setActiveTab('experimental')"
+      >
+        <svg class="cbp-tab-icon" aria-hidden="true">
+          <use xlink:href="/assets/uswds/img/sprite.svg#science"></use>
+        </svg>
+        Experimental
+        <span class="cbp-tab-badge cbp-tab-badge--warning">{{ getEnabledCount(experimentalFlags) }}/{{ getTotalCount(experimentalFlags) }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="cbp-tab-content">
+    <!-- Reference Data Tab -->
+    <div *ngIf="activeTab === 'reference-data'" class="cbp-flags-section">
+      <div class="cbp-flags-header">
+        <h2>Reference Data Types</h2>
+        <p>Enable or disable specific reference data types in the system</p>
+        <div class="cbp-flags-actions">
+          <button class="cbp-button cbp-button--sm cbp-button--outline" (click)="toggleAll('referenceData', true)">
+            Enable All
+          </button>
+          <button class="cbp-button cbp-button--sm cbp-button--outline" (click)="toggleAll('referenceData', false)">
+            Disable All
+          </button>
+        </div>
+      </div>
+
+      <div class="cbp-flags-grid">
+        <div *ngFor="let flag of getFilteredFlags(referenceDataFlags)" class="cbp-flag-card">
+          <div class="cbp-flag-header">
+            <div class="cbp-flag-toggle">
+              <input
+                type="checkbox"
+                class="cbp-toggle"
+                [id]="'ref-' + flag"
+                [checked]="referenceDataFlags[flag]"
+                (change)="updateFlag('referenceData', flag, $event)"
+              />
+              <label [for]="'ref-' + flag" class="cbp-toggle-label">
+                <span class="cbp-toggle-slider"></span>
+              </label>
+            </div>
+            <div class="cbp-flag-status" [class.cbp-flag-status--enabled]="referenceDataFlags[flag]">
+              {{ referenceDataFlags[flag] ? 'Enabled' : 'Disabled' }}
+            </div>
+          </div>
+          <div class="cbp-flag-content">
+            <h3 class="cbp-flag-name">{{ formatFlagName(flag) }}</h3>
+            <p class="cbp-flag-description">Manage {{ formatFlagName(flag) }} reference data</p>
+            <div class="cbp-flag-meta">
+              <span class="cbp-flag-id">ID: referenceData.{{ flag }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Features Tab -->
+    <div *ngIf="activeTab === 'features'" class="cbp-flags-section">
+      <div class="cbp-flags-header">
+        <h2>System Features</h2>
+        <p>Control various system features and capabilities</p>
+        <div class="cbp-flags-actions">
+          <button class="cbp-button cbp-button--sm cbp-button--outline" (click)="toggleAll('features', true)">
+            Enable All
+          </button>
+          <button class="cbp-button cbp-button--sm cbp-button--outline" (click)="toggleAll('features', false)">
+            Disable All
+          </button>
+        </div>
+      </div>
+
+      <div class="cbp-flags-grid">
+        <div *ngFor="let flag of getFilteredFlags(featuresFlags)" class="cbp-flag-card">
+          <div class="cbp-flag-header">
+            <div class="cbp-flag-toggle">
+              <input
+                type="checkbox"
+                class="cbp-toggle"
+                [id]="'feat-' + flag"
+                [checked]="featuresFlags[flag]"
+                (change)="updateFlag('features', flag, $event)"
+              />
+              <label [for]="'feat-' + flag" class="cbp-toggle-label">
+                <span class="cbp-toggle-slider"></span>
+              </label>
+            </div>
+            <div class="cbp-flag-status" [class.cbp-flag-status--enabled]="featuresFlags[flag]">
+              {{ featuresFlags[flag] ? 'Enabled' : 'Disabled' }}
+            </div>
+          </div>
+          <div class="cbp-flag-content">
+            <h3 class="cbp-flag-name">{{ formatFlagName(flag) }}</h3>
+            <p class="cbp-flag-description">Enable {{ formatFlagName(flag) }} functionality</p>
+            <div class="cbp-flag-meta">
+              <span class="cbp-flag-id">ID: features.{{ flag }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard Tab -->
+    <div *ngIf="activeTab === 'dashboard'" class="cbp-flags-section">
+      <div class="cbp-flags-header">
+        <h2>Dashboard Cards</h2>
+        <p>Configure which cards appear on the dashboard</p>
+        <div class="cbp-flags-actions">
+          <button class="cbp-button cbp-button--sm cbp-button--outline" (click)="toggleAll('dashboard', true)">
+            Show All
+          </button>
+          <button class="cbp-button cbp-button--sm cbp-button--outline" (click)="toggleAll('dashboard', false)">
+            Hide All
+          </button>
+        </div>
+      </div>
+
+      <div class="cbp-flags-grid">
+        <div *ngFor="let flag of getFilteredFlags(dashboardFlags)" class="cbp-flag-card">
+          <div class="cbp-flag-header">
+            <div class="cbp-flag-toggle">
+              <input
+                type="checkbox"
+                class="cbp-toggle"
+                [id]="'dash-' + flag"
+                [checked]="dashboardFlags[flag]"
+                (change)="updateFlag('dashboard', flag, $event)"
+              />
+              <label [for]="'dash-' + flag" class="cbp-toggle-label">
+                <span class="cbp-toggle-slider"></span>
+              </label>
+            </div>
+            <div class="cbp-flag-status" [class.cbp-flag-status--enabled]="dashboardFlags[flag]">
+              {{ dashboardFlags[flag] ? 'Visible' : 'Hidden' }}
+            </div>
+          </div>
+          <div class="cbp-flag-content">
+            <h3 class="cbp-flag-name">{{ formatFlagName(flag) }} Card</h3>
+            <p class="cbp-flag-description">Show {{ formatFlagName(flag) }} on dashboard</p>
+            <div class="cbp-flag-meta">
+              <span class="cbp-flag-id">ID: dashboard.{{ flag }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Experimental Tab -->
+    <div *ngIf="activeTab === 'experimental'" class="cbp-flags-section">
+      <div class="cbp-flags-header">
+        <h2>Experimental Features</h2>
+        <p class="cbp-warning-text">
+          <svg class="cbp-warning-icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#warning"></use>
+          </svg>
+          These features are experimental and may be unstable
+        </p>
+        <div class="cbp-flags-actions">
+          <button class="cbp-button cbp-button--sm cbp-button--outline" (click)="toggleAll('experimental', true)">
+            Enable All
+          </button>
+          <button class="cbp-button cbp-button--sm cbp-button--outline" (click)="toggleAll('experimental', false)">
+            Disable All
+          </button>
+        </div>
+      </div>
+
+      <div class="cbp-flags-grid">
+        <div *ngFor="let flag of getFilteredFlags(experimentalFlags)" class="cbp-flag-card cbp-flag-card--experimental">
+          <div class="cbp-flag-header">
+            <div class="cbp-flag-toggle">
+              <input
+                type="checkbox"
+                class="cbp-toggle"
+                [id]="'exp-' + flag"
+                [checked]="experimentalFlags[flag]"
+                (change)="updateFlag('experimental', flag, $event)"
+              />
+              <label [for]="'exp-' + flag" class="cbp-toggle-label">
+                <span class="cbp-toggle-slider"></span>
+              </label>
+            </div>
+            <div class="cbp-flag-status" [class.cbp-flag-status--enabled]="experimentalFlags[flag]">
+              {{ experimentalFlags[flag] ? 'Enabled' : 'Disabled' }}
+            </div>
+          </div>
+          <div class="cbp-flag-content">
+            <h3 class="cbp-flag-name">
+              {{ formatFlagName(flag) }}
+              <span class="cbp-beta-badge">BETA</span>
+            </h3>
+            <p class="cbp-flag-description">Experimental {{ formatFlagName(flag) }} feature</p>
+            <div class="cbp-flag-meta">
+              <span class="cbp-flag-id">ID: experimental.{{ flag }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import/Export Modal -->
+  <div *ngIf="showImportExport" class="cbp-modal-overlay" (click)="showImportExport = false">
+    <div class="cbp-modal" (click)="$event.stopPropagation()">
+      <div class="cbp-modal-header">
+        <h2 class="cbp-modal-title">Import/Export Configuration</h2>
+        <button class="cbp-modal-close" (click)="showImportExport = false">
+          <svg aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#close"></use>
+          </svg>
+        </button>
+      </div>
+      <div class="cbp-modal-content">
+        <div class="cbp-form-group">
+          <label class="cbp-form-label">Configuration JSON</label>
+          <textarea
+            class="cbp-textarea"
+            [(ngModel)]="configJson"
+            rows="20"
+            placeholder="Paste configuration JSON here to import, or copy the exported configuration"
+          ></textarea>
+        </div>
+      </div>
+      <div class="cbp-modal-footer">
+        <button class="cbp-button cbp-button--secondary" (click)="copyConfig()">
+          <svg class="cbp-button__icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#content_copy"></use>
+          </svg>
+          Copy to Clipboard
+        </button>
+        <button class="cbp-button cbp-button--primary" (click)="importConfig()">
+          <svg class="cbp-button__icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#file_upload"></use>
+          </svg>
+          Import Configuration
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

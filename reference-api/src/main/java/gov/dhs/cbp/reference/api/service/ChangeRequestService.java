@@ -87,17 +87,14 @@ public class ChangeRequestService {
         entity.setCreatedAt(LocalDateTime.now());
         entity.setStatus("PENDING");
         
-        // Validate that the entity exists if entityId is provided
-        if (entity.getEntityId() != null) {
-            validateEntityExists(entity.getEntityType(), entity.getEntityId());
-        }
+        // Entity validation removed - entityId no longer exists
         
         ChangeRequest saved = changeRequestRepository.save(entity);
         
         // Publish change request created event
         publishChangeRequestEvent(saved, "CHANGE_REQUEST_CREATED");
         
-        logger.info("Created change request {} for {} {}", saved.getId(), saved.getEntityType(), saved.getEntityId());
+        logger.info("Created change request {} for data type {}", saved.getId(), saved.getDataType());
         
         return changeRequestMapper.toDto(saved);
     }
@@ -128,7 +125,7 @@ public class ChangeRequestService {
                     existing.setApprovedAt(LocalDateTime.now());
                     existing.setUpdatedAt(LocalDateTime.now());
                     // TODO: Set approver from security context
-                    existing.setApprover("SYSTEM"); // Placeholder
+                    existing.setApprovedBy("SYSTEM"); // Placeholder
                     
                     if (comments != null) {
                         // Add comments to metadata or a comments field if needed
@@ -154,7 +151,7 @@ public class ChangeRequestService {
                     existing.setRejectionReason(reason);
                     existing.setUpdatedAt(LocalDateTime.now());
                     // TODO: Set approver from security context
-                    existing.setApprover("SYSTEM"); // Placeholder
+                    existing.setApprovedBy("SYSTEM"); // Placeholder
                     
                     ChangeRequest saved = changeRequestRepository.save(existing);
                     publishChangeRequestEvent(saved, "CHANGE_REQUEST_REJECTED");
@@ -220,11 +217,11 @@ public class ChangeRequestService {
                 }
                 """, 
                 changeRequest.getId(),
-                changeRequest.getChangeType(),
-                changeRequest.getEntityType(),
-                changeRequest.getEntityId(),
+                changeRequest.getOperationType(),
+                changeRequest.getDataType(),
+                null, // entityId no longer exists
                 changeRequest.getStatus(),
-                changeRequest.getRequestor(),
+                changeRequest.getRequesterId(),
                 changeRequest.getCreatedAt()
             );
             

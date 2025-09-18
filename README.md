@@ -4,6 +4,15 @@
 
 The CBP Reference Data Service is a centralized, canonical source for reference data with bitemporal history, governance, and multi-channel distribution capabilities. It provides REST APIs, bulk snapshots, and event streaming for reference data management.
 
+### Key Features
+
+- **Bitemporal Data Management**: Track both business time and system time for complete audit history
+- **Multi-Channel Distribution**: REST APIs, Kafka events, and bulk data exports
+- **Data Governance**: Change request workflows with approval processes
+- **Code Translation**: Map between different coding systems (ISO, GENC, CBP, etc.)
+- **Feature Flags**: Runtime configuration management via FF4J
+- **US Government Compliance**: USWDS design system and accessibility standards
+
 ## Project Status
 
 ### ✅ Completed Features
@@ -25,12 +34,13 @@ The CBP Reference Data Service is a centralized, canonical source for reference 
   - Outbox pattern implementation
   - Event publisher service
 
-- **Admin UI**
-  - Angular 20 with TypeScript
+- **Frontend UI**
+  - Angular 20 with TypeScript 5.8
   - USWDS 3.13 (US Web Design System)
   - CBP branding and government banner
   - Consolidated navigation
   - Responsive design
+  - Feature flag management
 
 - **Testing**
   - All unit tests passing
@@ -49,11 +59,32 @@ The CBP Reference Data Service is a centralized, canonical source for reference 
 
 ### 🔄 TODO
 
-1. Implement Airport, Port, and Carrier entities
-2. Implement data loaders (ISO, GENC, IATA, ICAO, CBP)
-3. Add Okta authentication
-4. Complete workflow integration
-5. Re-enable complex integration tests
+1. **Data Entities**
+   - Implement Airport entity and repository
+   - Implement Port entity and repository
+   - Implement Carrier entity and repository
+
+2. **Data Loaders**
+   - Complete ISO country codes loader
+   - Implement GENC codes loader
+   - Implement IATA airport codes loader
+   - Implement ICAO codes loader
+   - Implement CBP port codes loader
+
+3. **Authentication & Security**
+   - Integrate Okta OAuth2/OIDC
+   - Implement role-based access control (RBAC)
+   - Add API key authentication for service accounts
+
+4. **Workflow & Governance**
+   - Integrate Camunda or Flowable for workflow management
+   - Implement approval chains for change requests
+   - Add OPA (Open Policy Agent) for policy enforcement
+
+5. **Testing & Quality**
+   - Re-enable complex integration tests
+   - Add performance benchmarks
+   - Implement contract testing
 
 ## Quick Start
 
@@ -66,41 +97,99 @@ The CBP Reference Data Service is a centralized, canonical source for reference 
 
 ### Local Development
 
-1. **Start infrastructure services:**
-```bash
-docker-compose up -d postgres redis redpanda
-```
+#### Option 1: Using H2 Database (No PostgreSQL Required)
 
-2. **Build the project:**
+1. **Build the project:**
 ```bash
 ./mvnw clean package -DskipTests
 ```
 
-3. **Run tests:**
+2. **Run the API with H2 embedded database:**
 ```bash
-./mvnw test
+cd reference-api
+../mvnw spring-boot:run -Dspring-boot.run.profiles=h2
+```
+- API runs on: http://localhost:8082
+- H2 console at: http://localhost:8082/h2-console
+- JDBC URL: `jdbc:h2:mem:refdata`
+- Username: `sa`
+- Password: (leave blank)
+
+3. **Start the Frontend UI:**
+```bash
+cd frontend
+npm install
+npm start
 ```
 
-4. **Start the API:**
+#### Option 2: Using Local PostgreSQL Installation
+
+1. **Install PostgreSQL locally** (if not already installed):
 ```bash
-docker build -t refdata-api -f Dockerfile.api-simple .
-docker run -d --name refdata-api --network refdata-network -p 8081:8080 \
-  -e SPRING_LIQUIBASE_ENABLED=false \
-  -e SPRING_DATASOURCE_URL=jdbc:postgresql://refdata-postgres:5432/refdata \
-  -e SPRING_DATASOURCE_USERNAME=refdata \
-  -e SPRING_DATASOURCE_PASSWORD=refdata123 \
-  refdata-api
+# macOS
+brew install postgresql@15
+brew services start postgresql@15
+
+# Ubuntu/Debian
+sudo apt-get install postgresql-15
+sudo systemctl start postgresql
 ```
 
-5. **Start the UI:**
+2. **Create database and user:**
 ```bash
-docker build -t refdata-ui ./admin-ui
-docker run -d --name refdata-ui --network refdata-network -p 80:80 refdata-ui
+psql -U postgres
+CREATE DATABASE refdata;
+CREATE USER refdata_user WITH PASSWORD 'refdata_pass';
+GRANT ALL PRIVILEGES ON DATABASE refdata TO refdata_user;
+\q
+```
+
+3. **Run the API:**
+```bash
+cd reference-api
+../mvnw spring-boot:run \
+  -Dspring.datasource.url="jdbc:postgresql://localhost:5432/refdata" \
+  -Dspring.datasource.username=refdata_user \
+  -Dspring.datasource.password=refdata_pass
+```
+
+4. **Start the Frontend UI:**
+```bash
+cd frontend
+npm install
+npm start
+```
+
+#### Option 3: Using Docker for Dependencies Only
+
+1. **Start only infrastructure services:**
+```bash
+docker-compose up -d postgres redis redpanda
+```
+
+2. **Run the API locally (not in Docker):**
+```bash
+cd reference-api
+../mvnw spring-boot:run
+```
+
+3. **Start the Frontend UI:**
+```bash
+cd frontend
+npm install
+npm start
 ```
 
 ### Service URLs
 
-- **Admin UI**: http://localhost:80
+#### With H2 (Development)
+- **Frontend UI**: http://localhost:4200
+- **API**: http://localhost:8082
+- **API Documentation**: http://localhost:8082/swagger-ui
+- **H2 Console**: http://localhost:8082/h2-console
+
+#### With Docker (Production-like)
+- **Frontend UI**: http://localhost:4200
 - **API**: http://localhost:8081
 - **API Documentation**: http://localhost:8081/swagger-ui
 - **Postgres**: localhost:5433
@@ -110,11 +199,21 @@ docker run -d --name refdata-ui --network refdata-network -p 80:80 refdata-ui
 ## Project Structure
 
 ```
-/reference-data
+reference-data/
+├── frontend/              # Angular 20.1 frontend application
+│   ├── src/
+│   │   ├── app/          # Application components
+│   │   ├── assets/       # Static assets
+│   │   └── styles/       # Global styles and themes
+│   └── package.json      # Frontend dependencies
 ├── reference-core/        # Domain entities, repositories, bitemporal utilities
+│   └── src/main/java/    # JPA entities, repositories
 ├── reference-api/         # REST controllers, DTOs, exception handling
+│   └── src/main/java/    # Controllers, services, mappers
 ├── reference-events/      # Event publishing, Kafka, Avro schemas
+│   └── src/main/java/    # Outbox pattern, publishers
 ├── reference-workflow/    # Change request workflows (Camunda/Flowable)
+│   └── src/main/java/    # Workflow processes
 ├── reference-loaders/     # Data loaders for various sources
 │   ├── common/           # Shared loader utilities
 │   ├── iso/              # ISO country codes loader
@@ -124,9 +223,13 @@ docker run -d --name refdata-ui --network refdata-network -p 80:80 refdata-ui
 │   └── cbp-ports/        # CBP port codes loader
 ├── translation-service/   # Code translation and mapping service
 ├── catalog-integration/   # OpenMetadata integration
-├── admin-ui/             # Angular admin interface
-├── docs/                 # Documentation
-└── ops/                  # Deployment and operations files
+├── config/               # Configuration files
+├── docs/                 # Architecture documentation
+├── ops/                  # Deployment configurations
+│   └── secrets/          # Secret templates
+├── docker-compose.yml    # Local development services
+├── pom.xml              # Parent Maven configuration
+└── CLAUDE.md            # Development guidelines
 ```
 
 ## Testing
@@ -173,7 +276,7 @@ GET /v1/translate?fromSystem=ISO3166-1&toSystem=CBP-COUNTRY5&code=US&asOf=2025-0
 ### Coding Standards
 
 - Java 21 with Spring Boot 3.3.5
-- Angular 20 with TypeScript 5.8
+- Angular 20.1 with TypeScript 5.8
 - Follow conventional commits for version control
 - Maintain bitemporal invariants (no hard deletes)
 - Use UUID for entity IDs
@@ -212,12 +315,42 @@ steps:
 - Tests complete in <5 minutes
 - Supports GitHub Actions, Jenkins, GitLab CI
 
+## Technologies Used
+
+### Backend
+- **Java 21** - Latest LTS version
+- **Spring Boot 3.3.5** - Microservices framework
+- **Spring Data JPA** - Data persistence
+- **PostgreSQL** - Primary database
+- **H2 Database** - In-memory testing
+- **Apache Kafka** - Event streaming
+- **Redis** - Caching layer
+- **MapStruct 1.6.3** - DTO mapping
+- **Liquibase 4.29.2** - Database migrations
+- **FF4J** - Feature flag management
+- **Maven** - Build management
+
+### Frontend
+- **Angular 20.1** - Frontend framework
+- **TypeScript 5.8** - Type-safe JavaScript
+- **RxJS 7.8** - Reactive programming
+- **USWDS 3.13** - US Web Design System
+- **Chart.js 4.5** - Data visualization
+- **ng2-charts** - Angular chart components
+
+### Infrastructure
+- **Docker** - Containerization
+- **Docker Compose** - Local orchestration
+- **OpenTelemetry** - Observability
+- **Micrometer** - Metrics collection
+
 ## Contributing
 
 1. Read `CLAUDE.md` for detailed development guidelines
 2. Follow the coding standards
 3. Write tests for new features
 4. Submit PRs with clear descriptions
+5. Ensure all tests pass before submitting
 
 ## Documentation
 

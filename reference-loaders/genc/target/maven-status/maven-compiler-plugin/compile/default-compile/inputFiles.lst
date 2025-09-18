@@ -1,7 +1,0 @@
-/Users/bruhalemneh/git/reference-data/reference-loaders/genc/src/main/java/gov/dhs/cbp/reference/loader/genc/GencLoaderService.java
-/Users/bruhalemneh/git/reference-data/reference-loaders/genc/src/main/java/gov/dhs/cbp/reference/loader/genc/config/GencLoaderConfig.java
-/Users/bruhalemneh/git/reference-data/reference-loaders/genc/src/main/java/gov/dhs/cbp/reference/loader/genc/entity/GencEntityStaging.java
-/Users/bruhalemneh/git/reference-data/reference-loaders/genc/src/main/java/gov/dhs/cbp/reference/loader/genc/loader/GencLoader.java
-/Users/bruhalemneh/git/reference-data/reference-loaders/genc/src/main/java/gov/dhs/cbp/reference/loader/genc/model/GencData.java
-/Users/bruhalemneh/git/reference-data/reference-loaders/genc/src/main/java/gov/dhs/cbp/reference/loader/genc/repository/GencEntityStagingRepository.java
-/Users/bruhalemneh/git/reference-data/reference-loaders/genc/src/main/java/gov/dhs/cbp/reference/loader/genc/service/GencLoaderScheduler.java

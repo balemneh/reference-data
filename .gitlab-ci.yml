@@ -6,15 +6,15 @@ variables:
   CI: "true"
 
 cache:
-  key: ${CI_PROJECT_NAME}-admin-ui-${CI_COMMIT_REF_SLUG}
+  key: ${CI_PROJECT_NAME}-frontend-${CI_COMMIT_REF_SLUG}
   paths:
-    - admin-ui/node_modules/
+    - frontend/node_modules/
 
-admin_ui_unit:
+frontend_unit:
   image: node:20
   stage: test
   before_script:
-    - cd admin-ui
+    - cd frontend
     - npm ci
     - node -e "console.log('Chromium:', require('puppeteer').executablePath())"
     - export CHROME_BIN=$(node -p "require('puppeteer').executablePath()")
@@ -23,28 +23,28 @@ admin_ui_unit:
   artifacts:
     when: always
     paths:
-      - admin-ui/coverage/
+      - frontend/coverage/
 
-admin_ui_build_smoke:
+frontend_build_smoke:
   image: node:20
   stage: test
   before_script:
-    - cd admin-ui
+    - cd frontend
     - npm ci
     - npm run build -- --configuration production
-    - npx http-server -p 8080 dist/admin-ui &
+    - npx http-server -p 8080 dist/frontend &
     - sleep 3
   script:
     - BASE_URL=http://localhost:8080 node scripts/smoke.js
   allow_failure: true
 
-admin_ui_smoke:
+frontend_smoke:
   image: node:20
   stage: test
   rules:
     - if: '$BASE_URL'
   before_script:
-    - cd admin-ui
+    - cd frontend
     - npm ci
   script:
     - node scripts/smoke.js

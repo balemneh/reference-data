@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="005-create-outbox-table" author="reference-data">
+        <createTable tableName="outbox_events" schemaName="reference_data">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="aggregate_id" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="aggregate_type" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="event_type" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payload" type="JSONB">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="processed_at" type="TIMESTAMP"/>
+            <column name="status" type="VARCHAR(20)" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="011-create-change-requests-table" author="reference-data">
+        <createTable tableName="change_requests" schemaName="reference_data">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="cr_number" type="VARCHAR(50)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="title" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="requester_id" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="assignee_id" type="VARCHAR(100)"/>
+            <column name="data_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="operation_type" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(20)" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="priority" type="VARCHAR(10)" defaultValue="MEDIUM"/>
+            <column name="business_justification" type="TEXT"/>
+            <column name="proposed_changes" type="JSONB"/>
+            <column name="approval_data" type="JSONB"/>
+            <column name="workflow_instance_id" type="VARCHAR(100)"/>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="submitted_at" type="TIMESTAMP"/>
+            <column name="approved_at" type="TIMESTAMP"/>
+            <column name="approved_by" type="VARCHAR(100)"/>
+            <column name="rejected_at" type="TIMESTAMP"/>
+            <column name="rejected_by" type="VARCHAR(100)"/>
+            <column name="rejection_reason" type="TEXT"/>
+            <column name="implemented_at" type="TIMESTAMP"/>
+            <column name="implemented_by" type="VARCHAR(100)"/>
+            <column name="metadata" type="JSONB"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="012-create-change-request-attachments-table" author="reference-data">
+        <createTable tableName="change_request_attachments" schemaName="reference_data">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="change_request_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="filename" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content_type" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="file_size" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="file_path" type="VARCHAR(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="checksum" type="VARCHAR(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="uploaded_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="uploaded_by" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        
+        <addForeignKeyConstraint baseTableName="change_request_attachments" 
+                                 baseColumnNames="change_request_id"
+                                 baseTableSchemaName="reference_data"
+                                 referencedTableName="change_requests"
+                                 referencedColumnNames="id"
+                                 referencedTableSchemaName="reference_data"
+                                 constraintName="fk_attachments_change_request"/>
+    </changeSet>
+
+    <changeSet id="013-create-data-validation-rules-table" author="reference-data">
+        <createTable tableName="validation_rules" schemaName="reference_data">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="rule_name" type="VARCHAR(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="data_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="rule_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="rule_definition" type="JSONB">
+                <constraints nullable="false"/>
+            </column>
+            <column name="severity" type="VARCHAR(20)" defaultValue="ERROR">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true"/>
+            <column name="description" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="014-create-workflow-instances-table" author="reference-data">
+        <createTable tableName="workflow_instances" schemaName="reference_data">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="workflow_definition_key" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="process_instance_id" type="VARCHAR(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="business_key" type="VARCHAR(100)"/>
+            <column name="entity_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="entity_id" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="current_activity" type="VARCHAR(100)"/>
+            <column name="assignee" type="VARCHAR(100)"/>
+            <column name="variables" type="JSONB"/>
+            <column name="started_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="started_by" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ended_at" type="TIMESTAMP"/>
+            <column name="duration_millis" type="BIGINT"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="016-add-data-quality-table" author="reference-data">
+        <createTable tableName="data_quality_checks" schemaName="reference_data">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="check_name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="check_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="records_checked" type="BIGINT"/>
+            <column name="records_passed" type="BIGINT"/>
+            <column name="records_failed" type="BIGINT"/>
+            <column name="failure_rate" type="DECIMAL(5,2)"/>
+            <column name="check_results" type="JSONB"/>
+            <column name="executed_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="execution_time_ms" type="BIGINT"/>
+            <column name="triggered_by" type="VARCHAR(100)"/>
+            <column name="threshold_config" type="JSONB"/>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>

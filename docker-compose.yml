@@ -138,6 +138,8 @@ services:
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/reference-data
+      SPRING_LIQUIBASE_ENABLED: "true"
+      SPRING_SECURITY_ENABLED: "false"
       JAVA_OPTS: "-Xms512m -Xmx1024m"
     ports:
       - "8083:8080"
@@ -159,19 +161,19 @@ services:
     networks:
       - refdata-network
 
-  # Angular Admin UI
-  admin-ui:
+  # Angular Frontend
+  frontend:
     build:
-      context: ./admin-ui
+      context: ./frontend
       dockerfile: Dockerfile
-    container_name: refdata-ui
+    container_name: refdata-frontend
     ports:
       - "4200:80"
     depends_on:
       reference-api:
         condition: service_healthy
     environment:
-      API_URL: http://reference-api:8083
+      API_URL: http://localhost:8083
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/health"]
       interval: 30s

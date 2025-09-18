@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="040-load-ports-seed-data" author="reference-data">
+        <comment>Load initial ports data</comment>
+        
+        <!-- Use SQL to insert ports with proper UUID generation -->
+        <sql>
+            INSERT INTO reference_data.ports_v (
+                id, version, code_system_id, port_code, port_name,
+                city, state_province, country_code, latitude, longitude,
+                port_type, un_locode, cbp_port_code, timezone, is_active,
+                valid_from, valid_to, recorded_at, recorded_by, change_request_id, 
+                is_correction, metadata
+            )
+            SELECT 
+                gen_random_uuid(),
+                1,
+                (SELECT id FROM reference_data.code_system WHERE code = 'UN-LOCODE'),
+                data.port_code,
+                data.port_name,
+                data.city,
+                data.state_province,
+                data.country_code,
+                data.latitude,
+                data.longitude,
+                data.port_type,
+                SUBSTRING(data.port_code FROM 3),
+                data.cbp_port_code,
+                data.timezone,
+                true,
+                CURRENT_DATE,
+                NULL,
+                CURRENT_TIMESTAMP,
+                'system',
+                'SEED-003',
+                false,
+                jsonb_build_object('source', 'seed-data', 'imported_at', CURRENT_TIMESTAMP::text)
+            FROM (
+                VALUES
+                    ('USNYC', 'Port of New York and New Jersey', 'New York', 'NY', 'USA', 40.6700, -74.0400, 'Seaport', '1001', 'America/New_York'),
+                    ('USLAX', 'Port of Los Angeles', 'Los Angeles', 'CA', 'USA', 33.7400, -118.2700, 'Seaport', '2704', 'America/Los_Angeles'),
+                    ('USLGB', 'Port of Long Beach', 'Long Beach', 'CA', 'USA', 33.7500, -118.2000, 'Seaport', '2705', 'America/Los_Angeles'),
+                    ('USSEA', 'Port of Seattle', 'Seattle', 'WA', 'USA', 47.6200, -122.3500, 'Seaport', '3001', 'America/Los_Angeles'),
+                    ('USSAV', 'Port of Savannah', 'Savannah', 'GA', 'USA', 32.0833, -81.0833, 'Seaport', '1703', 'America/New_York'),
+                    ('USHOU', 'Port of Houston', 'Houston', 'TX', 'USA', 29.7604, -95.3698, 'Seaport', '5301', 'America/Chicago'),
+                    ('USMIA', 'Port of Miami', 'Miami', 'FL', 'USA', 25.7743, -80.1937, 'Seaport', '5201', 'America/New_York'),
+                    ('USNOR', 'Port of New Orleans', 'New Orleans', 'LA', 'USA', 29.9511, -90.0715, 'Seaport', '2002', 'America/Chicago'),
+                    ('USBAL', 'Port of Baltimore', 'Baltimore', 'MD', 'USA', 39.2667, -76.5833, 'Seaport', '1303', 'America/New_York'),
+                    ('USCHA', 'Port of Charleston', 'Charleston', 'SC', 'USA', 32.7833, -79.9333, 'Seaport', '1601', 'America/New_York'),
+                    ('GBLON', 'Port of London', 'London', NULL, 'GBR', 51.5074, -0.0278, 'Seaport', NULL, 'Europe/London'),
+                    ('DEHAM', 'Port of Hamburg', 'Hamburg', NULL, 'DEU', 53.5500, 9.9333, 'Seaport', NULL, 'Europe/Berlin'),
+                    ('NLRTM', 'Port of Rotterdam', 'Rotterdam', NULL, 'NLD', 51.9500, 4.1333, 'Seaport', NULL, 'Europe/Amsterdam'),
+                    ('BEANR', 'Port of Antwerp', 'Antwerp', NULL, 'BEL', 51.2333, 4.4667, 'Seaport', NULL, 'Europe/Brussels'),
+                    ('FRLEH', 'Port of Le Havre', 'Le Havre', NULL, 'FRA', 49.4900, 0.1000, 'Seaport', NULL, 'Europe/Paris'),
+                    ('CNSHA', 'Port of Shanghai', 'Shanghai', NULL, 'CHN', 31.2304, 121.4737, 'Seaport', NULL, 'Asia/Shanghai'),
+                    ('SGSIN', 'Port of Singapore', 'Singapore', NULL, 'SGP', 1.2655, 103.8186, 'Seaport', NULL, 'Asia/Singapore'),
+                    ('HKHKG', 'Port of Hong Kong', 'Hong Kong', NULL, 'CHN', 22.3000, 114.2000, 'Seaport', NULL, 'Asia/Hong_Kong'),
+                    ('JPTYO', 'Port of Tokyo', 'Tokyo', NULL, 'JPN', 35.6500, 139.8333, 'Seaport', NULL, 'Asia/Tokyo'),
+                    ('KRPUS', 'Port of Busan', 'Busan', NULL, 'KOR', 35.1028, 129.0403, 'Seaport', NULL, 'Asia/Seoul'),
+                    ('AEDXB', 'Port of Dubai', 'Dubai', NULL, 'ARE', 25.2769, 55.2962, 'Seaport', NULL, 'Asia/Dubai'),
+                    ('AUSYD', 'Port of Sydney', 'Sydney', 'NSW', 'AUS', -33.8688, 151.2093, 'Seaport', NULL, 'Australia/Sydney'),
+                    ('AUMEL', 'Port of Melbourne', 'Melbourne', 'VIC', 'AUS', -37.8167, 144.9500, 'Seaport', NULL, 'Australia/Melbourne'),
+                    ('CAHAL', 'Port of Halifax', 'Halifax', 'NS', 'CAN', 44.6500, -63.5667, 'Seaport', NULL, 'America/Halifax'),
+                    ('CAVAN', 'Port of Vancouver', 'Vancouver', 'BC', 'CAN', 49.2833, -123.1167, 'Seaport', NULL, 'America/Vancouver')
+            ) AS data(port_code, port_name, city, state_province, country_code, latitude, longitude, port_type, cbp_port_code, timezone);
+        </sql>
+        
+        <rollback>
+            <delete tableName="ports_v" schemaName="reference_data">
+                <where>change_request_id = 'SEED-003'</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

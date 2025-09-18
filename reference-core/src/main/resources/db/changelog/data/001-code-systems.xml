@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="010-insert-initial-code-systems" author="reference-data">
+        <insert tableName="code_system" schemaName="reference_data">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="code" value="ISO3166-1"/>
+            <column name="name" value="ISO 3166-1 Country Codes"/>
+            <column name="description" value="International standard for country codes"/>
+            <column name="owner" value="ISO"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        
+        <insert tableName="code_system" schemaName="reference_data">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="code" value="CBP-COUNTRY5"/>
+            <column name="name" value="CBP 5-Character Country Codes"/>
+            <column name="description" value="CBP internal country code system"/>
+            <column name="owner" value="CBP"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        
+        <insert tableName="code_system" schemaName="reference_data">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="code" value="IATA"/>
+            <column name="name" value="IATA Airport Codes"/>
+            <column name="description" value="International Air Transport Association airport codes"/>
+            <column name="owner" value="IATA"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        
+        <insert tableName="code_system" schemaName="reference_data">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="code" value="ICAO"/>
+            <column name="name" value="ICAO Airport Codes"/>
+            <column name="description" value="International Civil Aviation Organization airport codes"/>
+            <column name="owner" value="ICAO"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        
+        <insert tableName="code_system" schemaName="reference_data">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="code" value="UN-LOCODE"/>
+            <column name="name" value="UN/LOCODE Port Codes"/>
+            <column name="description" value="United Nations Code for Trade and Transport Locations"/>
+            <column name="owner" value="UNECE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        
+        <insert tableName="code_system" schemaName="reference_data">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="code" value="CBP-PORT"/>
+            <column name="name" value="CBP Port Codes"/>
+            <column name="description" value="CBP internal port code system"/>
+            <column name="owner" value="CBP"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Countries table indexes -->
+    <changeSet id="idx-001-countries-lookup" author="reference-data">
+        <createIndex tableName="countries_v" schemaName="reference_data" indexName="idx_countries_v_lookup">
+            <column name="country_code"/>
+            <column name="code_system_id"/>
+            <column name="valid_from"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Outbox events indexes -->
+    <changeSet id="idx-002-outbox-status" author="reference-data">
+        <createIndex tableName="outbox_events" schemaName="reference_data" indexName="idx_outbox_events_status">
+            <column name="status"/>
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Change requests indexes -->
+    <changeSet id="idx-003-change-requests-status" author="reference-data">
+        <createIndex tableName="change_requests" schemaName="reference_data" indexName="idx_change_requests_status">
+            <column name="status"/>
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+    
+    <changeSet id="idx-004-change-requests-requester" author="reference-data">
+        <createIndex tableName="change_requests" schemaName="reference_data" indexName="idx_change_requests_requester">
+            <column name="requester_id"/>
+        </createIndex>
+    </changeSet>
+    
+    <changeSet id="idx-005-change-requests-data-type" author="reference-data">
+        <createIndex tableName="change_requests" schemaName="reference_data" indexName="idx_change_requests_data_type">
+            <column name="data_type"/>
+            <column name="operation_type"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Validation rules indexes -->
+    <changeSet id="idx-006-validation-rules-type" author="reference-data">
+        <createIndex tableName="validation_rules" schemaName="reference_data" indexName="idx_validation_rules_type">
+            <column name="data_type"/>
+            <column name="rule_type"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Workflow instances indexes -->
+    <changeSet id="idx-007-workflow-instances-entity" author="reference-data">
+        <createIndex tableName="workflow_instances" schemaName="reference_data" indexName="idx_workflow_instances_entity">
+            <column name="entity_type"/>
+            <column name="entity_id"/>
+        </createIndex>
+    </changeSet>
+    
+    <changeSet id="idx-008-workflow-instances-status" author="reference-data">
+        <createIndex tableName="workflow_instances" schemaName="reference_data" indexName="idx_workflow_instances_status">
+            <column name="status"/>
+            <column name="started_at"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Data quality checks indexes -->
+    <changeSet id="idx-009-quality-checks-data-type" author="reference-data">
+        <createIndex tableName="data_quality_checks" schemaName="reference_data" indexName="idx_quality_checks_data_type">
+            <column name="data_type"/>
+            <column name="executed_at"/>
+        </createIndex>
+    </changeSet>
+    
+    <changeSet id="idx-010-quality-checks-status" author="reference-data">
+        <createIndex tableName="data_quality_checks" schemaName="reference_data" indexName="idx_quality_checks_status">
+            <column name="status"/>
+            <column name="failure_rate"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

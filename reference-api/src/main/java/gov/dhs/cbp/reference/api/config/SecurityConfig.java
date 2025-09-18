@@ -1,6 +1,7 @@
 package gov.dhs.cbp.reference.api.config;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
@@ -26,33 +27,38 @@ import java.util.stream.Collectors;
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
-    
-    @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
+
+    @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:}")
     private String issuerUri;
-    
+
+    @Value("${spring.security.enabled:false}")
+    private boolean securityEnabled;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(authz -> authz
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
+        if (!securityEnabled) {
+            // When security is disabled, permit all requests without authentication
+            http.authorizeHttpRequests(authz -> authz
+                .anyRequest().permitAll());
+        } else {
+            // When security is enabled, require authentication except for health endpoints
+            http.authorizeHttpRequests(authz -> authz
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                .requestMatchers("/health", "/v1/health").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/error").permitAll()
-                .requestMatchers("/v1/countries/**").hasAnyRole("USER", "ADMIN")
-                .requestMatchers("/v1/ports/**").hasAnyRole("USER", "ADMIN")
-                .requestMatchers("/v1/airports/**").hasAnyRole("USER", "ADMIN")
-                .requestMatchers("/v1/carriers/**").hasAnyRole("USER", "ADMIN")
-                .requestMatchers("/v1/translate/**").hasAnyRole("USER", "ADMIN")
-                .requestMatchers("/v1/admin/**").hasRole("ADMIN")
-                .requestMatchers("/v1/workflow/**").hasRole("CURATOR")
                 .anyRequest().authenticated())
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt
                     .jwtAuthenticationConverter(jwtAuthenticationConverter())));
-        
+        }
+
         return http.build();
     }
     

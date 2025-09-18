@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="002-create-code-system-table" author="reference-data">
+        <createTable tableName="code_system" schemaName="reference_data">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="code" type="VARCHAR(50)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="owner" type="VARCHAR(100)"/>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="009-create-code-mapping-table" author="reference-data">
+        <createTable tableName="code_mapping" schemaName="reference_data">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="version" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="from_system_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="from_code" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="to_system_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="to_code" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="rule_id" type="VARCHAR(100)"/>
+            <column name="confidence" type="DECIMAL(5,2)" defaultValueNumeric="100.00"/>
+            <column name="mapping_type" type="VARCHAR(50)"/>
+            <column name="is_deprecated" type="BOOLEAN" defaultValueBoolean="false"/>
+            <column name="deprecation_reason" type="TEXT"/>
+            <column name="valid_from" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="valid_to" type="DATE"/>
+            <column name="recorded_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="recorded_by" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="change_request_id" type="VARCHAR(100)"/>
+            <column name="is_correction" type="BOOLEAN" defaultValueBoolean="false"/>
+            <column name="metadata" type="JSONB"/>
+        </createTable>
+        
+        <addForeignKeyConstraint baseTableName="code_mapping" 
+                                 baseColumnNames="from_system_id"
+                                 baseTableSchemaName="reference_data"
+                                 referencedTableName="code_system"
+                                 referencedColumnNames="id"
+                                 referencedTableSchemaName="reference_data"
+                                 constraintName="fk_mapping_from_system"/>
+                                 
+        <addForeignKeyConstraint baseTableName="code_mapping" 
+                                 baseColumnNames="to_system_id"
+                                 baseTableSchemaName="reference_data"
+                                 referencedTableName="code_system"
+                                 referencedColumnNames="id"
+                                 referencedTableSchemaName="reference_data"
+                                 constraintName="fk_mapping_to_system"/>
+    </changeSet>
+
+</databaseChangeLog>

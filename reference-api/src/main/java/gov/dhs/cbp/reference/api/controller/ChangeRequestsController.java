@@ -14,7 +14,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -37,7 +36,6 @@ public class ChangeRequestsController {
     @Operation(summary = "Get change requests with pagination",
                description = "Retrieve paginated list of change requests with optional filtering")
     @ApiResponse(responseCode = "200", description = "Change requests retrieved successfully")
-    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<PagedResponse<ChangeRequestDto>> getChangeRequests(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String requestor,
@@ -80,7 +78,6 @@ public class ChangeRequestsController {
                description = "Retrieve a specific change request by its unique identifier")
     @ApiResponse(responseCode = "200", description = "Change request found")
     @ApiResponse(responseCode = "404", description = "Change request not found")
-    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ChangeRequestDto> getChangeRequestById(@PathVariable UUID id) {
         return changeRequestService.findById(id)
                 .map(ResponseEntity::ok)
@@ -92,7 +89,6 @@ public class ChangeRequestsController {
                description = "Create a new change request for review")
     @ApiResponse(responseCode = "201", description = "Change request created successfully")
     @ApiResponse(responseCode = "400", description = "Invalid change request data")
-    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ChangeRequestDto> createChangeRequest(@Valid @RequestBody ChangeRequestDto changeRequestDto) {
         ChangeRequestDto created = changeRequestService.create(changeRequestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
@@ -104,7 +100,6 @@ public class ChangeRequestsController {
     @ApiResponse(responseCode = "200", description = "Change request updated successfully")
     @ApiResponse(responseCode = "404", description = "Change request not found")
     @ApiResponse(responseCode = "409", description = "Change request cannot be updated in current status")
-    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ChangeRequestDto> updateChangeRequest(
             @PathVariable UUID id,
             @Valid @RequestBody ChangeRequestDto changeRequestDto) {
@@ -120,7 +115,6 @@ public class ChangeRequestsController {
     @ApiResponse(responseCode = "200", description = "Change request approved successfully")
     @ApiResponse(responseCode = "404", description = "Change request not found")
     @ApiResponse(responseCode = "409", description = "Change request cannot be approved in current status")
-    @PreAuthorize("hasRole('APPROVER')")
     public ResponseEntity<ChangeRequestDto> approveChangeRequest(
             @PathVariable UUID id,
             @RequestParam(required = false) String comments) {
@@ -136,7 +130,6 @@ public class ChangeRequestsController {
     @ApiResponse(responseCode = "200", description = "Change request rejected successfully")
     @ApiResponse(responseCode = "404", description = "Change request not found")
     @ApiResponse(responseCode = "409", description = "Change request cannot be rejected in current status")
-    @PreAuthorize("hasRole('APPROVER')")
     public ResponseEntity<ChangeRequestDto> rejectChangeRequest(
             @PathVariable UUID id,
             @RequestParam String reason) {
@@ -152,7 +145,6 @@ public class ChangeRequestsController {
     @ApiResponse(responseCode = "200", description = "Change request cancelled successfully")
     @ApiResponse(responseCode = "404", description = "Change request not found")
     @ApiResponse(responseCode = "409", description = "Change request cannot be cancelled in current status")
-    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ChangeRequestDto> cancelChangeRequest(@PathVariable UUID id) {
         return changeRequestService.cancel(id)
                 .map(ResponseEntity::ok)
@@ -163,7 +155,6 @@ public class ChangeRequestsController {
     @Operation(summary = "Get pending change requests",
                description = "Retrieve all pending change requests for review")
     @ApiResponse(responseCode = "200", description = "Pending change requests retrieved successfully")
-    @PreAuthorize("hasRole('APPROVER')")
     public ResponseEntity<List<ChangeRequestDto>> getPendingChangeRequests() {
         List<ChangeRequestDto> pending = changeRequestService.findPending();
         return ResponseEntity.ok(pending);
@@ -173,7 +164,6 @@ public class ChangeRequestsController {
     @Operation(summary = "Get high priority pending requests",
                description = "Retrieve high priority change requests that need immediate attention")
     @ApiResponse(responseCode = "200", description = "High priority requests retrieved successfully")
-    @PreAuthorize("hasRole('APPROVER')")
     public ResponseEntity<List<ChangeRequestDto>> getHighPriorityRequests() {
         List<ChangeRequestDto> highPriority = changeRequestService.findHighPriorityPending();
         return ResponseEntity.ok(highPriority);
@@ -183,7 +173,6 @@ public class ChangeRequestsController {
     @Operation(summary = "Get current user's change requests",
                description = "Retrieve change requests submitted by the current user")
     @ApiResponse(responseCode = "200", description = "User's change requests retrieved successfully")
-    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<PagedResponse<ChangeRequestDto>> getMyChangeRequests(
             @RequestParam(required = false, defaultValue = "0") int page,
             @RequestParam(required = false, defaultValue = "20") int size,
@@ -206,7 +195,6 @@ public class ChangeRequestsController {
     @Operation(summary = "Get change request statistics",
                description = "Retrieve statistics about change requests")
     @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> getStatistics() {
         Map<String, Object> stats = changeRequestService.getStatistics();
         return ResponseEntity.ok(stats);

@@ -11,7 +11,7 @@ import java.util.UUID;
 @Table(name = "change_requests", schema = "reference_data",
        indexes = {
            @Index(name = "idx_change_request_status", columnList = "status"),
-           @Index(name = "idx_change_request_requestor", columnList = "requestor"),
+           @Index(name = "idx_change_request_requestor", columnList = "requester_id"),
            @Index(name = "idx_change_request_type", columnList = "change_type,entity_type"),
            @Index(name = "idx_change_request_created", columnList = "created_at")
        })
@@ -23,17 +23,27 @@ public class ChangeRequest {
     private UUID id;
     
     @NotBlank
-    @Size(max = 100)
-    @Column(name = "change_type", nullable = false, length = 100)
-    private String changeType; // CREATE, UPDATE, DELETE, DEPRECATE
+    @Size(max = 50)
+    @Column(name = "cr_number", nullable = false, unique = true, length = 50)
+    private String crNumber;
+
+    @NotBlank
+    @Size(max = 255)
+    @Column(name = "title", nullable = false, length = 255)
+    private String title;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
+    @NotBlank
+    @Size(max = 20)
+    @Column(name = "operation_type", nullable = false, length = 20)
+    private String operationType; // CREATE, UPDATE, DELETE, DEPRECATE
     
     @NotBlank
-    @Size(max = 100)
-    @Column(name = "entity_type", nullable = false, length = 100)
-    private String entityType; // COUNTRY, PORT, AIRPORT, CARRIER, CODE_MAPPING
-    
-    @Column(name = "entity_id")
-    private UUID entityId;
+    @Size(max = 50)
+    @Column(name = "data_type", nullable = false, length = 50)
+    private String dataType; // COUNTRY, PORT, AIRPORT, CARRIER, CODE_MAPPING
     
     @Column(name = "proposed_changes", columnDefinition = "jsonb")
     private String proposedChanges;
@@ -48,26 +58,30 @@ public class ChangeRequest {
     
     @NotBlank
     @Size(max = 100)
-    @Column(name = "requestor", nullable = false, length = 100)
-    private String requestor;
+    @Column(name = "requester_id", nullable = false, length = 100)
+    private String requesterId;
+
+    @Size(max = 100)
+    @Column(name = "assignee_id", length = 100)
+    private String assigneeId;
     
     @Size(max = 100)
-    @Column(name = "approver", length = 100)
-    private String approver;
+    @Column(name = "approved_by", length = 100)
+    private String approvedBy;
     
-    @Size(max = 500)
-    @Column(name = "justification", length = 500)
-    private String justification;
+    @Column(name = "business_justification", columnDefinition = "TEXT")
+    private String businessJustification;
     
     @Size(max = 500)
     @Column(name = "rejection_reason", length = 500)
     private String rejectionReason;
     
-    @Column(name = "priority")
-    private Integer priority = 3; // 1=High, 2=Medium, 3=Low, 4=Deferred
+    @Size(max = 10)
+    @Column(name = "priority", length = 10)
+    private String priority = "MEDIUM"; // HIGH, MEDIUM, LOW
     
-    @Column(name = "effective_date")
-    private LocalDateTime effectiveDate;
+    @Column(name = "submitted_at")
+    private LocalDateTime submittedAt;
     
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -78,11 +92,21 @@ public class ChangeRequest {
     @Column(name = "approved_at")
     private LocalDateTime approvedAt;
     
-    @Column(name = "applied_at")
-    private LocalDateTime appliedAt;
+    @Column(name = "implemented_at")
+    private LocalDateTime implementedAt;
+
+    @Column(name = "implemented_by", length = 100)
+    private String implementedBy;
+
+    @Column(name = "rejected_at")
+    private LocalDateTime rejectedAt;
+
+    @Column(name = "rejected_by", length = 100)
+    private String rejectedBy;
+
+    @Column(name = "approval_data", columnDefinition = "jsonb")
+    private String approvalData;
     
-    @Column(name = "external_ticket_id", length = 100)
-    private String externalTicketId;
     
     @Column(name = "workflow_instance_id", length = 100)
     private String workflowInstanceId;
@@ -95,8 +119,8 @@ public class ChangeRequest {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }
-        if (effectiveDate == null) {
-            effectiveDate = LocalDateTime.now();
+        if (submittedAt == null) {
+            submittedAt = LocalDateTime.now();
         }
     }
     
@@ -130,28 +154,44 @@ public class ChangeRequest {
         this.id = id;
     }
     
-    public String getChangeType() {
-        return changeType;
+    public String getCrNumber() {
+        return crNumber;
     }
-    
-    public void setChangeType(String changeType) {
-        this.changeType = changeType;
+
+    public void setCrNumber(String crNumber) {
+        this.crNumber = crNumber;
     }
-    
-    public String getEntityType() {
-        return entityType;
+
+    public String getTitle() {
+        return title;
     }
-    
-    public void setEntityType(String entityType) {
-        this.entityType = entityType;
+
+    public void setTitle(String title) {
+        this.title = title;
     }
-    
-    public UUID getEntityId() {
-        return entityId;
+
+    public String getDescription() {
+        return description;
     }
-    
-    public void setEntityId(UUID entityId) {
-        this.entityId = entityId;
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getOperationType() {
+        return operationType;
+    }
+
+    public void setOperationType(String operationType) {
+        this.operationType = operationType;
+    }
+
+    public String getDataType() {
+        return dataType;
+    }
+
+    public void setDataType(String dataType) {
+        this.dataType = dataType;
     }
     
     public String getProposedChanges() {
@@ -178,28 +218,36 @@ public class ChangeRequest {
         this.status = status;
     }
     
-    public String getRequestor() {
-        return requestor;
+    public String getRequesterId() {
+        return requesterId;
+    }
+
+    public void setRequesterId(String requesterId) {
+        this.requesterId = requesterId;
+    }
+
+    public String getAssigneeId() {
+        return assigneeId;
+    }
+
+    public void setAssigneeId(String assigneeId) {
+        this.assigneeId = assigneeId;
+    }
+
+    public String getApprovedBy() {
+        return approvedBy;
+    }
+
+    public void setApprovedBy(String approvedBy) {
+        this.approvedBy = approvedBy;
     }
     
-    public void setRequestor(String requestor) {
-        this.requestor = requestor;
+    public String getBusinessJustification() {
+        return businessJustification;
     }
-    
-    public String getApprover() {
-        return approver;
-    }
-    
-    public void setApprover(String approver) {
-        this.approver = approver;
-    }
-    
-    public String getJustification() {
-        return justification;
-    }
-    
-    public void setJustification(String justification) {
-        this.justification = justification;
+
+    public void setBusinessJustification(String businessJustification) {
+        this.businessJustification = businessJustification;
     }
     
     public String getRejectionReason() {
@@ -210,20 +258,20 @@ public class ChangeRequest {
         this.rejectionReason = rejectionReason;
     }
     
-    public Integer getPriority() {
+    public String getPriority() {
         return priority;
     }
-    
-    public void setPriority(Integer priority) {
+
+    public void setPriority(String priority) {
         this.priority = priority;
     }
     
-    public LocalDateTime getEffectiveDate() {
-        return effectiveDate;
+    public LocalDateTime getSubmittedAt() {
+        return submittedAt;
     }
-    
-    public void setEffectiveDate(LocalDateTime effectiveDate) {
-        this.effectiveDate = effectiveDate;
+
+    public void setSubmittedAt(LocalDateTime submittedAt) {
+        this.submittedAt = submittedAt;
     }
     
     public LocalDateTime getCreatedAt() {
@@ -250,20 +298,44 @@ public class ChangeRequest {
         this.approvedAt = approvedAt;
     }
     
-    public LocalDateTime getAppliedAt() {
-        return appliedAt;
+    public LocalDateTime getImplementedAt() {
+        return implementedAt;
     }
-    
-    public void setAppliedAt(LocalDateTime appliedAt) {
-        this.appliedAt = appliedAt;
+
+    public void setImplementedAt(LocalDateTime implementedAt) {
+        this.implementedAt = implementedAt;
     }
-    
-    public String getExternalTicketId() {
-        return externalTicketId;
+
+    public String getImplementedBy() {
+        return implementedBy;
     }
-    
-    public void setExternalTicketId(String externalTicketId) {
-        this.externalTicketId = externalTicketId;
+
+    public void setImplementedBy(String implementedBy) {
+        this.implementedBy = implementedBy;
+    }
+
+    public LocalDateTime getRejectedAt() {
+        return rejectedAt;
+    }
+
+    public void setRejectedAt(LocalDateTime rejectedAt) {
+        this.rejectedAt = rejectedAt;
+    }
+
+    public String getRejectedBy() {
+        return rejectedBy;
+    }
+
+    public void setRejectedBy(String rejectedBy) {
+        this.rejectedBy = rejectedBy;
+    }
+
+    public String getApprovalData() {
+        return approvalData;
+    }
+
+    public void setApprovalData(String approvalData) {
+        this.approvalData = approvalData;
     }
     
     public String getWorkflowInstanceId() {

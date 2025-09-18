@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/health")
+@RequestMapping("/v1/health")
 @Tag(name = "Health", description = "Health check endpoints")
 public class HealthController {
     

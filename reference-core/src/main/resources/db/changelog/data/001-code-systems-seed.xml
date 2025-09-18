@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="010-load-code-systems-seed-data" author="reference-data">
+        <comment>Load initial code systems data</comment>
+
+        <sql>
+            INSERT INTO reference_data.code_system (id, code, name, description, owner, is_active, created_at, updated_at)
+            VALUES
+                (gen_random_uuid(), 'ISO3166-1', 'ISO 3166-1', 'ISO Country Codes', 'ISO', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+                (gen_random_uuid(), 'IATA', 'IATA Airport Codes', 'International Air Transport Association airport codes', 'IATA', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+                (gen_random_uuid(), 'ICAO', 'ICAO Airport Codes', 'International Civil Aviation Organization airport codes', 'ICAO', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+                (gen_random_uuid(), 'UN-LOCODE', 'UN Location Codes', 'United Nations Location Codes for trade and transport', 'UN', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+        </sql>
+
+        <rollback>
+            <delete tableName="code_system" schemaName="reference_data">
+                <where>code IN ('ISO3166-1', 'IATA', 'ICAO', 'UN-LOCODE')</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

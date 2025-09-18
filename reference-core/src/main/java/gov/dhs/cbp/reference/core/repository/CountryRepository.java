@@ -101,4 +101,9 @@ public interface CountryRepository extends BitemporalRepository<Country> {
     @Query("SELECT c FROM Country c WHERE " +
            "LOWER(c.countryName) LIKE LOWER(CONCAT('%', :pattern, '%'))")
     List<Country> findByCountryNameContainingIgnoreCase(@Param("pattern") String pattern);
+
+    @Query("SELECT c FROM Country c WHERE " +
+           "(c.validTo IS NULL OR c.validTo > CURRENT_DATE) " +
+           "ORDER BY c.countryCode")
+    List<Country> findAllCurrent();
 }

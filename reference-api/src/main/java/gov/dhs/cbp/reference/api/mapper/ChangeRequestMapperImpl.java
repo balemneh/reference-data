@@ -19,22 +19,32 @@ public class ChangeRequestMapperImpl implements ChangeRequestMapper {
 
         ChangeRequestDto dto = new ChangeRequestDto();
         dto.setId(entity.getId());
-        dto.setChangeType(entity.getChangeType());
-        dto.setEntityType(entity.getEntityType());
-        dto.setEntityId(entity.getEntityId());
-        dto.setRequestor(entity.getRequestor());
-        dto.setApprover(entity.getApprover());
+        dto.setChangeType(entity.getOperationType());
+        dto.setEntityType(entity.getDataType());
+        dto.setEntityId(null); // No longer in entity
+        dto.setRequestor(entity.getRequesterId());
+        dto.setApprover(entity.getApprovedBy());
         dto.setStatus(entity.getStatus());
-        dto.setPriority(entity.getPriority());
-        dto.setJustification(entity.getJustification());
+        // Convert priority from String to Integer
+        String priority = entity.getPriority();
+        if ("HIGH".equals(priority)) {
+            dto.setPriority(1);
+        } else if ("MEDIUM".equals(priority)) {
+            dto.setPriority(2);
+        } else if ("LOW".equals(priority)) {
+            dto.setPriority(3);
+        } else {
+            dto.setPriority(2); // Default to MEDIUM
+        }
+        dto.setJustification(entity.getBusinessJustification());
         dto.setRejectionReason(entity.getRejectionReason());
         dto.setProposedChanges(entity.getProposedChanges());
         dto.setCurrentValues(entity.getCurrentValues());
-        dto.setExternalTicketId(entity.getExternalTicketId());
+        dto.setExternalTicketId(null); // No longer in entity
         dto.setWorkflowInstanceId(entity.getWorkflowInstanceId());
         dto.setApprovedAt(entity.getApprovedAt());
-        dto.setAppliedAt(entity.getAppliedAt());
-        dto.setEffectiveDate(entity.getEffectiveDate());
+        dto.setAppliedAt(entity.getImplementedAt());
+        dto.setEffectiveDate(entity.getSubmittedAt());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
         return dto;
@@ -47,22 +57,32 @@ public class ChangeRequestMapperImpl implements ChangeRequestMapper {
         }
 
         ChangeRequest entity = new ChangeRequest();
-        entity.setChangeType(dto.getChangeType());
-        entity.setEntityType(dto.getEntityType());
-        entity.setEntityId(dto.getEntityId());
-        entity.setRequestor(dto.getRequestor());
-        entity.setApprover(dto.getApprover());
+        entity.setOperationType(dto.getChangeType());
+        entity.setDataType(dto.getEntityType());
+        // entity.setEntityId not available
+        entity.setRequesterId(dto.getRequestor());
+        entity.setApprovedBy(dto.getApprover());
         entity.setStatus(dto.getStatus());
-        entity.setPriority(dto.getPriority());
-        entity.setJustification(dto.getJustification());
+        // Convert priority from Integer to String
+        Integer priority = dto.getPriority();
+        if (priority == null || priority == 2) {
+            entity.setPriority("MEDIUM");
+        } else if (priority == 1) {
+            entity.setPriority("HIGH");
+        } else if (priority == 3) {
+            entity.setPriority("LOW");
+        } else {
+            entity.setPriority("MEDIUM");
+        }
+        entity.setBusinessJustification(dto.getJustification());
         entity.setRejectionReason(dto.getRejectionReason());
         entity.setProposedChanges(dto.getProposedChanges());
         entity.setCurrentValues(dto.getCurrentValues());
-        entity.setExternalTicketId(dto.getExternalTicketId());
+        // entity.setExternalTicketId not available
         entity.setWorkflowInstanceId(dto.getWorkflowInstanceId());
         entity.setApprovedAt(dto.getApprovedAt());
-        entity.setAppliedAt(dto.getAppliedAt());
-        entity.setEffectiveDate(dto.getEffectiveDate());
+        entity.setImplementedAt(dto.getAppliedAt());
+        entity.setSubmittedAt(dto.getEffectiveDate());
         return entity;
     }
 
@@ -92,21 +112,31 @@ public class ChangeRequestMapperImpl implements ChangeRequestMapper {
             return;
         }
         
-        entity.setChangeType(dto.getChangeType());
-        entity.setEntityType(dto.getEntityType());
-        entity.setEntityId(dto.getEntityId());
-        entity.setRequestor(dto.getRequestor());
-        entity.setApprover(dto.getApprover());
+        entity.setOperationType(dto.getChangeType());
+        entity.setDataType(dto.getEntityType());
+        // entity.setEntityId not available
+        entity.setRequesterId(dto.getRequestor());
+        entity.setApprovedBy(dto.getApprover());
         entity.setStatus(dto.getStatus());
-        entity.setPriority(dto.getPriority());
-        entity.setJustification(dto.getJustification());
+        // Convert priority from Integer to String
+        Integer priority = dto.getPriority();
+        if (priority == null || priority == 2) {
+            entity.setPriority("MEDIUM");
+        } else if (priority == 1) {
+            entity.setPriority("HIGH");
+        } else if (priority == 3) {
+            entity.setPriority("LOW");
+        } else {
+            entity.setPriority("MEDIUM");
+        }
+        entity.setBusinessJustification(dto.getJustification());
         entity.setRejectionReason(dto.getRejectionReason());
         entity.setProposedChanges(dto.getProposedChanges());
         entity.setCurrentValues(dto.getCurrentValues());
-        entity.setExternalTicketId(dto.getExternalTicketId());
+        // entity.setExternalTicketId not available
         entity.setWorkflowInstanceId(dto.getWorkflowInstanceId());
         entity.setApprovedAt(dto.getApprovedAt());
-        entity.setAppliedAt(dto.getAppliedAt());
-        entity.setEffectiveDate(dto.getEffectiveDate());
+        entity.setImplementedAt(dto.getAppliedAt());
+        entity.setSubmittedAt(dto.getEffectiveDate());
     }
 }

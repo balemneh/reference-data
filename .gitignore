@@ -1,0 +1,95 @@
+# Maven
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.iml
+.mvn/
+mvnw.cmd
+
+# Gradle
+.gradle/
+build/
+
+# IDE
+.idea/
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+log/
+
+# Node (for frontend)
+node_modules/
+dist/
+.angular/
+.sass-cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Test/Development files
+mock-*.js
+check_*.js
+*-test.js
+SimpleSystemConfigApp.*
+test-output/
+coverage/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.pid
+*.seed
+*.pid.lock
+
+# Docker
+*.dockerignore.local
+
+# Screenshots and images from testing
+*.png
+!frontend/src/assets/**/*.png
+
+# Database
+*.db
+*.sqlite
+*.h2.db
+
+# Package files
+*.7z
+*.dmg
+*.gz
+*.iso
+*.rar
+*.tar
+*.zip
+
+# Python (if any scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
