@@ -1,0 +1,101 @@
+iata_code,icao_code,airport_name,city,country_code,latitude,longitude,elevation
+UTK,,Utirik Airport,Utirik Island,MH,11.222219,169.851429,4
+OCA,,Ocean Reef Club Airport,Key Largo,US,25.325399398804,-80.274803161621,8
+CSE,,Crested Butte Airpark,Crested Butte,US,38.851918,-106.928341,8980
+CUS,,Columbus Airport,Columbus,US,31.823898,-107.629924,4024
+JCY,,LBJ Ranch Airport,Stonewall,US,30.251801,-98.622498,1515
+WLR,,Loring Seaplane Base,Loring,US,55.601299,-131.636993,
+NUP,,Nunapitchuk Airport,Nunapitchuk,US,60.905591,-162.440454,12
+PTC,,Port Alice Seaplane Base,Port Alice,US,55.803,-133.597,0
+ICY,,Icy Bay Airport,Icy Bay,US,59.966269,-141.660118,50
+PPV,,Port Protection Seaplane Base,Port Protection,US,56.328800201416,-133.61000061035,0
+KKK,,Kalakaket Creek AS Airport,Kalakaket Creek,US,64.4166256967,-156.820392609,1598
+MHS,,Dunsmuir Muni-Mott Airport,Dunsmuir,US,41.263199,-122.272003,3258
+NIR,,Chase Field Industrial Airport,Beeville,US,28.362444,-97.661917,190
+GCT,,Grand Canyon Bar Ten Airstrip,Littlefield,US,36.257984,-113.231063,4100
+ELW,,Ellamar Seaplane Base,Ellamar,US,60.893818,-146.704038,0
+LVD,,Lime Village Airport,Lime Village,US,61.3591003418,-155.440002441,552
+HGZ,,Hog River Airport,Hogatza,US,66.176133,-155.684816,534
+OTN,,Ed-Air Airport,Oaktown,US,38.851782,-87.49987,426
+TLF,,Telida Airport,Telida,US,63.393901824951,-153.26899719238,650
+BZT,,Eagle Air Park,Brazoria,US,28.982200622559,-95.579696655273,15
+HBH,,Entrance Island Seaplane Base,Entrance Island,US,57.412201,-133.43848,0
+FAK,,False Island Seaplane Base,False Island,US,57.5321998596,-135.212997437,
+BYW,,Blakely Island Airport,Blakely Island,US,48.579162,-122.823844,66
+DRF,,Drift River Airport,Kenai,US,60.588901519800004,-152.162002563,30
+BDF,,Rinkenberger Restricted Landing Area,Bradford,US,41.230899810800004,-89.61569976810001,808
+TEH,,Tetlin Airport,Tetlin,US,63.124618,-142.518005,1663
+VRS,,Roy Otten Memorial Airfield,Versailles,US,38.427799224854,-92.875198364258,1030
+GDH,,Golden Horn Lodge Seaplane Base,Golden Horn Lodge,US,59.7470016479,-158.875,91
+ATT,,Atmautluak Airport,Atmautluak,US,60.866699,-162.272996,17
+LIV,,Livengood Camp Airport,Livengood,US,65.467,-148.6534,425
+PDB,,Pedro Bay Airport,Pedro Bay,US,59.796925,-154.129994,45
+KOZ,,Ouzinkie Airport,Ouzinkie,US,57.942094,-152.464314,55
+TNK,,Tununak Airport,Tununak,US,60.569638,-165.246649,14
+WHD,,Hyder Seaplane Base,Hyder,US,55.903324,-130.009975,
+MNT,,Minto Al Wright Airport,Minto,US,65.147991,-149.368658,460
+TKI,,Tokeen Seaplane Base,Tokeen,US,55.9370994568,-133.32699585,
+WKK,,Aleknagik / New Airport,Aleknagik,US,59.2826004028,-158.617996216,66
+WFB,,Ketchikan Harbor Seaplane Base,Ketchikan,US,55.349899,-131.677002,
+RFK,,Rollang Field,Rolling Fork,US,32.953543,-90.845144,106
+NNK,,Naknek Airport,Naknek,US,58.735633,-157.02216,70
+BKF,,Lake Brooks Seaplane Base,Katmai National Park,US,58.554798,-155.776993,36
+BCS,,Southern Seaplane Airport,Belle Chasse,US,29.866078,-90.021608,
+MMN,,Minute Man Air Field,Stow,US,42.460298,-71.519031,268
+SPQ,,Catalina Air-Sea Terminal Heliport,San Pedro,US,33.7491989136,-118.275001526,5
+TSS,,East 34th Street Heliport,New York,US,40.742372,-73.972074,10
+NYS,,New York Skyports Inc Seaplane Base,New York,US,40.735061,-73.972814,
+BWL,,Earl Henry Airport,Blackwell,US,36.7958984375,-97.3170013428,1054
+WYB,,Yes Bay Lodge Seaplane Base,Yes Bay,US,55.9163017273,-131.800994873,
+CWS,,Center Island Airport,Center Island,US,48.490046,-122.831612,115
+TEK,,Tatitlek Airport,Tatitlek,US,60.871449,-146.690297,62
+DUF,,Pine Island Airport,Corolla,US,36.252744,-75.785256,16
+SSW,,Stuart Island Airpark,Friday Harbor,US,48.673379,-123.175439,10
+FOB,,Fort Bragg Airport,Fort Bragg,US,39.472445,-123.795319,71
+PUL,,Port of Poulsbo Marina Moorage Seaplane Base,Poulsbo,US,47.734001159668,-122.64700317383,0
+CCD,,Century City Heliport,Los Angeles,US,34.060798645,-118.417999268,473
+WMK,,Meyers Chuck Seaplane Base,Meyers Chuck,US,55.7396011353,-132.255004883,0
+AXB,,Maxson Airfield,Alexandria Bay,US,44.312002,-75.90034,340
+REE,,Reese Airpark,Lubbock,US,33.590301513672,-102.03700256348,3338
+WDN,,Waldron Airstrip,Eastsound,US,48.71141,-123.018208,140
+WWP,,Whale Pass Seaplane Float Harbor Facility,Whale Pass,US,56.116299,-133.121994,
+CHU,,Chuathbaluk Airport,Chuathbaluk,US,61.579102,-159.216003,244
+UGS,,Ugashik Airport,Ugashik,US,57.523476,-157.396344,25
+JID,,Recreation and Conference Center Heliport,City of Industry,US,34.020472,-117.927396,701
+PSQ,,Philadelphia Seaplane Base,Essington,US,39.859001159668,-75.299598693848,0
+KLL,,Levelock Airport,Levelock,US,59.12606,-156.860906,39
+SGW,,Saginaw Seaplane Base,Saginaw Bay,US,56.8862991333,-134.158004761,0
+WTL,,Tuntutuliak Airport,Tuntutuliak,US,60.351243,-162.654476,16
+TWA,,Twin Hills Airport,Twin Hills,US,59.074713,-160.274992,82
+KCQ,,Chignik Lake Airport,Chignik Lake,US,56.2550010681,-158.774993896,50
+AAD,HCAD,Adado Airport,Adado,SO,6.095802,46.6375,1001
+ABP,,Atkamba Airport,Atkamba Mission,PG,-6.06462,141.095173,150
+ACM,,Arica Airport,Arica,CO,-2.143713,-71.75935,316
+ADV,,El Daein Airport,El Daein,SD,11.4023,26.1186,1560
+AEE,,Adareil Airport,Adar,SS,10.053611,32.959444,1301
+AEQ,,Ar Horqin Airport,Chifeng,CN,43.908407,120.15099,1335
+,OATD,Toorghodi Heliport,Kara Tapa,AF,35.222198,62.2906,2600
+,OAAK,Andkhoy Airport,Andkhoy,AF,36.942659,65.206746,900
+,OALG,Logar Airport,,AF,33.9865,69.023102,6333
+,OAMK,Muqur Airport,Muqur,AF,32.879601,67.848602,6600
+,OAPJ,Panjab Airport,Panjab,AF,34.391726,67.020445,8800
+,OATW,Taywarah Airport,Taywarah,AF,33.54309,64.42542,7370
+AFK,,Kondavattavana Tank Seaplane Base,Ampara,LK,7.284,81.644,95
+AFT,AGAF,Afutara Aerodrome,Bila,SB,-9.191389,160.948611,23
+RNA,AGAR,Ulawa Airport,Arona,SB,-9.86054358262,161.979546547,40
+ATD,AGAT,Uru Harbour Airport,Atoifi,SB,-8.87333,161.011002,
+VEV,AGBA,Barakoma Airport,Barakoma,SB,-7.912779808044434,156.70599365234375,
+BPF,AGBT,Batuna Aerodrome,Batuna Mission Station,SB,-8.56202777778,158.119305556,24
+GEF,AGEV,Geva Airport,Liangia,SB,-7.575829982757568,156.5970001220703,
+AGG,,Angoram Airport,Angoram,PG,-4.057077,144.073841,75
+AKS,AGGA,Gwaunaru'u Airport,Auki,SB,-8.70257,160.682007,5
+BNY,AGGB,Bellona/Anua Airport,Anua,SB,-11.302222222200001,159.798333333,60
+CHY,AGGC,Choiseul Bay Airport,Choiseul Bay,SB,-6.711944,156.396111,
+BAS,AGGE,Ballalae Airport,Ballalae,SB,-6.990745,155.886656,5
+FRE,AGGF,Fera/Maringe Airport,Fera Island,SB,-8.1075,159.576996,
+HIR,AGGH,Honiara International Airport,Honiara,SB,-9.428,160.054993,28
+MBU,AGGI,Babanakira Airport,Mbambanakira,SB,-9.7475,159.839005,
+AVU,AGGJ,Avu Avu Airport,Avu Avu,SB,-9.868333,160.410556,25
+IRA,AGGK,Ngorangora Airport,Kirakira,SB,-10.449700355500001,161.897994995,54
+SCZ,AGGL,Santa Cruz/Graciosa Bay/Luova Airport,Santa Cruz/Graciosa Bay/Luova,SB,-10.7203,165.794998,18
+MUA,AGGM,Munda Airport,Munda,SB,-8.32797,157.263,10

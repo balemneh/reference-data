@@ -1,0 +1,52 @@
+port_code,port_name,city,country_code,latitude,longitude,port_type
+USSEA,Port of Seattle,Seattle,US,47.6062,-122.3321,seaport
+USLAX,Port of Los Angeles,Los Angeles,US,33.7545,-118.2528,seaport
+USNYC,Port of New York and New Jersey,New York,US,40.6693,-74.0283,seaport
+USHOU,Port of Houston,Houston,US,29.7604,-95.3698,seaport
+USLGB,Port of Long Beach,Long Beach,US,33.7701,-118.1937,seaport
+USOAK,Port of Oakland,Oakland,US,37.8044,-122.2711,seaport
+USMIA,Port of Miami,Miami,US,25.7617,-80.1918,seaport
+USSAV,Port of Savannah,Savannah,US,32.0835,-81.0998,seaport
+GBSOU,Port of Southampton,Southampton,GB,50.9097,-1.4044,seaport
+GBFEL,Port of Felixstowe,Felixstowe,GB,51.9606,1.3511,seaport
+NLRTM,Port of Rotterdam,Rotterdam,NL,51.9225,4.4792,seaport
+DEHAM,Port of Hamburg,Hamburg,DE,53.5511,9.9937,seaport
+BEANT,Port of Antwerp,Antwerp,BE,51.2194,4.4025,seaport
+ESALG,Port of Algeciras,Algeciras,ES,36.1408,-5.4526,seaport
+ITGOA,Port of Genoa,Genoa,IT,44.4056,8.9463,seaport
+CNSGH,Port of Shanghai,Shanghai,CN,31.2304,121.4737,seaport
+CNSZX,Port of Shenzhen,Shenzhen,CN,22.5431,114.0579,seaport
+CNNGB,Port of Ningbo-Zhoushan,Ningbo,CN,29.8683,121.544,seaport
+CNQIN,Port of Qingdao,Qingdao,CN,36.0986,120.3719,seaport
+CNTXG,Port of Tianjin,Tianjin,CN,39.1042,117.2013,seaport
+SGSIN,Port of Singapore,Singapore,SG,1.2966,103.8512,seaport
+KRPUS,Port of Busan,Busan,KR,35.1796,129.0756,seaport
+JPYOK,Port of Yokohama,Yokohama,JP,35.4437,139.6380,seaport
+JPTOK,Port of Tokyo,Tokyo,JP,35.6276,139.7937,seaport
+JPOSB,Port of Osaka,Osaka,JP,34.6937,135.5023,seaport
+AEDXB,Port Jebel Ali,Dubai,AE,25.0120,55.1264,seaport
+MVMAL,Port of Male,Male,MV,4.1755,73.5093,seaport
+AUPLC,Port of Brisbane,Brisbane,AU,-27.3849,153.0850,seaport
+AUSYD,Port of Sydney,Sydney,AU,-33.8688,151.2093,seaport
+AUMEL,Port of Melbourne,Melbourne,AU,-37.8136,144.9631,seaport
+BRSSZ,Port of Santos,Santos,BR,-23.9618,-46.3322,seaport
+BRRIG,Port of Rio de Janeiro,Rio de Janeiro,BR,-22.9068,-43.1729,seaport
+ARCAP,Port of Callao,Lima,PE,-12.0464,-77.1428,seaport
+CLVAL,Port of Valparaiso,Valparaiso,CL,-33.0458,-71.6197,seaport
+MXVER,Port of Veracruz,Veracruz,MX,19.1738,-96.1342,seaport
+PAPAN,Panama Canal,Panama City,PA,8.9824,-79.5199,canal
+EGALY,Port of Alexandria,Alexandria,EG,31.2001,29.9187,seaport
+ZADUR,Port of Durban,Durban,ZA,-29.8587,31.0218,seaport
+ZACPT,Port of Cape Town,Cape Town,ZA,-33.9249,18.4241,seaport
+USCHI,Port of Chicago,Chicago,US,41.8781,-87.6298,lakeport
+USDET,Port of Detroit,Detroit,US,42.3314,-83.0458,lakeport
+USDUL,Port of Duluth,Duluth,US,46.7867,-92.1005,lakeport
+CACGM,Port of Thunder Bay,Thunder Bay,CA,48.3809,-89.2477,lakeport
+CAMNT,Port of Montreal,Montreal,CA,45.5017,-73.5673,riverport
+CAHAL,Port of Halifax,Halifax,CA,44.6488,-63.5752,seaport
+CAVAN,Port of Vancouver,Vancouver,CA,49.2827,-123.1207,seaport
+USORD,Chicago O'Hare Airport Cargo,Chicago,US,41.9742,-87.9073,airport
+USJFK,John F. Kennedy Airport Cargo,New York,US,40.6413,-73.7781,airport
+USLAX,Los Angeles Airport Cargo,Los Angeles,US,33.9425,-118.4081,airport
+USMEM,Memphis Airport Cargo,Memphis,US,35.0424,-89.9767,airport
+USANC,Ted Stevens Anchorage Airport Cargo,Anchorage,US,61.1744,-149.9961,airport
