@@ -9,7 +9,6 @@ COPY pom.xml .
 COPY reference-core/pom.xml ./reference-core/
 COPY reference-api/pom.xml ./reference-api/
 COPY reference-events/pom.xml ./reference-events/
-COPY reference-workflow/pom.xml ./reference-workflow/
 COPY translation-service/pom.xml ./translation-service/
 COPY catalog-integration/pom.xml ./catalog-integration/
 COPY reference-loaders/common/pom.xml ./reference-loaders/common/
@@ -23,7 +22,6 @@ RUN mvn dependency:go-offline -B
 COPY reference-core/src ./reference-core/src
 COPY reference-api/src ./reference-api/src
 COPY reference-events/src ./reference-events/src
-COPY reference-workflow/src ./reference-workflow/src
 COPY translation-service/src ./translation-service/src
 COPY catalog-integration/src ./catalog-integration/src
 COPY reference-loaders/common/src ./reference-loaders/common/src
@@ -51,7 +49,6 @@ WORKDIR /app
 # Copy built JAR files
 COPY --from=builder /app/reference-api/target/reference-api-*.jar ./reference-api.jar
 COPY --from=builder /app/reference-events/target/reference-events-*.jar ./reference-events.jar
-COPY --from=builder /app/reference-workflow/target/reference-workflow-*.jar ./reference-workflow.jar
 COPY --from=builder /app/translation-service/target/translation-service-*.jar ./translation-service.jar
 
 # Copy configuration

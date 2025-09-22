@@ -259,7 +259,7 @@
     <changeSet id="009-003-create-audit-trigger-function" author="reference-data" dbms="postgresql">
         <comment>Create PostgreSQL trigger function for automatic audit logging</comment>
 
-        <sql>
+        <sql splitStatements="false" stripComments="false"><![CDATA[
             CREATE OR REPLACE FUNCTION reference_data.audit_trigger_function()
             RETURNS TRIGGER AS $$
             DECLARE
@@ -335,16 +335,24 @@
                 ) VALUES (
                     audit_id,
                     current_correlation_id,
-                    TG_OP,
+                    CASE TG_OP WHEN 'INSERT' THEN 'CREATE' ELSE TG_OP END,
                     TG_TABLE_NAME,
-                    COALESCE(NEW.id, OLD.id),
-                    COALESCE(NEW.version, OLD.version),
-                    TG_OP,
+                    CASE WHEN TG_OP = 'DELETE' THEN OLD.id ELSE NEW.id END,
+                    CASE
+                        WHEN TG_OP = 'DELETE' AND old_data->>'version' IS NOT NULL THEN (old_data->>'version')::BIGINT
+                        WHEN TG_OP != 'DELETE' AND new_data->>'version' IS NOT NULL THEN (new_data->>'version')::BIGINT
+                        ELSE NULL
+                    END,
+                    CASE TG_OP WHEN 'INSERT' THEN 'CREATE' ELSE TG_OP END,
                     current_user_id,
                     NOW(),
                     current_app_name,
                     current_app_name,
-                    COALESCE(NEW.change_request_id, OLD.change_request_id),
+                    CASE
+                        WHEN TG_OP = 'DELETE' AND old_data->>'change_request_id' IS NOT NULL THEN (old_data->>'change_request_id')::UUID
+                        WHEN TG_OP != 'DELETE' AND new_data->>'change_request_id' IS NOT NULL THEN (new_data->>'change_request_id')::UUID
+                        ELSE NULL
+                    END,
                     old_data,
                     new_data,
                     changed_fields,
@@ -368,7 +376,7 @@
                 END IF;
             END;
             $$ LANGUAGE plpgsql;
-        </sql>
+        ]]></sql>
 
         <rollback>
             <sql>DROP FUNCTION IF EXISTS reference_data.audit_trigger_function();</sql>
@@ -434,7 +442,7 @@
         <comment>Create helper functions for audit log analysis and reporting</comment>
 
         <!-- Function to get audit trail for an entity -->
-        <sql>
+        <sql splitStatements="false" stripComments="false">
             <![CDATA[
             CREATE OR REPLACE FUNCTION reference_data.get_entity_audit_trail(
                 p_entity_type VARCHAR,
@@ -473,7 +481,7 @@
         </sql>
 
         <!-- Function to get user activity summary -->
-        <sql>
+        <sql splitStatements="false" stripComments="false">
             <![CDATA[
             CREATE OR REPLACE FUNCTION reference_data.get_user_activity_summary(
                 p_user_id VARCHAR,

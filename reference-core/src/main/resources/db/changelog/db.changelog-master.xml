@@ -25,7 +25,10 @@
 
     <!-- Initial Data -->
     <include file="data/001-code-systems.xml" relativeToChangelogFile="true"/>
-    
+
+    <!-- Seed Change Requests (must come before entity seed data) -->
+    <include file="data/001-seed-change-requests.xml" relativeToChangelogFile="true"/>
+
     <!-- Seed Data -->
     <include file="data/002-countries-seed.xml" relativeToChangelogFile="true"/>
     <include file="data/003-airports-seed.xml" relativeToChangelogFile="true"/>

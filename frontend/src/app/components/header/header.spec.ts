@@ -1,11 +1,12 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { HeaderComponent } from './header';
 import { RouterTestingModule } from '@angular/router/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 describe('HeaderComponent (a11y + state)', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HeaderComponent, RouterTestingModule]
+      imports: [HeaderComponent, RouterTestingModule, HttpClientTestingModule]
     }).compileComponents();
   });
 

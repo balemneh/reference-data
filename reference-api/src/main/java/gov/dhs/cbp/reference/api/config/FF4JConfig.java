@@ -7,6 +7,7 @@ import org.ff4j.springjdbc.store.FeatureStoreSpringJdbc;
 import org.ff4j.springjdbc.store.PropertyStoreSpringJdbc;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -14,35 +15,39 @@ import javax.sql.DataSource;
 
 @Configuration
 @ConditionalOnClass(FF4j.class)
+@ConditionalOnProperty(name = "ff4j.enabled", havingValue = "true", matchIfMissing = true)
 public class FF4JConfig {
 
-    @Autowired
+    @Autowired(required = false)
     private DataSource dataSource;
 
     @Bean
     public FF4j ff4j() {
         FF4j ff4j = new FF4j();
 
-        // Configure feature store (database persistence)
-        FeatureStoreSpringJdbc featureStore = new FeatureStoreSpringJdbc();
-        featureStore.setDataSource(dataSource);
-        featureStore.createSchema(); // Create tables if they don't exist
-        ff4j.setFeatureStore(featureStore);
+        // Only configure persistence if DataSource is available
+        if (dataSource != null) {
+            // Configure feature store (database persistence)
+            FeatureStoreSpringJdbc featureStore = new FeatureStoreSpringJdbc();
+            featureStore.setDataSource(dataSource);
+            featureStore.createSchema(); // Create tables if they don't exist
+            ff4j.setFeatureStore(featureStore);
 
-        // Configure property store
-        PropertyStoreSpringJdbc propertyStore = new PropertyStoreSpringJdbc();
-        propertyStore.setDataSource(dataSource);
-        propertyStore.createSchema();
-        ff4j.setPropertiesStore(propertyStore);
+            // Configure property store
+            PropertyStoreSpringJdbc propertyStore = new PropertyStoreSpringJdbc();
+            propertyStore.setDataSource(dataSource);
+            propertyStore.createSchema();
+            ff4j.setPropertiesStore(propertyStore);
 
-        // Configure event store
-        EventRepositorySpringJdbc eventStore = new EventRepositorySpringJdbc();
-        eventStore.setDataSource(dataSource);
-        eventStore.createSchema();
-        ff4j.setEventRepository(eventStore);
+            // Configure event store
+            EventRepositorySpringJdbc eventStore = new EventRepositorySpringJdbc();
+            eventStore.setDataSource(dataSource);
+            eventStore.createSchema();
+            ff4j.setEventRepository(eventStore);
 
-        // Enable audit
-        ff4j.audit(true);
+            // Enable audit
+            ff4j.audit(true);
+        }
 
         // Initialize default features if they don't exist
         initializeDefaultFeatures(ff4j);

@@ -313,9 +313,18 @@ public class BulkImportService {
     }
 
     private String detectFileFormat(String fileName) {
-        if (fileName == null) return "UNKNOWN";
+        if (fileName == null || fileName.isEmpty()) return "UNKNOWN";
 
-        String extension = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
+        int lastDotIndex = fileName.lastIndexOf('.');
+        if (lastDotIndex == -1 || lastDotIndex == fileName.length() - 1) {
+            return "UNKNOWN";
+        }
+
+        String extension = fileName.substring(lastDotIndex + 1).toLowerCase();
+        if (extension == null || extension.isEmpty()) {
+            return "UNKNOWN";
+        }
+
         switch (extension) {
             case "csv": return "CSV";
             case "json": return "JSON";
@@ -327,6 +336,10 @@ public class BulkImportService {
 
     private void parseAndStageFile(MultipartFile file, BulkImportBatch batch, String userId) throws IOException {
         String format = batch.getSourceFileFormat();
+
+        if (format == null) {
+            format = "UNKNOWN";
+        }
 
         switch (format) {
             case "CSV":

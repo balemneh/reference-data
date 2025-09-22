@@ -1,89 +1,93 @@
-# CBP Reference Data Admin UI
+# Reference Data Frontend
 
-Angular 20 administrative interface for the CBP Reference Data Service, featuring USWDS 3.13 design system and CBP branding.
+Angular 20 application with USWDS 3.13 for the CBP Reference Data Service.
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| API_URL | Backend API URL | (empty - same origin) | `https://api.example.com` |
+| KEYCLOAK_URL | Keycloak server URL | (empty) | `https://auth.example.com` |
+| KEYCLOAK_REALM | Keycloak realm name | `reference-data` | `my-realm` |
+| KEYCLOAK_CLIENT_ID | OAuth client ID | `reference-ui` | `my-app` |
+
+### Local Development
+
+1. **Edit `src/assets/env.js`:**
+```javascript
+window.__env__.apiUrl = 'http://localhost:8081';
+```
+
+2. **Run with proxy:**
+```bash
+ng serve --proxy-config proxy.conf.json
+```
+
+### Docker Deployment
+
+```bash
+docker run -d \
+  -e API_URL=https://api.example.com \
+  -e KEYCLOAK_URL=https://auth.example.com \
+  -e KEYCLOAK_REALM=reference-data \
+  -e KEYCLOAK_CLIENT_ID=reference-ui \
+  -p 80:80 \
+  refdata-ui
+```
+
+### Kubernetes ConfigMap
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: refdata-ui-config
+data:
+  env.js: |
+    (function (window) {
+      window.__env__ = window.__env__ || {};
+      window.__env__.apiUrl = 'https://api.refdata.cbp.gov';
+      window.__env__.keycloakUrl = 'https://auth.refdata.cbp.gov';
+      window.__env__.keycloakRealm = 'reference-data';
+      window.__env__.keycloakClientId = 'reference-ui';
+    }(this));
+```
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Development server
+npm start
+
+# Build for production
+npm run build
+
+# Run tests
+npm test
+
+# Run linting
+npm run lint
+```
+
+## Architecture
+
+- **Framework**: Angular 20.1
+- **UI Library**: USWDS 3.13 (US Web Design System)
+- **State Management**: RxJS
+- **HTTP Client**: Angular HttpClient
+- **Authentication**: Keycloak/OAuth2
+- **Build Tool**: Angular CLI
 
 ## Features
 
-- **Government-compliant UI** with USWDS 3.13 (US Web Design System)
-- **CBP branding** with official logo and color scheme
-- **Consolidated navigation** - no duplicate menu items
-- **Responsive design** for desktop and mobile
-- **Accessibility** - WCAG AA compliant
-- **Modern Angular 20** with TypeScript 5.8
-
-## UI Components
-
-### Navigation Structure
-- **Header**: Streamlined with user menu, notifications, and minimal help dropdown
-- **Sidebar**: Complete navigation hub with:
-  - Main navigation (Dashboard)
-  - Quick actions (Add/Import/Export Data)
-  - Reference Data section
-  - Operations (Change Requests)
-  - Settings & Administration
-  - Help & Support section
-
-### Visual Improvements (Implemented)
-- ✅ Increased spacing between banner, header, and breadcrumbs
-- ✅ Consistent sidebar typography with strong active state highlighting
-- ✅ Balanced KPI card visual weight
-- ✅ High-contrast status labels (ACTIVE, PENDING, EXCELLENT)
-- ✅ WCAG AA compliant color scheme
-- ✅ Loading indicators for async operations
-- ✅ Smart breadcrumb hiding when only one level
-
-## Development server
-
-To start a local development server, run:
-
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- Government banner and CBP branding
+- Responsive design
+- Accessibility (WCAG 2.1 AA)
+- Real-time data updates
+- Advanced filtering and search
+- Data export capabilities

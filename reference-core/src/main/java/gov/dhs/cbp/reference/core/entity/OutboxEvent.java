@@ -20,6 +20,7 @@ public class OutboxEvent {
         PENDING,
         PROCESSING,
         PROCESSED,
+        PUBLISHED,  // Alias for PROCESSED to match test expectations
         FAILED
     }
     

@@ -245,7 +245,7 @@
                 <div class="usa-alert__body">
                   <h4 class="usa-alert__heading">Validating Data</h4>
                   <p class="usa-alert__text">
-                    Please wait while we validate your {{selectedFile?.file.name}} file...
+                    Please wait while we validate your {{selectedFile?.file?.name}} file...
                   </p>
                 </div>
               </div>
@@ -438,7 +438,7 @@
                           <div *ngIf="getCellValidationMessages(previewPage * previewSize + i, column).length > 0"
                                class="cell-validation-indicator"
                                [title]="getCellValidationMessages(previewPage * previewSize + i, column)[0]?.message">
-                            <i [class]="'fas fa-' + getSeverityIcon(getCellValidationMessages(previewPage * previewSize + i, column)[0]?.severity)"></i>
+                            <i [class]="'fas fa-' + getSeverityIcon(getCellValidationMessages(previewPage * previewSize + i, column)[0]?.severity || 'ERROR')"></i>
                           </div>
                         </div>
                       </td>
@@ -464,7 +464,7 @@
                         <strong>{{validationResult.warningCount}}</strong> records have warnings but will be imported
                       </li>
                       <li>Data type: <strong>{{DATA_TYPE_CONFIG[dataType].label}}</strong></li>
-                      <li>Source file: <strong>{{selectedFile?.file.name}}</strong></li>
+                      <li>Source file: <strong>{{selectedFile?.file?.name}}</strong></li>
                     </ul>
                   </div>
                 </div>
@@ -600,7 +600,7 @@
                           <dd>{{DATA_TYPE_CONFIG[dataType].label}}</dd>
 
                           <dt>Source File:</dt>
-                          <dd class="text-pre">{{selectedFile?.file.name}}</dd>
+                          <dd class="text-pre">{{selectedFile?.file?.name}}</dd>
 
                           <dt>File Size:</dt>
                           <dd>{{selectedFile ? formatFileSize(selectedFile.size) : '—'}}</dd>

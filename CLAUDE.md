@@ -12,13 +12,12 @@
 - **Chosen architecture**: Centralized **Postgres bitemporal** core + **Kafka outbox/backbone** for replay + **catalog‑driven distribution** (OpenMetadata → generated views/UDFs/dbt) + optional **graph sidecar** for complex crosswalks. See `docs/architecture.md` and the canvas for diagrams.
 - **Implementation status**:
   - ✅ `reference-core`: JPA entities (Country, CodeSystem, CodeMapping, ChangeRequest, OutboxEvent), repositories, bitemporal utilities
-  - ✅ `reference-api`: Spring controllers, DTOs (MapStruct), CORS config, security config
+  - ✅ `reference-api`: Spring controllers, DTOs (MapStruct), CORS config, security config, change request management
   - ✅ `reference-events`: Outbox publisher, Kafka config, Avro schemas
-  - ⚠️ `reference-workflow`: Basic change request entities (needs Camunda/Flowable integration)
   - ✅ `reference-loaders/*`: Directory structure ready for ISO/GENC/IATA/ICAO/CBP loaders
   - ✅ `translation-service`: `/translate` endpoints implemented with caching
   - 🔄 `catalog-integration`: Structure ready (needs OpenMetadata integration)
-  - ✅ `admin-ui`: Angular 20 with USWDS 3.13, government banner, CBP branding, navigation consolidated
+  - ✅ `frontend`: Angular 20 with USWDS 3.13, government banner, CBP branding, navigation consolidated
 
 ---
 
@@ -37,7 +36,7 @@
 
 ## 2) Local development setup
 
-**Prereqs**: Java 21, Docker, Docker Compose, Node 20 (for `admin-ui`), `gh` CLI, `jq`, `make`. Optional: `asdf`.
+**Prereqs**: Java 21, Docker, Docker Compose, Node 20 (for `frontend`), `gh` CLI, `jq`, `make`. Optional: `asdf`.
 
 **Quick start**
 
@@ -47,8 +46,8 @@
 
 # Docker deployment
 docker-compose up -d postgres redis redpanda  # Start infrastructure
-docker build -t refdata-ui ./admin-ui         # Build UI image
-docker build -t refdata-api -f Dockerfile.api-simple .  # Build API image
+docker build -t refdata-ui ./frontend          # Build UI image
+docker build -t refdata-api .                  # Build API image
 
 # Run containers
 docker run -d --name refdata-ui --network refdata-network -p 80:80 refdata-ui
@@ -81,11 +80,11 @@ docker run -d --name refdata-api --network refdata-network -p 8081:8080 \
 > Add these to your Claude Code allowlist. If a command is not listed, ask for approval.
 
 - **Read‑only**: `git status`, `git diff`, `git log`, `./gradlew tasks`, `./gradlew test`, `./mvnw -q -DskipITs`, `docker compose ps`, `psql -V`.
-- **Edit/build**: `./gradlew build -x test`, `./gradlew :reference-api:test`, `./mvnw -q package -DskipTests`, `npm run -w admin-ui dev`.
+- **Edit/build**: `./gradlew build -x test`, `./gradlew :reference-api:test`, `./mvnw -q package -DskipTests`, `npm run -w frontend dev`.
 - **DB/Testcontainers**: `./gradlew integrationTest`, `./gradlew :reference-events:test`.
 - **Infra (non‑destructive)**: `docker compose up -d`, `docker compose logs -f`, `docker compose stop`.
 - **Codegen**: `./gradlew openApiGenerate`, `./gradlew avroGenerate`, custom `./scripts/refsynth/generate.sh`.
-- **Lint/format**: `./gradlew spotlessApply`, `npm run -w admin-ui lint`.
+- **Lint/format**: `./gradlew spotlessApply`, `npm run -w frontend lint`.
 - **Utility**: `jq`, `awk`, `sed -n`, `grep -R`.
 
 > **Never without approval**: `kubectl delete`, `terraform apply`, dropping DBs, force‑push to protected branches, rotating secrets.
@@ -103,13 +102,12 @@ docker run -d --name refdata-api --network refdata-network -p 8081:8080 \
     opa/                     ← OPA policies for CR checks
     avro/                    ← event schemas
   /reference-core            ← domain, JPA, bitemporality utils
-  /reference-api             ← controllers, DTOs, exception model, OpenAPI config
+  /reference-api             ← controllers, DTOs, exception model, OpenAPI config, change request management
   /reference-events          ← outbox, publisher, schema registry
-  /reference-workflow        ← Camunda/Flowable processes, listeners
   /reference-loaders         ← iso/, genc/, iata/, icao/, cbp-ports/
   /translation-service       ← translate endpoints, rules, caches
   /catalog-integration       ← OpenMetadata client + RefSynth codegen
-  /admin-ui                  ← Angular 20 admin UI (uses USWDS 3.13)
+  /frontend                  ← Angular 20 admin UI (uses USWDS 3.13)
   /ops
     docker-compose.yml       ← postgres, kafka/redpanda, schema-registry, redis, openmetadata
     migrations/              ← liquibase/flyway changelogs

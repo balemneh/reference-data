@@ -2,8 +2,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap');
 
 // Import component styles that need global scope
+@import './styles/_cbp-ui.scss';
 @import './styles/_cbp-components.scss';
 @import './app/components/countries/countries.scss';
+@import './app/components/change-requests/change-requests.scss';
 
 // Reset and base styles
 * {

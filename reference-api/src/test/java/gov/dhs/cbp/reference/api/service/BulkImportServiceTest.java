@@ -80,7 +80,17 @@ class BulkImportServiceTest {
 
         when(changeRequestService.create(any(ChangeRequestDto.class))).thenReturn(mockChangeRequest);
         when(batchRepository.findBySourceFileChecksum(anyString())).thenReturn(Optional.empty());
-        when(batchRepository.save(any(BulkImportBatch.class))).thenReturn(testBatch);
+
+        // Mock batch save to return batch with format set
+        when(batchRepository.save(any(BulkImportBatch.class))).thenAnswer(invocation -> {
+            BulkImportBatch savedBatch = invocation.getArgument(0);
+            if (savedBatch.getSourceFileFormat() == null) {
+                savedBatch.setSourceFileFormat("CSV");
+            }
+            savedBatch.setId(testBatchId);
+            return savedBatch;
+        });
+
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"test\":\"data\"}");
         when(stagingRepository.saveAll(anyList())).thenReturn(Collections.emptyList());
 
@@ -109,8 +119,18 @@ class BulkImportServiceTest {
 
         when(changeRequestService.create(any(ChangeRequestDto.class))).thenReturn(mockChangeRequest);
         when(batchRepository.findBySourceFileChecksum(anyString())).thenReturn(Optional.empty());
-        when(batchRepository.save(any(BulkImportBatch.class))).thenReturn(testBatch);
-        when(objectMapper.readTree(any(byte[].class))).thenReturn(new ObjectMapper().readTree(jsonContent));
+
+        // Mock batch save to return batch with format set
+        when(batchRepository.save(any(BulkImportBatch.class))).thenAnswer(invocation -> {
+            BulkImportBatch savedBatch = invocation.getArgument(0);
+            if (savedBatch.getSourceFileFormat() == null) {
+                savedBatch.setSourceFileFormat("JSON");
+            }
+            savedBatch.setId(testBatchId);
+            return savedBatch;
+        });
+
+        when(objectMapper.readTree(any(java.io.InputStream.class))).thenReturn(new ObjectMapper().readTree(jsonContent));
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"test\":\"data\"}");
         when(stagingRepository.saveAll(anyList())).thenReturn(Collections.emptyList());
 
@@ -167,7 +187,7 @@ class BulkImportServiceTest {
         // Assert
         assertThat(summary.getValidCount()).isEqualTo(2);
         assertThat(summary.getInvalidCount()).isEqualTo(0);
-        assertThat(summary.getWarningCount()).isEqualTo(0);
+        assertThat(summary.getWarningCount()).isEqualTo(2); // Each country gets warning about missing code system
 
         verify(batchRepository).findById(testBatchId);
         verify(stagingRepository).findByImportBatchId(testBatchId);

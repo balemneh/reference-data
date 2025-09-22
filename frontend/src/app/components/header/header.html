@@ -20,10 +20,10 @@
         <ul class="usa-nav__secondary-links cbp-action-list">
           <!-- Notifications -->
           <li class="usa-nav__secondary-item">
-            <button 
+            <button
               class="usa-button usa-button--unstyled cbp-action-button notification-button has-tooltip"
               (click)="toggleNotificationMenu()"
-              [attr.aria-expanded]="notificationMenuOpen"
+              [attr.aria-expanded]="notificationMenuOpen ? 'true' : null"
               aria-controls="notification-dropdown"
               title="Notifications"
               aria-label="Notifications"
@@ -122,12 +122,61 @@
             </div>
           </li>
           
+          <!-- Help -->
+          <li class="usa-nav__secondary-item">
+            <button
+              class="usa-button usa-button--unstyled cbp-action-button has-tooltip"
+              (click)="toggleHelpMenu()"
+              [attr.aria-expanded]="helpMenuOpen ? 'true' : null"
+              aria-controls="help-dropdown"
+              title="Help"
+              aria-label="Help"
+              aria-haspopup="menu"
+            >
+              <svg class="usa-icon cbp-action-icon" aria-hidden="true" role="img">
+                <use xlink:href="/assets/uswds/img/sprite.svg#help_outline"></use>
+              </svg>
+              <span class="tooltip" role="tooltip">Help</span>
+            </button>
+
+            <div
+              id="help-dropdown"
+              class="dropdown-menu help-dropdown cbp-modern-dropdown"
+              [class.is-visible]="helpMenuOpen"
+              *ngIf="helpMenuOpen"
+              role="menu"
+              aria-label="Help menu"
+            >
+              <div class="dropdown-header cbp-dropdown-header">
+                <h3 class="dropdown-title">Help & Support</h3>
+              </div>
+              <ul class="dropdown-list cbp-dropdown-list">
+                <li *ngFor="let item of helpItems">
+                  <button
+                    role="menuitem"
+                    class="cbp-dropdown-item"
+                    tabindex="0"
+                    (click)="openHelpItem(item)"
+                    (keydown.enter)="openHelpItem(item)"
+                    (keydown.space)="openHelpItem(item)"
+                    [attr.aria-label]="item.title"
+                  >
+                    <svg class="cbp-dropdown-icon" aria-hidden="true" role="img">
+                      <use [attr.xlink:href]="'/assets/uswds/img/sprite.svg#' + item.icon"></use>
+                    </svg>
+                    <span>{{ item.title }}</span>
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </li>
+
           <!-- Settings -->
           <li class="usa-nav__secondary-item">
-            <button 
+            <button
               class="usa-button usa-button--unstyled cbp-action-button has-tooltip"
               (click)="toggleSettingsMenu()"
-              [attr.aria-expanded]="settingsMenuOpen"
+              [attr.aria-expanded]="settingsMenuOpen ? 'true' : null"
               aria-controls="settings-dropdown"
               title="Settings"
               aria-label="Settings"
@@ -174,10 +223,10 @@
 
           <!-- User Profile -->
           <li class="usa-nav__secondary-item">
-            <button 
+            <button
               class="usa-button usa-button--unstyled cbp-user-button"
               (click)="toggleUserMenu()"
-              [attr.aria-expanded]="userMenuOpen"
+              [attr.aria-expanded]="userMenuOpen ? 'true' : null"
               aria-controls="user-dropdown"
               title="Account"
               aria-label="Account"
@@ -269,9 +318,9 @@
 </header>
 
 <!-- Click outside to close menus -->
-<div 
-  class="menu-overlay cbp-menu-overlay" 
-  *ngIf="userMenuOpen || notificationMenuOpen || settingsMenuOpen"
+<div
+  class="menu-overlay cbp-menu-overlay"
+  *ngIf="userMenuOpen || notificationMenuOpen || settingsMenuOpen || helpMenuOpen"
   (click)="closeMenus()"
 ></div>
 <!-- Live region for menu announcements -->

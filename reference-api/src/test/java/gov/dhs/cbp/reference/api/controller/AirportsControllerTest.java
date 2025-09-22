@@ -445,8 +445,9 @@ class AirportsControllerTest {
         when(airportService.findByCodeAndSystemAsOf(eq("LAX"), eq("IATA"), eq(asOfDate)))
                 .thenReturn(Optional.of(sampleAirport));
 
-        // Note: This might conflict with the /{id} path, depending on route order
-        mockMvc.perform(get("/v1/airports/{code}", "LAX")
+        // Test with asOf date parameter
+        mockMvc.perform(get("/v1/airports/by-code")
+                .param("code", "LAX")
                 .param("codeSystem", "IATA")
                 .param("asOf", "2024-06-15"))
                 .andExpect(status().isOk())
@@ -458,7 +459,8 @@ class AirportsControllerTest {
         when(airportService.findByCodeAndSystem(eq("LAX"), eq("IATA")))
                 .thenReturn(Optional.of(sampleAirport));
 
-        mockMvc.perform(get("/v1/airports/{code}", "LAX")
+        mockMvc.perform(get("/v1/airports/by-code")
+                .param("code", "LAX")
                 .param("codeSystem", "IATA"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.iataCode").value("LAX"));
@@ -466,7 +468,8 @@ class AirportsControllerTest {
 
     @Test
     void testGetAirportByCode_InvalidDate() throws Exception {
-        mockMvc.perform(get("/v1/airports/{code}", "LAX")
+        mockMvc.perform(get("/v1/airports/by-code")
+                .param("code", "LAX")
                 .param("codeSystem", "IATA")
                 .param("asOf", "invalid-date"))
                 .andExpect(status().isBadRequest());
@@ -474,11 +477,13 @@ class AirportsControllerTest {
 
     @Test
     void testGetAirportByCode_InvalidCodeLength() throws Exception {
-        mockMvc.perform(get("/v1/airports/{code}", "LA")
+        mockMvc.perform(get("/v1/airports/by-code")
+                .param("code", "LA")
                 .param("codeSystem", "IATA"))
                 .andExpect(status().isBadRequest());
 
-        mockMvc.perform(get("/v1/airports/{code}", "TOOLONG")
+        mockMvc.perform(get("/v1/airports/by-code")
+                .param("code", "TOOLONG")
                 .param("codeSystem", "IATA"))
                 .andExpect(status().isBadRequest());
     }

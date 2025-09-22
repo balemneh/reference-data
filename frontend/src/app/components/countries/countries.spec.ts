@@ -71,8 +71,7 @@ describe('CountriesComponent', () => {
     number: 0,
     size: 20,
     first: true,
-    last: true,
-    numberOfElements: 3
+    last: true
   };
 
   beforeEach(async () => {
@@ -154,13 +153,23 @@ describe('CountriesComponent', () => {
     });
 
     it('should load countries successfully', () => {
+      // Reset loading state
+      component.loading = false;
+
+      // Call loadCountries and immediately check loading state before observable completes
       component.loadCountries();
-      expect(component.loading).toBeTrue();
+
+      // Check that the API was called correctly
       expect(apiService.getCountries).toHaveBeenCalledWith({
         page: 0,
         size: 20,
         systemCode: 'ISO3166-1'
       });
+
+      // Check that countries were populated
+      expect(component.countries).toEqual(mockCountries);
+      expect(component.totalElements).toBe(3);
+      expect(component.loading).toBeFalse(); // Should be false after completion
     });
 
     it('should handle API errors gracefully', () => {
@@ -186,7 +195,7 @@ describe('CountriesComponent', () => {
         page: 0,
         size: 20,
         systemCode: 'ISO3166-1'
-      });
+      } as any);
     });
 
     it('should apply active filter when set', () => {
@@ -204,7 +213,7 @@ describe('CountriesComponent', () => {
     });
 
     it('should handle search input with debouncing', fakeAsync(() => {
-      const searchInput = fixture.nativeElement.querySelector('#searchInput');
+      const searchInput = fixture.nativeElement.querySelector('#search-countries');
       searchInput.value = 'test';
       searchInput.dispatchEvent(new Event('input'));
 
@@ -221,13 +230,13 @@ describe('CountriesComponent', () => {
       expect(component.searchTerm).toBe('');
     });
 
-    it('should reset current page when searching', () => {
+    it('should reset current page when searching', fakeAsync(() => {
       component.currentPage = 2;
       component.onSearchInput({ target: { value: 'test' } } as any);
 
       tick(300);
       expect(component.currentPage).toBe(0);
-    });
+    }));
   });
 
   describe('Pagination', () => {
@@ -287,11 +296,12 @@ describe('CountriesComponent', () => {
     });
 
     it('should sort by field ascending by default', () => {
-      component.sortBy('countryName');
+      // Use a different field since countryName is already the default sort field
+      component.sortBy('countryCode');
 
-      expect(component.sortField).toBe('countryName');
+      expect(component.sortField).toBe('countryCode');
       expect(component.sortDirection).toBe('asc');
-      expect(component.countries[0].countryName).toBe('Canada');
+      expect(component.countries[0].countryCode).toBe('CA');
     });
 
     it('should toggle sort direction when clicking same field', () => {
@@ -371,7 +381,7 @@ describe('CountriesComponent', () => {
     it('should validate form correctly', () => {
       // Valid form
       expect(component['validateForm']()).toBeTrue();
-      expect(Object.keys(component.formErrors)).toHaveLength(0);
+      expect(Object.keys(component.formErrors).length).toBe(0);
 
       // Invalid form - empty country name
       component.selectedCountry!.countryName = '';
@@ -415,11 +425,15 @@ describe('CountriesComponent', () => {
         description: 'Test update',
         requestedBy: 'current-user',
         status: 'PENDING',
-        createdAt: '2024-01-01T12:00:00Z'
+        createdAt: '2024-01-01T12:00:00Z',
+        priority: 'MEDIUM',
+        requestedAt: '2024-01-01T12:00:00Z',
+        updatedAt: '2024-01-01T12:00:00Z'
       };
 
       apiService.createChangeRequest.and.returnValue(of(mockChangeRequest));
-      spyOn(router, 'navigate');
+      spyOn(component, 'closeJustificationModal');
+      spyOn(component, 'closeModal');
 
       component.businessJustification = 'Valid business justification';
       component.pendingAction = 'update';
@@ -427,7 +441,7 @@ describe('CountriesComponent', () => {
 
       expect(apiService.createChangeRequest).toHaveBeenCalled();
       expect(toastService.showSuccess).toHaveBeenCalled();
-      expect(component.showJustificationModal).toBeFalse();
+      expect(component.closeJustificationModal).toHaveBeenCalled();
     });
 
     it('should handle change request creation errors', () => {
@@ -447,15 +461,15 @@ describe('CountriesComponent', () => {
 
     it('should validate business justification', () => {
       component.businessJustification = '';
-      expect(component['validateJustification']()).toBeFalse();
+      expect(component.validateJustification()).toBeFalse();
       expect(component.formErrors.justification).toBeDefined();
 
       component.businessJustification = 'short';
-      expect(component['validateJustification']()).toBeFalse();
+      expect(component.validateJustification()).toBeFalse();
       expect(component.formErrors.justification).toBeDefined();
 
       component.businessJustification = 'This is a valid business justification';
-      expect(component['validateJustification']()).toBeTrue();
+      expect(component.validateJustification()).toBeTrue();
       expect(component.formErrors.justification).toBeUndefined();
     });
   });
@@ -580,11 +594,44 @@ describe('CountriesComponent', () => {
     });
 
     it('should convert countries to CSV format', () => {
-      const csv = component['convertToCSV'](mockCountries.slice(0, 2));
+      // Use explicit test data to avoid any sorting issues
+      const testCountries = [
+        {
+          id: '1',
+          countryCode: 'US',
+          countryName: 'United States',
+          iso2Code: 'US',
+          iso3Code: 'USA',
+          numericCode: '840',
+          codeSystem: 'ISO3166-1',
+          isActive: true,
+          validFrom: '2024-01-01',
+          recordedAt: '2024-01-01T12:00:00Z',
+          recordedBy: 'system',
+          version: 1
+        },
+        {
+          id: '2',
+          countryCode: 'CA',
+          countryName: 'Canada',
+          iso2Code: 'CA',
+          iso3Code: 'CAN',
+          numericCode: '124',
+          codeSystem: 'ISO3166-1',
+          isActive: true,
+          validFrom: '2024-01-01',
+          recordedAt: '2024-01-01T12:00:00Z',
+          recordedBy: 'system',
+          version: 1
+        }
+      ];
+
+      const csv = component['convertToCSV'](testCountries);
 
       expect(csv).toContain('Country Code,Country Name');
       expect(csv).toContain('"US","United States"');
       expect(csv).toContain('"CA","Canada"');
+      expect(csv).not.toContain('"GB","United Kingdom"');
     });
   });
 
@@ -724,7 +771,7 @@ describe('CountriesComponent', () => {
       component.error = 'Test error message';
       fixture.detectChanges();
 
-      const errorElement = fixture.nativeElement.querySelector('.usa-alert--error');
+      const errorElement = fixture.nativeElement.querySelector('.cbp-alert--error');
       expect(errorElement).toBeTruthy();
       expect(errorElement.textContent).toContain('Test error message');
     });
@@ -733,7 +780,7 @@ describe('CountriesComponent', () => {
       component.successMessage = 'Test success message';
       fixture.detectChanges();
 
-      const successElement = fixture.nativeElement.querySelector('.usa-alert--success');
+      const successElement = fixture.nativeElement.querySelector('.cbp-alert--success');
       expect(successElement).toBeTruthy();
       expect(successElement.textContent).toContain('Test success message');
     });

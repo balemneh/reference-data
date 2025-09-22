@@ -183,16 +183,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleGenericException(
             Exception ex, HttpServletRequest request) {
-        
+
         String traceId = getOrGenerateTraceId();
-        logger.error("Unhandled exception [traceId={}]", traceId, ex);
-        
+        // Always log the full exception with stack trace
+        logger.error("Unhandled exception [traceId={}] at {} {}: {} - {}",
+            traceId, request.getMethod(), request.getRequestURI(),
+            ex.getClass().getName(), ex.getMessage(), ex);
+
         ProblemDetail problem = ProblemDetail.internalServerError(
                 "An unexpected error occurred. Please contact support with trace ID: " + traceId
         );
         problem.setInstance(request.getRequestURI());
         problem.setTraceId(traceId);
-        
+
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .contentType(MediaType.APPLICATION_PROBLEM_JSON)
                 .body(problem);

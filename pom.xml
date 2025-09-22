@@ -38,7 +38,6 @@
         <module>reference-core</module>
         <module>reference-api</module>
         <module>reference-events</module>
-        <module>reference-workflow</module>
         <module>translation-service</module>
         <module>catalog-integration</module>
         <module>reference-loaders/common</module>

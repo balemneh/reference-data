@@ -18,8 +18,8 @@ spring:
   # JPA configuration
   jpa:
     hibernate:
-      ddl-auto: create-drop
-    show-sql: true
+      ddl-auto: validate
+    show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -67,13 +67,22 @@ management:
 # Logging configuration
 logging:
   level:
-    gov.dhs.cbp.reference: INFO
+    root: INFO
+    gov.dhs.cbp: DEBUG
+    gov.dhs.cbp.reference: DEBUG
+    gov.dhs.cbp.reference.api: DEBUG
+    gov.dhs.cbp.reference.api.exception: DEBUG
+    gov.dhs.cbp.reference.api.exception.GlobalExceptionHandler: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver: DEBUG
+    org.springframework.security: INFO
     org.springframework.kafka: WARN
     org.apache.kafka: WARN
     org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    liquibase: INFO
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
 # Application specific configuration
 reference-data:

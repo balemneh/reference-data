@@ -127,6 +127,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: refdata-api
     container_name: refdata-api
     environment:
       SPRING_PROFILES_ACTIVE: docker
@@ -140,6 +141,7 @@ services:
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/reference-data
       SPRING_LIQUIBASE_ENABLED: "true"
       SPRING_SECURITY_ENABLED: "false"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "none"
       JAVA_OPTS: "-Xms512m -Xmx1024m"
     ports:
       - "8083:8080"
@@ -198,24 +200,6 @@ services:
         condition: service_healthy
     networks:
       - refdata-network
-
-  # Camunda for Workflow (optional, can be enabled when needed)
-  # camunda:
-  #   image: camunda/camunda-bpm-platform:7.20.0
-  #   container_name: refdata-camunda
-  #   ports:
-  #     - "8086:8080"
-  #   environment:
-  #     DB_DRIVER: org.postgresql.Driver
-  #     DB_URL: jdbc:postgresql://postgres:5432/reference_data
-  #     DB_USERNAME: refdata_user
-  #     DB_PASSWORD: ${DB_PASSWORD:-refdata_pass}
-  #     WAIT_FOR: postgres:5432
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   networks:
-  #     - refdata-network
 
 networks:
   refdata-network:

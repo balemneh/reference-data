@@ -1,5 +1,7 @@
 package gov.dhs.cbp.reference.core.liquibase;
 
+import gov.dhs.cbp.reference.core.config.H2TestConfiguration;
+import gov.dhs.cbp.reference.core.config.TestEntityConfiguration;
 import gov.dhs.cbp.reference.core.entity.*;
 import gov.dhs.cbp.reference.core.repository.*;
 import liquibase.Liquibase;
@@ -9,6 +11,7 @@ import liquibase.resource.ClassLoaderResourceAccessor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 
@@ -25,7 +28,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests verify that database schema creation and seed data loading work correctly.
  */
 @DataJpaTest
-@ActiveProfiles("test")
+@Import({H2TestConfiguration.class, TestEntityConfiguration.class})
+@ActiveProfiles("integration-test")
+@Sql(scripts = {"classpath:schema-h2-no-schema.sql", "classpath:db/test-data/comprehensive-seed-test.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 class LiquibaseChangesetTest {
 
     @Autowired
@@ -83,7 +88,7 @@ class LiquibaseChangesetTest {
     }
 
     @Test
-    @Sql(scripts = "/db/test-data/countries-seed-test.sql")
+    @Sql(scripts = "/db/test-data/countries-complete.sql")
     void testCountrySeedDataLoaded() {
         // Verify countries are loaded
         List<Country> countries = countryRepository.findAll();
@@ -120,7 +125,7 @@ class LiquibaseChangesetTest {
     }
 
     @Test
-    @Sql(scripts = "/db/test-data/airports-seed-test.sql")
+    @Sql(scripts = "/db/test-data/airports-complete.sql")
     void testAirportSeedDataLoaded() {
         // Verify airports are loaded
         List<Airport> airports = airportRepository.findAll();
@@ -160,7 +165,7 @@ class LiquibaseChangesetTest {
     }
 
     @Test
-    @Sql(scripts = "/db/test-data/ports-seed-test.sql")
+    @Sql(scripts = "/db/test-data/ports-complete.sql")
     void testPortSeedDataLoaded() {
         // Verify ports are loaded
         List<Port> ports = portRepository.findAll();

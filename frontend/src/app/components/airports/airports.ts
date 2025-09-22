@@ -1,7 +1,7 @@
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ApiService, AirportDto, PagedResponse } from '../../services/api.service';
+import { ApiService, AirportDto, PagedResponse, ChangeRequestDto } from '../../services/api.service';
 import { ToastService } from '../../services/toast.service';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 
@@ -289,15 +289,15 @@ export class AirportsComponent implements OnInit {
   
   private saveAirportData(airport: AirportDto, successMsg: string) {
     // Create a change request for the airport modification
-    const changeRequest = {
+    const changeRequest: Partial<ChangeRequestDto> = {
       changeType: (airport.id ? 'UPDATE' : 'CREATE') as 'UPDATE' | 'CREATE',
-      entityType: 'AIRPORT',
+      entityType: 'AIRPORT' as const,
       entityId: airport.id || undefined,
       description: `${airport.id ? 'Update' : 'Create'} airport: ${airport.airportName}`,
       requestedBy: 'current-user', // Would come from auth service
       newValues: airport
     };
-    
+
     this.apiService.createChangeRequest(changeRequest).subscribe({
       next: (response: any) => {
         this.successMessage = successMsg + ` (Request ID: ${response.id})`;

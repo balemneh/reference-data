@@ -580,9 +580,9 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     // Create a change request for governance consistency
-    const changeRequest = {
+    const changeRequest: Partial<ChangeRequestDto> = {
       changeType: 'CREATE' as const,
-      entityType: 'COUNTRY',
+      entityType: 'COUNTRY' as const,
       description: `Create country: ${this.quickAddData.countryName}`,
       requestedBy: 'current-user',
       newValues: this.quickAddData
