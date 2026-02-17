@@ -9,7 +9,7 @@ public class TestController {
 
     @GetMapping("/test")
     public Map<String, String> test() {
-        return Map.of("status", "working", "message", "Test endpoint is functioning");
+        return Map.of("status", "working", "message", "Test endpoint is functioning [DEV]");
     }
 
     @GetMapping("/api/test")

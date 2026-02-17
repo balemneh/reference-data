@@ -14,28 +14,38 @@ import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import lombok.extern.slf4j.Slf4j;
+import gov.dhs.cbp.reference.api.util.SecurityUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/v1/change-requests")
 @Tag(name = "Change Requests", description = "Change request management operations")
 public class ChangeRequestsController {
     
     private final ChangeRequestService changeRequestService;
-    
-    public ChangeRequestsController(ChangeRequestService changeRequestService) {
+    private final SecurityUtils securityUtils;
+
+    public ChangeRequestsController(ChangeRequestService changeRequestService, SecurityUtils securityUtils) {
         this.changeRequestService = changeRequestService;
+        this.securityUtils = securityUtils;
     }
-    
+
     @GetMapping
     @Operation(summary = "Get change requests with pagination",
                description = "Retrieve paginated list of change requests with optional filtering")
     @ApiResponse(responseCode = "200", description = "Change requests retrieved successfully")
+    @PreAuthorize("hasRole('DATA_STEWARD') or hasRole('ADMIN')")
     public ResponseEntity<PagedResponse<ChangeRequestDto>> getChangeRequests(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String requestor,
@@ -46,8 +56,14 @@ public class ChangeRequestsController {
             @RequestParam(required = false, defaultValue = "20") int size,
             @RequestParam(required = false, defaultValue = "createdAt") String sortBy,
             @RequestParam(required = false, defaultValue = "DESC") String sortDirection,
-            HttpServletRequest request) {
+            HttpServletRequest request,
+            Authentication authentication) {
         
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        
+        List<String> ownedEntityTypes = isAdmin ? null : securityUtils.getOwnedEntityTypes(authentication);
+
         Sort.Direction direction = sortDirection.equalsIgnoreCase("ASC") ? 
                 Sort.Direction.ASC : Sort.Direction.DESC;
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
@@ -57,7 +73,7 @@ public class ChangeRequestsController {
         }
         
         PagedResponse<ChangeRequestDto> response = changeRequestService.findByFilters(
-                status, requestor, entityType, changeType, fromDate, pageable);
+                status, requestor, entityType, changeType, fromDate, pageable, ownedEntityTypes);
         
         // Add pagination links
         String baseUrl = getBaseUrl(request);
@@ -78,7 +94,8 @@ public class ChangeRequestsController {
                description = "Retrieve a specific change request by its unique identifier")
     @ApiResponse(responseCode = "200", description = "Change request found")
     @ApiResponse(responseCode = "404", description = "Change request not found")
-    public ResponseEntity<ChangeRequestDto> getChangeRequestById(@PathVariable UUID id) {
+    @PreAuthorize("hasRole('ADMIN') or @changeRequestService.findById(#id).map(cr -> @securityUtils.hasClientRoleForEntityType(cr.getEntityType(), authentication)).orElse(true)")
+    public ResponseEntity<ChangeRequestDto> getChangeRequestById(@PathVariable UUID id, Authentication authentication) {
         return changeRequestService.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -89,7 +106,9 @@ public class ChangeRequestsController {
                description = "Create a new change request for review")
     @ApiResponse(responseCode = "201", description = "Change request created successfully")
     @ApiResponse(responseCode = "400", description = "Invalid change request data")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ChangeRequestDto> createChangeRequest(@Valid @RequestBody ChangeRequestDto changeRequestDto) {
+        log.info("Received change request: {}", changeRequestDto);
         ChangeRequestDto created = changeRequestService.create(changeRequestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
@@ -100,6 +119,7 @@ public class ChangeRequestsController {
     @ApiResponse(responseCode = "200", description = "Change request updated successfully")
     @ApiResponse(responseCode = "404", description = "Change request not found")
     @ApiResponse(responseCode = "409", description = "Change request cannot be updated in current status")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ChangeRequestDto> updateChangeRequest(
             @PathVariable UUID id,
             @Valid @RequestBody ChangeRequestDto changeRequestDto) {
@@ -114,10 +134,11 @@ public class ChangeRequestsController {
                description = "Approve a pending change request (requires APPROVER role)")
     @ApiResponse(responseCode = "200", description = "Change request approved successfully")
     @ApiResponse(responseCode = "404", description = "Change request not found")
-    @ApiResponse(responseCode = "409", description = "Change request cannot be approved in current status")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('DATA_STEWARD') and @changeRequestService.findById(#id).map(cr -> @securityUtils.hasClientRoleForEntityType(cr.getEntityType(), authentication)).orElse(false))")
     public ResponseEntity<ChangeRequestDto> approveChangeRequest(
             @PathVariable UUID id,
-            @RequestParam(required = false) String comments) {
+            @RequestParam(required = false) String comments,
+            Authentication authentication) {
         
         return changeRequestService.approve(id, comments)
                 .map(ResponseEntity::ok)
@@ -130,9 +151,11 @@ public class ChangeRequestsController {
     @ApiResponse(responseCode = "200", description = "Change request rejected successfully")
     @ApiResponse(responseCode = "404", description = "Change request not found")
     @ApiResponse(responseCode = "409", description = "Change request cannot be rejected in current status")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('DATA_STEWARD') and @changeRequestService.findById(#id).map(cr -> @securityUtils.hasClientRoleForEntityType(cr.getEntityType(), authentication)).orElse(false))")
     public ResponseEntity<ChangeRequestDto> rejectChangeRequest(
             @PathVariable UUID id,
-            @RequestParam String reason) {
+            @RequestParam String reason,
+            Authentication authentication) {
         
         return changeRequestService.reject(id, reason)
                 .map(ResponseEntity::ok)
@@ -145,6 +168,7 @@ public class ChangeRequestsController {
     @ApiResponse(responseCode = "200", description = "Change request cancelled successfully")
     @ApiResponse(responseCode = "404", description = "Change request not found")
     @ApiResponse(responseCode = "409", description = "Change request cannot be cancelled in current status")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ChangeRequestDto> cancelChangeRequest(@PathVariable UUID id) {
         return changeRequestService.cancel(id)
                 .map(ResponseEntity::ok)
@@ -155,6 +179,7 @@ public class ChangeRequestsController {
     @Operation(summary = "Get pending change requests",
                description = "Retrieve all pending change requests for review")
     @ApiResponse(responseCode = "200", description = "Pending change requests retrieved successfully")
+    @PreAuthorize("hasRole('DATA_STEWARD') or hasRole('ADMIN')")
     public ResponseEntity<List<ChangeRequestDto>> getPendingChangeRequests() {
         List<ChangeRequestDto> pending = changeRequestService.findPending();
         return ResponseEntity.ok(pending);
@@ -164,6 +189,7 @@ public class ChangeRequestsController {
     @Operation(summary = "Get high priority pending requests",
                description = "Retrieve high priority change requests that need immediate attention")
     @ApiResponse(responseCode = "200", description = "High priority requests retrieved successfully")
+    @PreAuthorize("hasRole('DATA_STEWARD') or hasRole('ADMIN')")
     public ResponseEntity<List<ChangeRequestDto>> getHighPriorityRequests() {
         List<ChangeRequestDto> highPriority = changeRequestService.findHighPriorityPending();
         return ResponseEntity.ok(highPriority);
@@ -173,19 +199,19 @@ public class ChangeRequestsController {
     @Operation(summary = "Get current user's change requests",
                description = "Retrieve change requests submitted by the current user")
     @ApiResponse(responseCode = "200", description = "User's change requests retrieved successfully")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<PagedResponse<ChangeRequestDto>> getMyChangeRequests(
+            @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false, defaultValue = "0") int page,
             @RequestParam(required = false, defaultValue = "20") int size,
             @RequestParam(required = false, defaultValue = "createdAt") String sortBy,
-            @RequestParam(required = false, defaultValue = "DESC") String sortDirection,
-            HttpServletRequest request) {
+            @RequestParam(required = false, defaultValue = "DESC") String sortDirection) {
         
         Sort.Direction direction = sortDirection.equalsIgnoreCase("ASC") ? 
                 Sort.Direction.ASC : Sort.Direction.DESC;
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
         
-        // TODO: Get current user from security context
-        String currentUser = request.getRemoteUser(); // Placeholder
+        String currentUser = jwt.getSubject();
         
         PagedResponse<ChangeRequestDto> response = changeRequestService.findByRequestor(currentUser, pageable);
         return ResponseEntity.ok(response);
@@ -195,6 +221,7 @@ public class ChangeRequestsController {
     @Operation(summary = "Get change request statistics",
                description = "Retrieve statistics about change requests")
     @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully")
+    @PreAuthorize("hasRole('DATA_STEWARD') or hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> getStatistics() {
         Map<String, Object> stats = changeRequestService.getStatistics();
         return ResponseEntity.ok(stats);

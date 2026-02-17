@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,7 @@ public class ChangeRequestService {
     
     public ChangeRequestService(ChangeRequestRepository changeRequestRepository,
                                ChangeRequestMapper changeRequestMapper,
-                               @Autowired(required = false) OutboxPublisher outboxPublisher) {
+                               OutboxPublisher outboxPublisher) {
         this.changeRequestRepository = changeRequestRepository;
         this.changeRequestMapper = changeRequestMapper;
         this.outboxPublisher = outboxPublisher;
@@ -47,9 +48,10 @@ public class ChangeRequestService {
     
     public PagedResponse<ChangeRequestDto> findByFilters(String status, String requestor, 
                                                         String entityType, String changeType,
-                                                        LocalDateTime fromDate, Pageable pageable) {
+                                                        LocalDateTime fromDate, Pageable pageable,
+                                                        List<String> ownedEntityTypes) {
         Page<ChangeRequest> page = changeRequestRepository.findByFilters(
-                status, requestor, entityType, changeType, fromDate, pageable);
+                status, requestor, entityType, changeType, fromDate, pageable, ownedEntityTypes);
         
         List<ChangeRequestDto> dtos = page.getContent().stream()
                 .map(changeRequestMapper::toDto)
@@ -83,11 +85,20 @@ public class ChangeRequestService {
     
     @Transactional
     public ChangeRequestDto create(ChangeRequestDto dto) {
-        ChangeRequest entity = changeRequestMapper.toEntity(dto);
-        entity.setCreatedAt(LocalDateTime.now());
+        ChangeRequest entity = new ChangeRequest();
+        entity.setCrNumber(generateCrNumber());
+        entity.setTitle(dto.getTitle());
+        entity.setDescription(dto.getBusinessJustification());
+        entity.setOperationType(dto.getOperationType());
+        entity.setDataType(dto.getEntityType());
+        entity.setProposedChanges(dto.getProposedChanges());
+        entity.setCurrentValues(dto.getCurrentValues());
         entity.setStatus("PENDING");
-        
-        // Entity validation removed - entityId no longer exists
+        entity.setRequesterId(dto.getRequestedBy());
+        entity.setAssigneeId(dto.getApprover());
+        entity.setBusinessJustification(dto.getBusinessJustification());
+        entity.setPriority(String.valueOf(dto.getPriority()));
+        entity.setCreatedAt(LocalDateTime.now());
         
         ChangeRequest saved = changeRequestRepository.save(entity);
         
@@ -97,6 +108,13 @@ public class ChangeRequestService {
         logger.info("Created change request {} for data type {}", saved.getId(), saved.getDataType());
         
         return changeRequestMapper.toDto(saved);
+    }
+
+    private String generateCrNumber() {
+        LocalDateTime now = LocalDateTime.now();
+        String year = now.format(DateTimeFormatter.ofPattern("yyyy"));
+        String timestamp = now.format(DateTimeFormatter.ofPattern("HHmmssSSS"));
+        return "CR-" + year + "-" + timestamp;
     }
     
     @Transactional

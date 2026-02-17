@@ -12,7 +12,7 @@ public class BitemporalHelper {
     private BitemporalHelper() {
     }
     
-    public static <T extends Bitemporal> T createNewVersion(T current, String recordedBy, String changeRequestId) {
+    public static <T extends Bitemporal> T createNewVersion(T current, String recordedBy, UUID changeRequestId) {
         try {
             @SuppressWarnings("unchecked")
             T newVersion = (T) current.getClass().getDeclaredConstructor().newInstance();
@@ -25,7 +25,7 @@ public class BitemporalHelper {
             newVersion.setValidTo(null);
             newVersion.setRecordedAt(LocalDateTime.now());
             newVersion.setRecordedBy(recordedBy);
-            newVersion.setChangeRequestId(changeRequestId);
+            newVersion.setChangeRequestId(changeRequestId); // Now passes UUID
             newVersion.setIsCorrection(false);
             
             return newVersion;
@@ -34,7 +34,7 @@ public class BitemporalHelper {
         }
     }
     
-    public static <T extends Bitemporal> T createCorrection(T current, String recordedBy, String changeRequestId) {
+    public static <T extends Bitemporal> T createCorrection(T current, String recordedBy, UUID changeRequestId) {
         T correction = createNewVersion(current, recordedBy, changeRequestId);
         correction.setIsCorrection(true);
         correction.setValidFrom(current.getValidFrom());
@@ -65,7 +65,7 @@ public class BitemporalHelper {
                 .max(Comparator.comparing(Bitemporal::getVersion));
     }
     
-    public static <T extends Bitemporal> Map<String, List<T>> groupByChangeRequest(List<T> entities) {
+    public static <T extends Bitemporal> Map<UUID, List<T>> groupByChangeRequest(List<T> entities) {
         return entities.stream()
                 .filter(e -> e.getChangeRequestId() != null)
                 .collect(Collectors.groupingBy(Bitemporal::getChangeRequestId));

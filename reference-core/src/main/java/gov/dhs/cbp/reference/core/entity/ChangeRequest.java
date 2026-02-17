@@ -3,6 +3,8 @@ package gov.dhs.cbp.reference.core.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -16,12 +18,12 @@ import java.util.UUID;
            @Index(name = "idx_change_request_created", columnList = "created_at")
        })
 public class ChangeRequest {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false)
     private UUID id;
-    
+
     @NotBlank
     @Size(max = 50)
     @Column(name = "cr_number", nullable = false, unique = true, length = 50)
@@ -39,23 +41,25 @@ public class ChangeRequest {
     @Size(max = 20)
     @Column(name = "operation_type", nullable = false, length = 20)
     private String operationType; // CREATE, UPDATE, DELETE, DEPRECATE
-    
+
     @NotBlank
     @Size(max = 50)
     @Column(name = "data_type", nullable = false, length = 50)
     private String dataType; // COUNTRY, PORT, AIRPORT, CARRIER, CODE_MAPPING
-    
+
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "proposed_changes", columnDefinition = "jsonb")
     private String proposedChanges;
-    
+
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "current_values", columnDefinition = "jsonb")
     private String currentValues;
-    
+
     @NotBlank
     @Size(max = 20)
     @Column(name = "status", nullable = false, length = 20)
     private String status = "PENDING"; // PENDING, APPROVED, REJECTED, APPLIED, CANCELLED
-    
+
     @NotBlank
     @Size(max = 100)
     @Column(name = "requester_id", nullable = false, length = 100)
@@ -64,34 +68,34 @@ public class ChangeRequest {
     @Size(max = 100)
     @Column(name = "assignee_id", length = 100)
     private String assigneeId;
-    
+
     @Size(max = 100)
     @Column(name = "approved_by", length = 100)
     private String approvedBy;
-    
+
     @Column(name = "business_justification", columnDefinition = "TEXT")
     private String businessJustification;
-    
+
     @Size(max = 500)
     @Column(name = "rejection_reason", length = 500)
     private String rejectionReason;
-    
+
     @Size(max = 10)
     @Column(name = "priority", length = 10)
     private String priority = "MEDIUM"; // HIGH, MEDIUM, LOW
-    
+
     @Column(name = "submitted_at")
     private LocalDateTime submittedAt;
-    
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
-    
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-    
+
     @Column(name = "approved_at")
     private LocalDateTime approvedAt;
-    
+
     @Column(name = "implemented_at")
     private LocalDateTime implementedAt;
 
@@ -104,16 +108,17 @@ public class ChangeRequest {
     @Column(name = "rejected_by", length = 100)
     private String rejectedBy;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "approval_data", columnDefinition = "jsonb")
     private String approvalData;
-    
-    
+
+
     @Column(name = "workflow_instance_id", length = 100)
     private String workflowInstanceId;
-    
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "metadata", columnDefinition = "jsonb")
     private String metadata;
-    
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
@@ -122,38 +127,41 @@ public class ChangeRequest {
         if (submittedAt == null) {
             submittedAt = LocalDateTime.now();
         }
+        if (updatedAt == null) {
+            updatedAt = LocalDateTime.now();
+        }
     }
-    
+
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
-    
+
     public boolean isPending() {
         return "PENDING".equals(status);
     }
-    
+
     public boolean isApproved() {
         return "APPROVED".equals(status);
     }
-    
+
     public boolean isRejected() {
         return "REJECTED".equals(status);
     }
-    
+
     public boolean isApplied() {
         return "APPLIED".equals(status);
     }
-    
+
     // Getters and setters
     public UUID getId() {
         return id;
     }
-    
+
     public void setId(UUID id) {
         this.id = id;
     }
-    
+
     public String getCrNumber() {
         return crNumber;
     }
@@ -193,31 +201,31 @@ public class ChangeRequest {
     public void setDataType(String dataType) {
         this.dataType = dataType;
     }
-    
+
     public String getProposedChanges() {
         return proposedChanges;
     }
-    
+
     public void setProposedChanges(String proposedChanges) {
         this.proposedChanges = proposedChanges;
     }
-    
+
     public String getCurrentValues() {
         return currentValues;
     }
-    
+
     public void setCurrentValues(String currentValues) {
         this.currentValues = currentValues;
     }
-    
+
     public String getStatus() {
         return status;
     }
-    
+
     public void setStatus(String status) {
         this.status = status;
     }
-    
+
     public String getRequesterId() {
         return requesterId;
     }
@@ -241,7 +249,7 @@ public class ChangeRequest {
     public void setApprovedBy(String approvedBy) {
         this.approvedBy = approvedBy;
     }
-    
+
     public String getBusinessJustification() {
         return businessJustification;
     }
@@ -249,15 +257,15 @@ public class ChangeRequest {
     public void setBusinessJustification(String businessJustification) {
         this.businessJustification = businessJustification;
     }
-    
+
     public String getRejectionReason() {
         return rejectionReason;
     }
-    
+
     public void setRejectionReason(String rejectionReason) {
         this.rejectionReason = rejectionReason;
     }
-    
+
     public String getPriority() {
         return priority;
     }
@@ -265,7 +273,7 @@ public class ChangeRequest {
     public void setPriority(String priority) {
         this.priority = priority;
     }
-    
+
     public LocalDateTime getSubmittedAt() {
         return submittedAt;
     }
@@ -273,31 +281,31 @@ public class ChangeRequest {
     public void setSubmittedAt(LocalDateTime submittedAt) {
         this.submittedAt = submittedAt;
     }
-    
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
-    
+
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
-    
+
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
-    
+
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
-    
+
     public LocalDateTime getApprovedAt() {
         return approvedAt;
     }
-    
+
     public void setApprovedAt(LocalDateTime approvedAt) {
         this.approvedAt = approvedAt;
     }
-    
+
     public LocalDateTime getImplementedAt() {
         return implementedAt;
     }
@@ -337,19 +345,19 @@ public class ChangeRequest {
     public void setApprovalData(String approvalData) {
         this.approvalData = approvalData;
     }
-    
+
     public String getWorkflowInstanceId() {
         return workflowInstanceId;
     }
-    
+
     public void setWorkflowInstanceId(String workflowInstanceId) {
         this.workflowInstanceId = workflowInstanceId;
     }
-    
+
     public String getMetadata() {
         return metadata;
     }
-    
+
     public void setMetadata(String metadata) {
         this.metadata = metadata;
     }

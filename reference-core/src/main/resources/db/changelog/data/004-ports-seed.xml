@@ -37,7 +37,7 @@
                 NULL,
                 CURRENT_TIMESTAMP,
                 'system',
-                'SEED-003',
+                '00000000-0000-0000-0000-000000000003'::UUID,
                 false,
                 jsonb_build_object('source', 'seed-data', 'imported_at', CURRENT_TIMESTAMP::text)
             FROM (
@@ -72,7 +72,7 @@
         
         <rollback>
             <delete tableName="ports_v" schemaName="reference_data">
-                <where>change_request_id = 'SEED-003'</where>
+                <where>change_request_id = '00000000-0000-0000-0000-000000000003'</where>
             </delete>
         </rollback>
     </changeSet>

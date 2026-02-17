@@ -8,14 +8,8 @@
         <p class="cbp-page-header__subtitle">Review and manage pending data modification requests with full audit trail</p>
       </div>
       <div class="cbp-page-header__actions">
-        <div class="cbp-badge-container">
-          <span class="cbp-badge cbp-badge--warning" *ngIf="pendingRequests.length > 0">
-            {{ pendingRequests.length }} Pending
-          </span>
-          <span class="cbp-badge cbp-badge--success" *ngIf="pendingRequests.length === 0">
-            All Caught Up
-          </span>
-        </div>
+        <button *ngIf="isAdmin()" class="usa-button" (click)="openStewardModal()">View Data Stewards</button>
+        <app-pending-requests-tracker></app-pending-requests-tracker>
       </div>
     </div>
   </div>
@@ -301,39 +295,120 @@
       <h2>Change Request Details</h2>
       <button class="cbp-modal-close" (click)="closeModal()">&times;</button>
     </div>
-    <div class="cbp-modal-body" *ngIf="selectedRequest">
-      <dl class="cbp-details-list">
-        <dt>ID:</dt>
-        <dd>{{ selectedRequest.id }}</dd>
-        
-        <dt>Change Type:</dt>
-        <dd>{{ selectedRequest.changeType }}</dd>
-        
-        <dt>Entity Type:</dt>
-        <dd>{{ selectedRequest.entityType }}</dd>
-        
-        <dt>Status:</dt>
-        <dd>
-          <span class="cbp-badge" 
-                [class.cbp-badge--success]="selectedRequest.status === 'APPROVED'"
-                [class.cbp-badge--warning]="selectedRequest.status === 'PENDING'"
-                [class.cbp-badge--error]="selectedRequest.status === 'REJECTED'">
-            {{ selectedRequest.status }}
-          </span>
-        </dd>
-        
-        <dt>Description:</dt>
-        <dd>{{ selectedRequest.description }}</dd>
-        
-        <dt>Requested By:</dt>
-        <dd>{{ selectedRequest.requestedBy }}</dd>
-        
-        <dt>Created:</dt>
-        <dd>{{ formatDate(selectedRequest.createdAt) }}</dd>
-        
-        <dt>Updated:</dt>
-        <dd>{{ formatDate(selectedRequest.updatedAt) }}</dd>
-      </dl>
+        <div class="cbp-modal-body" *ngIf="selectedRequest">
+
+      <div [ngSwitch]="selectedRequest.changeType">
+
+        <!-- Side-by-side view for UPDATE -->
+        <div *ngSwitchCase="'UPDATE'">
+          <h3>Comparison View</h3>
+          <div class="cbp-three-column-comparison">
+            <div class="cbp-comparison-header-row">
+              <span>Field</span>
+              <span>Old Value</span>
+              <span>New Value</span>
+            </div>
+            <ng-container *ngFor="let key of comparisonFields">
+              <div class="cbp-comparison-row">
+                <span>{{ key }}</span>
+                <span>{{ parsedCurrentValues ? parsedCurrentValues[key] : 'N/A' }}</span>
+                <span [class.cbp-highlight-change]="isChanged(key)">{{ parsedProposedChanges ? parsedProposedChanges[key] : 'N/A' }}</span>
+              </div>
+            </ng-container>
+          </div>
+        </div>
+
+        <!-- Default view for CREATE, DELETE, and other types -->
+        <div *ngSwitchDefault>
+          <!-- User-friendly view for CREATE/DELETE Country -->
+          <div *ngIf="selectedRequest.entityType === 'COUNTRY' && (selectedRequest.changeType === 'CREATE' || selectedRequest.changeType === 'DELETE')">
+            
+            <div *ngIf="selectedRequest.changeType === 'CREATE' && parsedProposedChanges">
+              <h3>Proposed New Country</h3>
+              <dl class="cbp-details-list margin-top-1">
+                <dt>Country Name:</dt>
+                <dd>{{ parsedProposedChanges.countryName }}</dd>
+                <dt>Country Code:</dt>
+                <dd>{{ parsedProposedChanges.countryCode }}</dd>
+                <dt>ISO2 Code:</dt>
+                <dd>{{ parsedProposedChanges.iso2Code }}</dd>
+                <dt>ISO3 Code:</dt>
+                <dd>{{ parsedProposedChanges.iso3Code }}</dd>
+                <dt>Numeric Code:</dt>
+                <dd>{{ parsedProposedChanges.numericCode }}</dd>
+                <dt>Justification:</dt>
+                <dd>{{ selectedRequest.businessJustification || 'Not provided' }}</dd>
+              </dl>
+            </div>
+
+            <div *ngIf="selectedRequest.changeType === 'DELETE' && parsedCurrentValues">
+              <h3>Country to be Deleted</h3>
+              <dl class="cbp-details-list margin-top-1">
+                <dt>Country Name:</dt>
+                <dd>{{ parsedCurrentValues.countryName }}</dd>
+                <dt>Country Code:</dt>
+                <dd>{{ parsedCurrentValues.countryCode }}</dd>
+                <dt>ISO2 Code:</dt>
+                <dd>{{ parsedCurrentValues.iso2Code }}</dd>
+                <dt>ISO3 Code:</dt>
+                <dd>{{ parsedCurrentValues.iso3Code }}</dd>
+                <dt>Numeric Code:</dt>
+                <dd>{{ parsedCurrentValues.numericCode }}</dd>
+                <dt>Justification:</dt>
+                <dd>{{ selectedRequest.businessJustification || 'Not provided' }}</dd>
+              </dl>
+            </div>
+
+            <hr class="margin-y-3">
+
+            <h4>Request Details</h4>
+            <dl class="cbp-details-list margin-top-1">
+                <dt>ID:</dt>
+                <dd>{{ selectedRequest.id }}</dd>
+                <dt>Requested By:</dt>
+                <dd>{{ selectedRequest.requestedBy }}</dd>
+                <dt>Created:</dt>
+                <dd>{{ formatDate(selectedRequest.createdAt) }}</dd>
+            </dl>
+          </div>
+
+          <!-- Fallback for other entity types or general view -->
+          <div *ngIf="selectedRequest.entityType !== 'COUNTRY' || (selectedRequest.changeType !== 'CREATE' && selectedRequest.changeType !== 'DELETE' && selectedRequest.changeType !== 'UPDATE')">
+            <dl class="cbp-details-list">
+              <dt>ID:</dt>
+              <dd>{{ selectedRequest.id }}</dd>
+              
+              <dt>Change Type:</dt>
+              <dd>{{ selectedRequest.changeType }}</dd>
+              
+              <dt>Entity Type:</dt>
+              <dd>{{ selectedRequest.entityType }}</dd>
+              
+              <dt>Status:</dt>
+              <dd>
+                <span class="cbp-badge" 
+                      [class.cbp-badge--success]="selectedRequest.status === 'APPROVED'"
+                      [class.cbp-badge--warning]="selectedRequest.status === 'PENDING'"
+                      [class.cbp-badge--error]="selectedRequest.status === 'REJECTED'">
+                  {{ selectedRequest.status }}
+                </span>
+              </dd>
+              
+              <dt>Description:</dt>
+              <dd>{{ selectedRequest.description }}</dd>
+              
+              <dt>Requested By:</dt>
+              <dd>{{ selectedRequest.requestedBy }}</dd>
+              
+              <dt>Created:</dt>
+              <dd>{{ formatDate(selectedRequest.createdAt) }}</dd>
+              
+              <dt>Updated:</dt>
+              <dd>{{ formatDate(selectedRequest.updatedAt) }}</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
 
       <div class="margin-top-3">
         <button class="usa-button" (click)="showJson = !showJson">
@@ -344,8 +419,8 @@
           <pre class="bg-base-lightest padding-2 radius-md">{{ selectedRequest | json }}</pre>
         </div>
       </div>
-    </div>
-    <div class="cbp-modal-footer">
+    </div>    
+        <div class="cbp-modal-footer">
       <button class="usa-button usa-button--outline" (click)="closeModal()">Close</button>
       <button *ngIf="selectedRequest && canApprove(selectedRequest)" 
               class="usa-button" 
@@ -360,6 +435,19 @@
     </div>
   </div>
 </div>
+
+<app-steward-list-modal
+  [isOpen]="isStewardModalOpen"
+  [stewards]="allDataStewards"
+  (close)="closeStewardModal()"
+  (openOwnership)="openPermissionModal($event)"
+></app-steward-list-modal>
+
+<app-permission-editor-modal
+  [isOpen]="isPermissionModalOpen"
+  [steward]="selectedStewardForOwnership"
+  (modalClose)="onPermissionModalClose($event)"
+></app-permission-editor-modal>
 
 <!-- Approval/Rejection Dialog Modal - Only shows when showApprovalDialog is true -->
 <div *ngIf="showApprovalDialog" class="cbp-modal-overlay" (click)="closeApprovalDialog()">

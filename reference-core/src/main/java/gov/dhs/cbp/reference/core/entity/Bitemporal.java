@@ -1,6 +1,9 @@
 package gov.dhs.cbp.reference.core.entity;
 
+import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
+import org.hibernate.annotations.Type;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -29,14 +32,15 @@ public abstract class Bitemporal {
     @Column(name = "recorded_by", nullable = false, length = 100)
     private String recordedBy;
     
-    @Column(name = "change_request_id", length = 100)
-    private String changeRequestId;
+    @Column(name = "change_request_id")
+    private UUID changeRequestId;
     
     @Column(name = "is_correction", nullable = false)
     private Boolean isCorrection = false;
     
+    @Type(JsonType.class)
     @Column(name = "metadata", columnDefinition = "jsonb")
-    private String metadata;
+    private String metadata = null;
     
     @PrePersist
     protected void onCreate() {
@@ -108,11 +112,11 @@ public abstract class Bitemporal {
         this.recordedBy = recordedBy;
     }
     
-    public String getChangeRequestId() {
+    public UUID getChangeRequestId() {
         return changeRequestId;
     }
     
-    public void setChangeRequestId(String changeRequestId) {
+    public void setChangeRequestId(UUID changeRequestId) {
         this.changeRequestId = changeRequestId;
     }
     

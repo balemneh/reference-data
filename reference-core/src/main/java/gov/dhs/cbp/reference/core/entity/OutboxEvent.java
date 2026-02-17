@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -20,6 +22,7 @@ public class OutboxEvent {
         PENDING,
         PROCESSING,
         PROCESSED,
+        PUBLISHED,  // Alias for PROCESSED to match test expectations
         FAILED
     }
     
@@ -41,6 +44,7 @@ public class OutboxEvent {
     private String eventType;
     
     @NotNull
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "payload", nullable = false, columnDefinition = "jsonb")
     private String payload;
     

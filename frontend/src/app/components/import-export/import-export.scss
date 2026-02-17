@@ -163,16 +163,16 @@
 
   &--active {
     background: var(--cbp-gradient-primary);
-    color: white;
+    color: var(--cbp-neutral-900);
     box-shadow: var(--cbp-shadow-sm);
 
     .cbp-tab-icon {
-      color: white;
+      color: var(--cbp-neutral-900);
     }
 
     .cbp-tab-badge {
-      background: rgba(255, 255, 255, 0.2);
-      color: white;
+      background: rgba(0, 0, 0, 0.1);
+      color: var(--cbp-neutral-900);
     }
   }
 }
@@ -180,8 +180,9 @@
 .cbp-tab-icon {
   width: 18px;
   height: 18px;
-  color: var(--cbp-neutral-500);
+  color: black;
   transition: color var(--cbp-transition-fast);
+  fill: black;
 }
 
 .cbp-tab-badge {
@@ -432,14 +433,18 @@
   border-radius: var(--cbp-radius-xl);
   padding: var(--cbp-space-3xl);
   text-align: center;
-  background: var(--cbp-neutral-50);
+  background: white; /* Changed from var(--cbp-neutral-50) */
   transition: all var(--cbp-transition-fast);
   cursor: pointer;
 
+  &:hover {
+    border-color: var(--cbp-primary);
+    background: var(--cbp-neutral-50); /* Changed from var(--cbp-dropzone-hover) */
+  }
+
   &--dragover {
     border-color: var(--cbp-primary);
-    background: var(--cbp-dropzone-hover);
-    transform: scale(1.02);
+    background: var(--cbp-neutral-50); /* Changed from var(--cbp-dropzone-hover) */
   }
 
   &--has-file {
@@ -847,31 +852,35 @@
   background: var(--cbp-neutral-100);
 }
 
-.cbp-table-row {
-  &--header {
-    .cbp-table-cell {
-      font-weight: 600;
-      color: var(--cbp-neutral-900);
-      padding: var(--cbp-space-md);
-      border-bottom: 1px solid var(--cbp-neutral-300);
-    }
+.cbp-history-table .cbp-table {
+  table-layout: fixed;
+}
+
+.cbp-history-table .cbp-table-row--data .cbp-table-cell {
+  &--type {
+    width: 8%;
   }
-
-  &--data {
-    &:nth-child(even) {
-      background: var(--cbp-neutral-50);
-    }
-
-    .cbp-table-cell {
-      padding: var(--cbp-space-md);
-      border-bottom: 1px solid var(--cbp-neutral-200);
-      font-size: 0.875rem;
-      color: var(--cbp-neutral-700);
-      max-width: 200px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+  &--entity {
+    width: 12%;
+  }
+  &--file {
+    width: 35%;
+  }
+  &--status {
+    width: 8%;
+  }
+  &--records {
+    width: 8%;
+  }
+  &--started {
+    width: 15%;
+  }
+  &--duration {
+    width: 8%;
+  }
+  &--actions {
+    width: 6%;
+    text-align: center;
   }
 }
 
@@ -1058,15 +1067,50 @@
   font-weight: 500;
 }
 
-// History Table
 .cbp-history-table {
-  overflow-x: auto;
+  display: flex;
+  flex-direction: column;
 }
 
-.cbp-operation-type {
+.cbp-flex-table-header {
   display: flex;
-  align-items: center;
-  gap: var(--cbp-space-sm);
+  font-weight: 600;
+  color: var(--cbp-neutral-900);
+  padding: var(--cbp-space-md);
+  border-bottom: 1px solid var(--cbp-neutral-300);
+  background: var(--cbp-neutral-100);
+}
+
+.cbp-flex-table-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.cbp-flex-table-row {
+  display: flex;
+  border-bottom: 1px solid var(--cbp-neutral-200);
+  align-items: flex-start;
+  &:nth-child(even) {
+    background: var(--cbp-neutral-50);
+  }
+}
+
+.cbp-flex-table-cell {
+  padding: var(--cbp-space-md);
+  font-size: 0.875rem;
+  color: var(--cbp-neutral-700);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: top;
+}
+
+.cbp-preview-note {
+  margin-top: var(--cbp-space-md);
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--cbp-neutral-600);
+  font-style: italic;
 }
 
 .cbp-operation-icon {
@@ -1081,6 +1125,16 @@
     color: var(--cbp-export-color);
   }
 }
+
+.cbp-operation-type {
+  display: flex;
+  align-items: center;
+  gap: var(--cbp-space-xs);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+
 
 .cbp-entity-badge {
   background: var(--cbp-info-light);
@@ -1154,6 +1208,12 @@
   gap: 0.125rem;
 }
 
+.cbp-count-total {
+  color: var(--cbp-neutral-900);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
 .cbp-count-success {
   color: var(--cbp-success-color);
   font-size: 0.8rem;
@@ -1176,7 +1236,6 @@
   display: flex;
   align-items: center;
   gap: var(--cbp-space-sm);
-  min-width: 100px;
 }
 
 .cbp-progress-text {
@@ -1249,6 +1308,8 @@
   text-align: center;
   max-width: 400px;
 }
+
+
 
 .cbp-empty-icon {
   width: 64px;
@@ -1376,7 +1437,7 @@
     height: 0;
 
     &:checked + .cbp-toggle-slider {
-      background-color: var(--cbp-success-color);
+      background-color: var(--cbp-success-light);
 
       &:before {
         transform: translateX(20px);
@@ -1399,6 +1460,7 @@
   background-color: var(--cbp-neutral-400);
   transition: var(--cbp-transition-fast);
   border-radius: 24px;
+  border: 1px solid var(--cbp-neutral-400);
 
   &:before {
     position: absolute;
@@ -1473,64 +1535,10 @@
   border: 1px solid transparent;
   position: relative;
   overflow: hidden;
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  &--primary {
-    background: var(--cbp-gradient-primary);
-    color: white;
-    border-color: var(--cbp-primary);
-
-    &:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: var(--cbp-shadow-lg);
-    }
-  }
-
-  &--secondary {
-    background: var(--cbp-neutral-100);
-    color: var(--cbp-neutral-700);
-    border-color: var(--cbp-neutral-300);
-
-    &:hover:not(:disabled) {
-      background: var(--cbp-neutral-200);
-      border-color: var(--cbp-neutral-400);
-      transform: translateY(-1px);
-    }
-  }
-
-  &--outline {
-    background: transparent;
-    color: var(--cbp-primary);
-    border-color: var(--cbp-primary);
-
-    &:hover:not(:disabled) {
-      background: var(--cbp-primary);
-      color: white;
-      transform: translateY(-1px);
-    }
-  }
-
-  &--small {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-  }
-
-  &--large {
-    padding: 1rem 2rem;
-    font-size: 1rem;
-    font-weight: 700;
-  }
-
-  &__icon {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-  }
+  white-space: nowrap;
 }
+
+
 
 // Modal Styles
 .cbp-modal-large {
@@ -1839,6 +1847,15 @@
   background-clip: text;
 }
 
+// Override for Import/Export Management title
+.cbp-page-header__title.cbp-text-gradient {
+  background: linear-gradient(135deg, var(--cbp-primary), var(--cbp-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+
 .cbp-fade-in {
   animation: fadeIn 0.5s ease-out;
 }
@@ -1906,4 +1923,11 @@
   &:focus {
     top: 6px;
   }
+}
+
+.cbp-modal.cbp-modal--sm .cbp-modal-content {
+  padding-top: var(--cbp-space-lg); // Reduced padding for smaller modal
+}
+.margin-top-0 {
+  margin-top: 0 !important;
 }

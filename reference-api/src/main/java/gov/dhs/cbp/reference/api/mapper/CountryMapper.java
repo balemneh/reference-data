@@ -11,6 +11,7 @@ import java.util.List;
 public interface CountryMapper {
     
     @Mapping(source = "codeSystem.code", target = "codeSystem")
+    @Mapping(source = "id", target = "id")
     CountryDto toDto(Country country);
     
     @Mapping(target = "codeSystem", ignore = true)

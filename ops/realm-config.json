@@ -1,0 +1,134 @@
+{
+  "realm": "reference-data",
+  "enabled": true,
+  "sslRequired": "none",
+  "clients": [
+    {
+      "clientId": "reference-admin-ui",
+      "enabled": true,
+      "publicClient": true,
+      "redirectUris": [
+        "http://localhost:4200/*"
+      ],
+      "webOrigins": [
+        "http://localhost:4200"
+      ],
+      "protocol": "openid-connect",
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "fullScopeAllowed": false,
+      "defaultClientScopes": [
+        "web-origins",
+        "roles",
+        "profile",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ],
+      "protocolMappers": [
+        {
+          "name": "audience-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "reference-api",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "realm-roles-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "realm_access.roles",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "jsonType.label": "String",
+            "multivalued": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "reference-api",
+      "enabled": true,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect"
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Administrator role",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "reference-data"
+      },
+      {
+        "name": "data-steward",
+        "description": "Data Steward role",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "reference-data"
+      },
+      {
+        "name": "consumer",
+        "description": "Consumer role",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "reference-data"
+      }
+    ]
+  },
+  "users": [
+    {
+      "username": "testuser",
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "testpass"
+        }
+      ],
+      "realmRoles": [
+        "admin"
+      ]
+    },
+    {
+      "username": "dsteward",
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dsteward"
+        }
+      ],
+      "realmRoles": [
+        "data-steward"
+      ]
+    },
+    {
+      "username": "consumer",
+      "enabled": true,
+      "email": "consumer@example.com",
+      "firstName": "Consumer",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "consumer"
+        }
+      ],
+      "realmRoles": [
+        "consumer"
+      ]
+    }
+  ]
+}

@@ -13,17 +13,12 @@ import java.util.*;
 @CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS})
 public class FeatureFlagsController {
 
-    @Autowired(required = false)
+    @Autowired
     private FF4j ff4j;
 
     @GetMapping("/feature-flags")
     public ResponseEntity<Map<String, Object>> getFeatureFlags() {
         Map<String, Object> flags = new HashMap<>();
-
-        if (ff4j == null) {
-            // Return default flags if FF4J is not available
-            return ResponseEntity.ok(getDefaultFlags());
-        }
 
         // Group features by category
         Map<String, Map<String, Boolean>> groupedFlags = new HashMap<>();
@@ -40,6 +35,9 @@ public class FeatureFlagsController {
             } else if (featureId.startsWith("experimental.")) {
                 groupedFlags.computeIfAbsent("experimental", k -> new HashMap<>())
                     .put(featureId.substring(13), isEnabled);
+            } else if (featureId.startsWith("features.")) {
+                groupedFlags.computeIfAbsent("features", k -> new HashMap<>())
+                    .put(featureId.substring(9), isEnabled);
             } else {
                 groupedFlags.computeIfAbsent("referenceData", k -> new HashMap<>())
                     .put(featureId, isEnabled);
@@ -55,25 +53,34 @@ public class FeatureFlagsController {
             @PathVariable String featureId,
             @RequestBody Map<String, Object> request) {
 
-        if (ff4j == null) {
-            return ResponseEntity.status(503).body(Map.of(
-                "error", "Feature flags service not available"
-            ));
-        }
-
         boolean enabled = (Boolean) request.get("enabled");
 
-        if (ff4j.exist(featureId)) {
+        // List of possible prefixes
+        List<String> prefixes = Arrays.asList("features.", "experimental.", "dashboard.", "admin.");
+        String fullFeatureId = featureId;
+
+        // Check if the feature exists without a prefix (for referenceData)
+        if (!ff4j.exist(fullFeatureId)) {
+            // If not, try to find it with a prefix
+            for (String prefix : prefixes) {
+                if (ff4j.exist(prefix + featureId)) {
+                    fullFeatureId = prefix + featureId;
+                    break;
+                }
+            }
+        }
+
+        if (ff4j.exist(fullFeatureId)) {
             if (enabled) {
-                ff4j.enable(featureId);
+                ff4j.enable(fullFeatureId);
             } else {
-                ff4j.disable(featureId);
+                ff4j.disable(fullFeatureId);
             }
 
-            Feature feature = ff4j.getFeature(featureId);
+            Feature feature = ff4j.getFeature(fullFeatureId);
             return ResponseEntity.ok(Map.of(
-                "featureId", featureId,
-                "enabled", ff4j.check(featureId),
+                "featureId", fullFeatureId,
+                "enabled", ff4j.check(fullFeatureId),
                 "description", feature.getDescription()
             ));
         } else {
@@ -143,41 +150,5 @@ public class FeatureFlagsController {
         }
     }
 
-    private Map<String, Object> getDefaultFlags() {
-        Map<String, Object> defaultFlags = new HashMap<>();
 
-        // Dashboard-specific features (non-data related)
-        Map<String, Boolean> dashboard = new HashMap<>();
-        dashboard.put("showRecentActivity", true);
-        dashboard.put("showSystemHealth", true);
-        defaultFlags.put("dashboard", dashboard);
-
-        // Reference data features (controls both data access AND dashboard visibility)
-        Map<String, Boolean> referenceData = new HashMap<>();
-        referenceData.put("countries", true);
-        referenceData.put("ports", true);
-        referenceData.put("airports", true);
-        referenceData.put("carriers", true);
-        referenceData.put("units", true);
-        referenceData.put("languages", true);
-        referenceData.put("changeRequests", true);
-        referenceData.put("analytics", true);
-        referenceData.put("export", true);
-        referenceData.put("import", true);
-        referenceData.put("bulkOperations", true);
-        referenceData.put("advancedSearch", true);
-        referenceData.put("apiAccess", true);
-        referenceData.put("webhooks", false);
-        defaultFlags.put("referenceData", referenceData);
-
-        // Experimental features
-        Map<String, Boolean> experimental = new HashMap<>();
-        experimental.put("aiAssistant", false);
-        experimental.put("graphView", false);
-        experimental.put("realtimeSync", false);
-        experimental.put("collaboration", false);
-        defaultFlags.put("experimental", experimental);
-
-        return defaultFlags;
-    }
 }

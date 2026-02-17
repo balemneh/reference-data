@@ -1,4 +1,17 @@
 {
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.jdt.ls.java.home": "/Library/Java/JavaVirtualMachines/amazon-corretto-21.jdk/Contents/Home",
+    "terminal.integrated.env.osx": {
+        "MAVEN_OPTS": "-Djavax.net.ssl.trustStore=/Users/fzzc05e/keystore/cacerts -Djavax.net.ssl.trustStorePassword=changeit",
+        "JAVA_HOME": "/Library/Java/JavaVirtualMachines/amazon-corretto-21.jdk/Contents/Home"
+    },
+    "java.jdt.ls.vmargs": "-Djavax.net.ssl.trustStore=/Users/fzzc05e/keystore/cacerts -Djavax.net.ssl.trustStorePassword=changeit",
     "java.configuration.updateBuildConfiguration": "interactive",
-    "java.compile.nullAnalysis.mode": "automatic"
+     "java.configuration.runtimes": [
+        {
+        "name": "JavaSE-21",
+        "path": "/Library/Java/JavaVirtualMachines/amazon-corretto-21.jdk/Contents/Home",
+        "default": true
+        }
+    ]
 }

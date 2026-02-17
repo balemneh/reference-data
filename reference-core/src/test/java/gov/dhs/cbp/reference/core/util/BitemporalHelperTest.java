@@ -16,6 +16,10 @@ import static org.assertj.core.api.Assertions.*;
 @DisplayName("BitemporalHelper Tests")
 class BitemporalHelperTest {
 
+    private static final UUID CR_001_UUID = UUID.fromString("a1b2c3d4-e5f6-7890-0001-000000000001");
+    private static final UUID CR_002_UUID = UUID.fromString("a1b2c3d4-e5f6-7890-0002-000000000002");
+    private static final UUID CR_003_UUID = UUID.fromString("a1b2c3d4-e5f6-7890-0003-000000000003");
+
     private CodeSystem isoCodeSystem;
     private Country originalCountry;
     private List<Country> testCountries;
@@ -42,7 +46,7 @@ class BitemporalHelperTest {
     void testCreateNewVersion() {
         // Given
         String recordedBy = "test-user";
-        String changeRequestId = "CR-001";
+        UUID changeRequestId = UUID.randomUUID();
 
         // When
         Country newVersion = BitemporalHelper.createNewVersion(originalCountry, recordedBy, changeRequestId);
@@ -80,7 +84,7 @@ class BitemporalHelperTest {
     void testCreateCorrection() {
         // Given
         String recordedBy = "test-user";
-        String changeRequestId = "CR-002";
+        UUID changeRequestId = UUID.randomUUID();
         originalCountry.setValidFrom(LocalDate.of(2020, 6, 1));
         originalCountry.setValidTo(LocalDate.of(2021, 6, 1));
 
@@ -104,7 +108,7 @@ class BitemporalHelperTest {
         originalCountry.setValidTo(null); // Open-ended
 
         // When
-        Country correction = BitemporalHelper.createCorrection(originalCountry, "test-user", "CR-003");
+        Country correction = BitemporalHelper.createCorrection(originalCountry, "test-user", UUID.randomUUID());
 
         // Then
         assertThat(correction.getValidTo()).isNull();
@@ -229,15 +233,15 @@ class BitemporalHelperTest {
     @DisplayName("groupByChangeRequest should group entities by change request ID")
     void testGroupByChangeRequest() {
         // When
-        Map<String, List<Country>> grouped = BitemporalHelper.groupByChangeRequest(testCountries);
+        Map<UUID, List<Country>> grouped = BitemporalHelper.groupByChangeRequest(testCountries);
 
         // Then
         assertThat(grouped).hasSize(2); // Two different change request IDs in test data
-        assertThat(grouped).containsKey("CR-001");
-        assertThat(grouped).containsKey("CR-002");
+        assertThat(grouped).containsKey(CR_001_UUID);
+        assertThat(grouped).containsKey(CR_002_UUID);
         
-        assertThat(grouped.get("CR-001")).hasSize(2); // us1 and us2
-        assertThat(grouped.get("CR-002")).hasSize(2); // us3 and us4 (both have CR-002)
+        assertThat(grouped.get(CR_001_UUID)).hasSize(2); // us1 and us2
+        assertThat(grouped.get(CR_002_UUID)).hasSize(2); // us3 and us4 (both have CR-002)
         
         // Verify all entities in each group have the correct change request ID
         grouped.forEach((crId, countries) -> {
@@ -255,7 +259,7 @@ class BitemporalHelperTest {
         countriesWithNull.add(countryWithNullCR);
 
         // When
-        Map<String, List<Country>> grouped = BitemporalHelper.groupByChangeRequest(countriesWithNull);
+        Map<UUID, List<Country>> grouped = BitemporalHelper.groupByChangeRequest(countriesWithNull);
 
         // Then - null change request ID should be excluded
         assertThat(grouped.values().stream().flatMap(List::stream))
@@ -406,28 +410,28 @@ class BitemporalHelperTest {
         // Version 1: US - valid from 2020-01-01 to 2021-12-31
         Country us1 = createTestCountry("US", "United States", LocalDate.of(2020, 1, 1));
         us1.setValidTo(LocalDate.of(2021, 12, 31));
-        us1.setChangeRequestId("CR-001");
+        us1.setChangeRequestId(CR_001_UUID);
         us1.setVersion(1L);
         countries.add(us1);
         
         // Version 2: US - valid from 2022-01-01 to 2023-06-30 (name change)
         Country us2 = createTestCountry("US", "United States of America", LocalDate.of(2022, 1, 1));
         us2.setValidTo(LocalDate.of(2023, 6, 30));
-        us2.setChangeRequestId("CR-001");
+        us2.setChangeRequestId(CR_001_UUID);
         us2.setVersion(2L);
         countries.add(us2);
         
         // Version 3: US - valid from 2023-07-01 onwards (current)
         Country us3 = createTestCountry("US", "United States of America", LocalDate.of(2023, 7, 1));
         us3.setValidTo(null); // Open-ended
-        us3.setChangeRequestId("CR-002");
+        us3.setChangeRequestId(CR_002_UUID);
         us3.setVersion(3L);
         countries.add(us3);
         
         // Version 4: Correction to version 3
         Country us4 = createTestCountry("US", "United States of America", LocalDate.of(2023, 7, 1));
         us4.setValidTo(null);
-        us4.setChangeRequestId("CR-002");
+        us4.setChangeRequestId(CR_002_UUID);
         us4.setVersion(4L);
         us4.setIsCorrection(true);
         us4.setNumericCode("840"); // Adding missing numeric code

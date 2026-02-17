@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS ports_v (
 CREATE TABLE IF NOT EXISTS airports_v (
     id UUID PRIMARY KEY,
     version BIGINT NOT NULL,
+    code_system_id UUID NOT NULL,
     iata_code VARCHAR(3),
     icao_code VARCHAR(4),
     airport_name VARCHAR(255) NOT NULL,
@@ -80,7 +81,7 @@ CREATE TABLE IF NOT EXISTS airports_v (
     country_code VARCHAR(3) NOT NULL,
     latitude DECIMAL(10,7),
     longitude DECIMAL(10,7),
-    elevation_ft INTEGER,
+    elevation INTEGER,
     airport_type VARCHAR(50),
     is_international BOOLEAN DEFAULT FALSE,
     is_active BOOLEAN DEFAULT TRUE,
@@ -94,7 +95,8 @@ CREATE TABLE IF NOT EXISTS airports_v (
     recorded_by VARCHAR(100) NOT NULL,
     change_request_id VARCHAR(100),
     is_correction BOOLEAN DEFAULT FALSE,
-    metadata TEXT
+    metadata TEXT,
+    FOREIGN KEY (code_system_id) REFERENCES code_system(id)
 );
 
 -- Carriers bitemporal table (no schema prefix for H2 tests)
@@ -163,3 +165,97 @@ CREATE TABLE IF NOT EXISTS outbox_events (
 );
 
 CREATE INDEX IF NOT EXISTS idx_outbox_events_status ON outbox_events(status, created_at);
+
+-- Change requests table (no schema prefix for H2 tests)
+CREATE TABLE IF NOT EXISTS change_requests (
+    id UUID PRIMARY KEY,
+    cr_number VARCHAR(50) UNIQUE NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    requester_id VARCHAR(100) NOT NULL,
+    data_type VARCHAR(50) NOT NULL,
+    operation_type VARCHAR(50) NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    priority VARCHAR(20),
+    approval_notes TEXT,
+    rejection_reason TEXT,
+    approved_by VARCHAR(100),
+    approved_at TIMESTAMP,
+    rejected_by VARCHAR(100),
+    rejected_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL,
+    scheduled_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    metadata TEXT
+);
+
+-- Bulk import batches table (no schema prefix for H2 tests)
+CREATE TABLE IF NOT EXISTS bulk_import_batches (
+    id UUID PRIMARY KEY,
+    batch_name VARCHAR(255) NOT NULL,
+    change_request_id UUID NOT NULL,
+    source_system VARCHAR(100) NOT NULL,
+    data_type VARCHAR(50) NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    total_records INTEGER,
+    processed_records INTEGER,
+    failed_records INTEGER,
+    error_summary TEXT,
+    created_at TIMESTAMP NOT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMP,
+    updated_by VARCHAR(100),
+    completed_at TIMESTAMP,
+    metadata TEXT,
+    FOREIGN KEY (change_request_id) REFERENCES change_requests(id)
+);
+
+-- Bulk import staging table (no schema prefix for H2 tests)
+CREATE TABLE IF NOT EXISTS bulk_import_staging (
+    id UUID PRIMARY KEY,
+    import_batch_id UUID NOT NULL,
+    change_request_id UUID NOT NULL,
+    data_type VARCHAR(50) NOT NULL,
+    operation_type VARCHAR(50) NOT NULL,
+    source_system VARCHAR(100) NOT NULL,
+    row_number INTEGER NOT NULL,
+    natural_key VARCHAR(255) NOT NULL,
+    raw_data TEXT NOT NULL,
+    target_table VARCHAR(100) NOT NULL,
+    validation_status VARCHAR(50),
+    validation_errors TEXT,
+    processing_status VARCHAR(50),
+    processing_errors TEXT,
+    created_at TIMESTAMP NOT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMP NOT NULL,
+    updated_by VARCHAR(100) NOT NULL,
+    metadata TEXT,
+    FOREIGN KEY (import_batch_id) REFERENCES bulk_import_batches(id),
+    FOREIGN KEY (change_request_id) REFERENCES change_requests(id)
+);
+
+-- Audit log table (no schema prefix for H2 tests)
+CREATE TABLE IF NOT EXISTS audit_log (
+    id UUID PRIMARY KEY,
+    action VARCHAR(50) NOT NULL,
+    entity_type VARCHAR(100) NOT NULL,
+    entity_id VARCHAR(100),
+    operation_type VARCHAR(50) NOT NULL,
+    user_id VARCHAR(100) NOT NULL,
+    event_timestamp TIMESTAMP NOT NULL,
+    change_request_id VARCHAR(100),
+    description TEXT,
+    old_value TEXT,
+    new_value TEXT,
+    status VARCHAR(50),
+    metadata TEXT,
+    FOREIGN KEY (change_request_id) REFERENCES change_requests(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_change_requests_status ON change_requests(status);
+CREATE INDEX IF NOT EXISTS idx_change_requests_requester ON change_requests(requester_id);
+CREATE INDEX IF NOT EXISTS idx_bulk_import_batches_status ON bulk_import_batches(status);
+CREATE INDEX IF NOT EXISTS idx_bulk_import_staging_batch ON bulk_import_staging(import_batch_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_change_request ON audit_log(change_request_id);

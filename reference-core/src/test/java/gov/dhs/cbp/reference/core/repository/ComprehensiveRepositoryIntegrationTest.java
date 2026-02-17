@@ -1,11 +1,14 @@
 package gov.dhs.cbp.reference.core.repository;
 
+import gov.dhs.cbp.reference.core.config.H2TestConfiguration;
+import gov.dhs.cbp.reference.core.config.TestEntityConfiguration;
 import gov.dhs.cbp.reference.core.entity.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
@@ -26,8 +29,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests pagination, filtering, temporal queries, and complex data scenarios.
  */
 @DataJpaTest
-@ActiveProfiles("test")
-@Sql(scripts = {"/db/test-data/comprehensive-seed-test.sql"})
+@Import({H2TestConfiguration.class, TestEntityConfiguration.class})
+@ActiveProfiles("integration-test")
+@Sql(scripts = {"classpath:schema-h2-no-schema.sql", "/db/test-data/comprehensive-seed-test.sql"})
 class ComprehensiveRepositoryIntegrationTest {
 
     @Autowired
@@ -48,34 +52,7 @@ class ComprehensiveRepositoryIntegrationTest {
     @Autowired
     private CodeMappingRepository codeMappingRepository;
 
-    private CodeSystem iso3166CodeSystem;
-    private CodeSystem iataCodeSystem;
-    private CodeSystem unLocodeSystem;
-
-    @BeforeEach
-    void setUp() {
-        // Create test code systems if they don't exist
-        iso3166CodeSystem = createOrFindCodeSystem("ISO3166-1", "ISO 3166-1 Country Codes", "ISO");
-        iataCodeSystem = createOrFindCodeSystem("IATA", "IATA Airport Codes", "IATA");
-        unLocodeSystem = createOrFindCodeSystem("UN-LOCODE", "UN/LOCODE Port Codes", "UN/ECE");
-        
-        entityManager.flush();
-    }
-
-    private CodeSystem createOrFindCodeSystem(String code, String name, String owner) {
-        Optional<CodeSystem> existing = codeSystemRepository.findByCode(code);
-        if (existing.isPresent()) {
-            return existing.get();
-        }
-
-        CodeSystem codeSystem = new CodeSystem();
-        codeSystem.setCode(code);
-        codeSystem.setName(name);
-        codeSystem.setDescription(name);
-        codeSystem.setOwner(owner);
-        codeSystem.setIsActive(true);
-        return entityManager.persistAndFlush(codeSystem);
-    }
+    // Test data is loaded via SQL scripts, no need for setup
 
     // === Country Repository Tests ===
 
@@ -120,7 +97,7 @@ class ComprehensiveRepositoryIntegrationTest {
     void testCountryRepository_Search() {
         // Test search functionality
         PageRequest pageRequest = PageRequest.of(0, 10);
-        Page<Country> searchResults = countryRepository.searchByName("United", pageRequest);
+        Page<Country> searchResults = countryRepository.searchByName("United", "ISO3166-1", pageRequest);
         
         assertThat(searchResults.getContent()).hasSize(2); // United States and United Kingdom
         assertThat(searchResults.getContent())
@@ -170,6 +147,11 @@ class ComprehensiveRepositoryIntegrationTest {
 
     @Test
     void testAirportRepository_GeographicQueries() {
+        // First check if any airports exist
+        List<Airport> allAirports = airportRepository.findAll();
+        // We have 3 airports: LAX, LHR, JFK
+        assertThat(allAirports).hasSizeGreaterThanOrEqualTo(2); // At least LAX and JFK
+
         // Test country-based queries
         List<Airport> usAirports = airportRepository.findCurrentByCountryCode("USA");
         assertThat(usAirports).hasSize(2); // LAX and JFK
@@ -300,7 +282,7 @@ class ComprehensiveRepositoryIntegrationTest {
         List<CodeSystem> activeSystems = allSystems.stream()
                 .filter(cs -> cs.getIsActive() == null || cs.getIsActive())
                 .toList();
-        assertThat(activeSystems).hasSize(3);
+        assertThat(activeSystems).hasSize(4); // ISO3166-1, IATA, ICAO, UN-LOCODE
         assertThat(activeSystems).allMatch(cs -> cs.getIsActive() == null || cs.getIsActive());
     }
 
@@ -449,12 +431,16 @@ class ComprehensiveRepositoryIntegrationTest {
     }
 
     private void createAdditionalTestCountries() {
+        // Get the ISO3166-1 code system from the database
+        CodeSystem iso3166 = codeSystemRepository.findByCode("ISO3166-1")
+            .orElseThrow(() -> new IllegalStateException("ISO3166-1 code system not found"));
+
         String[] additionalCountries = {"FR", "DE", "IT", "ES", "JP", "AU", "BR", "IN", "CN"};
         String[] countryNames = {"France", "Germany", "Italy", "Spain", "Japan", "Australia", "Brazil", "India", "China"};
-        
+
         for (int i = 0; i < additionalCountries.length; i++) {
             Country country = new Country();
-            country.setCodeSystem(iso3166CodeSystem);
+            country.setCodeSystem(iso3166);
             country.setCountryCode(additionalCountries[i]);
             country.setCountryName(countryNames[i]);
             country.setIso2Code(additionalCountries[i]);
@@ -465,10 +451,10 @@ class ComprehensiveRepositoryIntegrationTest {
             country.setValidFrom(LocalDate.now());
             country.setRecordedAt(LocalDateTime.now());
             country.setRecordedBy("test-system");
-            country.setChangeRequestId("TEST-" + (i + 1));
+            country.setChangeRequestId(UUID.randomUUID());
             country.setIsCorrection(false);
             country.setMetadata("{\"source\": \"test-data\"}");
-            
+
             entityManager.persist(country);
         }
     }

@@ -170,7 +170,7 @@
 .cbp-activity-summary {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem;
   padding: 1.25rem 1.5rem;
   cursor: pointer;
   user-select: none;
@@ -211,7 +211,7 @@
 .cbp-activity-main {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
   margin-bottom: 0.25rem;
   font-weight: 500;
 
@@ -245,6 +245,10 @@
 .cbp-activity-description {
   color: #495057;
   font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 40ch;
 }
 
 .cbp-activity-meta {
@@ -259,6 +263,11 @@
     align-items: flex-start;
     gap: 0.25rem;
   }
+}
+
+.cbp-date {
+  color: #6c757d;
+  font-size: 0.8rem;
 }
 
 .cbp-activity-result {

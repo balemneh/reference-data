@@ -173,14 +173,18 @@ class CountryRepositoryIntegrationTest {
         originalCountry.setVersion(1L);
         originalCountry.setValidFrom(LocalDate.now().minusDays(10));
         Country savedOriginal = countryRepository.saveAndFlush(originalCountry);
-        
-        // When - Create a new version (correction) as a separate entity
+
+        // When - Deactivate the original version
+        savedOriginal.setIsActive(false);
+        countryRepository.saveAndFlush(savedOriginal);
+
+        // Create a new version (correction) as a separate entity
         Country updatedCountry = createCountry("US", "United States of America", isoCodeSystem);
         updatedCountry.setVersion(2L);
         updatedCountry.setValidFrom(LocalDate.now().minusDays(10)); // Same valid_from
         updatedCountry.setIsCorrection(true);
-        updatedCountry.setChangeRequestId("CR-2024-001");
-        Country savedUpdate = countryRepository.saveAndFlush(updatedCountry);
+        updatedCountry.setChangeRequestId(UUID.fromString("a1b2c3d4-e5f6-7890-1234-567890abcdef"));
+        countryRepository.saveAndFlush(updatedCountry);
         
         // Then
         List<Country> allVersions = countryRepository.findAllVersionsByCountryCode("US");

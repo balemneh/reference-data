@@ -93,14 +93,13 @@ public class IsoCountryLoader {
     public ItemProcessor<IsoCountryData, Country> isoCountryProcessor() {
         return new ItemProcessor<IsoCountryData, Country>() {
             @Override
-            @Transactional
-            public Country process(IsoCountryData item) {
+            public Country process(IsoCountryData item) throws Exception {
                 CodeSystem isoSystem = codeSystemRepository.findByCode("ISO3166-1")
                         .orElseThrow(() -> new RuntimeException("ISO3166-1 code system not found"));
-                
+
                 Optional<Country> existing = countryRepository.findCurrentByCodeAndSystemCode(
                         item.getAlpha3Code(), "ISO3166-1");
-                
+
                 if (existing.isPresent()) {
                     Country existingCountry = existing.get();
                     if (hasChanged(existingCountry, item)) {
@@ -118,7 +117,7 @@ public class IsoCountryLoader {
                     country.setNumericCode(item.getNumericCode());
                     country.setValidFrom(LocalDate.now());
                     country.setRecordedBy("ISO_LOADER");
-                    country.setChangeRequestId("ISO_IMPORT_" + LocalDate.now());
+                    country.setChangeRequestId(UUID.randomUUID());
                     return country;
                 }
             }
@@ -183,7 +182,7 @@ public class IsoCountryLoader {
         newVersion.setNumericCode(newData.getNumericCode());
         newVersion.setValidFrom(LocalDate.now());
         newVersion.setRecordedBy("ISO_LOADER");
-        newVersion.setChangeRequestId("ISO_UPDATE_" + LocalDate.now());
+        newVersion.setChangeRequestId(UUID.randomUUID());
         newVersion.setVersion(existing.getVersion() + 1);
         
         return newVersion;

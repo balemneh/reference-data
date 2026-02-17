@@ -3,13 +3,17 @@ package gov.dhs.cbp.reference.api.dto;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import jakarta.validation.constraints.Pattern;
 
 public class CountryDto {
     
     private UUID id;
+    @Pattern(regexp = "[A-Z]+", message = "Country Code must contain only uppercase letters")
     private String countryCode;
     private String countryName;
+    @Pattern(regexp = "[A-Z]+", message = "ISO2 Code must contain only uppercase letters")
     private String iso2Code;
+    @Pattern(regexp = "[A-Z]+", message = "ISO3 Code must contain only uppercase letters")
     private String iso3Code;
     private String numericCode;
     private String codeSystem;

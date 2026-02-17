@@ -3,6 +3,7 @@ package gov.dhs.cbp.reference.loader.common;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class LoaderResult {
     private String executionId;
@@ -21,7 +22,7 @@ public class LoaderResult {
     
     private List<ValidationError> validationErrors = new ArrayList<>();
     private String errorMessage;
-    private String changeRequestId;
+    private UUID changeRequestId;
     private boolean changesApplied = false;
     
     public LoaderResult(String executionId, String loaderName) {
@@ -157,14 +158,13 @@ public class LoaderResult {
         this.errorMessage = errorMessage;
     }
     
-    public String getChangeRequestId() {
+    public UUID getChangeRequestId() {
         return changeRequestId;
     }
     
-    public void setChangeRequestId(String changeRequestId) {
+    public void setChangeRequestId(UUID changeRequestId) {
         this.changeRequestId = changeRequestId;
-    }
-    
+    }    
     public boolean isChangesApplied() {
         return changesApplied;
     }

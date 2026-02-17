@@ -63,7 +63,8 @@ export class BreadcrumbComponent implements OnInit, OnDestroy {
   }
 
   private buildBreadcrumbs() {
-    const urlSegments = this.router.url.split('/').filter(segment => segment);
+    const url = this.router.url.split('?')[0]; // Strip query parameters from the full URL
+    const urlSegments = url.split('/').filter(segment => segment);
     this.breadcrumbs = [];
 
     // Always start with home

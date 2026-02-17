@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="001-seed-change-requests" author="reference-data">
+        <comment>Create seed change requests for initial data loading</comment>
+
+        <sql>
+            INSERT INTO reference_data.change_requests (
+                id, cr_number, title, description, requester_id,
+                data_type, operation_type, status, priority, business_justification,
+                proposed_changes, created_at, updated_at
+            ) VALUES
+            ('00000000-0000-0000-0000-000000000001'::UUID, 'SEED-001', 'Initial Countries Data Load', 'Seed data for countries',
+             'system', 'countries', 'CREATE', 'APPROVED', 'HIGH', 'Initial seed data required for system setup',
+             jsonb_build_object('source', 'countries.csv'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+            ('00000000-0000-0000-0000-000000000002'::UUID, 'SEED-002', 'Initial Airports Data Load', 'Seed data for airports',
+             'system', 'airports', 'CREATE', 'APPROVED', 'HIGH', 'Initial seed data required for system setup',
+             jsonb_build_object('source', 'airports-seed'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+            ('00000000-0000-0000-0000-000000000003'::UUID, 'SEED-003', 'Initial Ports Data Load', 'Seed data for ports',
+             'system', 'ports', 'CREATE', 'APPROVED', 'HIGH', 'Initial seed data required for system setup',
+             jsonb_build_object('source', 'ports-seed'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+        </sql>
+
+        <rollback>
+            <delete tableName="change_requests" schemaName="reference_data">
+                <where>id IN ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003')</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

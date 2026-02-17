@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -91,10 +92,11 @@ class LoaderResultTest {
     
     @Test
     void testChangeRequestTracking() {
-        loaderResult.setChangeRequestId("CR-001");
+        UUID changeRequestId = UUID.randomUUID();
+        loaderResult.setChangeRequestId(changeRequestId);
         loaderResult.setChangesApplied(false);
         
-        assertEquals("CR-001", loaderResult.getChangeRequestId());
+        assertEquals(changeRequestId, loaderResult.getChangeRequestId());
         assertFalse(loaderResult.isChangesApplied());
         
         loaderResult.setChangesApplied(true);

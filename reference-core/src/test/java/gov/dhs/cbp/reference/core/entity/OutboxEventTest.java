@@ -103,6 +103,7 @@ class OutboxEventTest {
             OutboxEvent.EventStatus.PENDING,
             OutboxEvent.EventStatus.PROCESSING,
             OutboxEvent.EventStatus.PROCESSED,
+            OutboxEvent.EventStatus.PUBLISHED,
             OutboxEvent.EventStatus.FAILED
         };
         

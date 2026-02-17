@@ -3,8 +3,11 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SearchService, SearchResult, SearchSuggestion, GlobalSearchRequest } from '../../services/search.service';
+import { AuthService } from '../../services/auth.service';
 import { Subject, fromEvent } from 'rxjs';
+import { Notification, NotificationService } from '../../services/notification.service';
 import { takeUntil, debounceTime, distinctUntilChanged, switchMap, startWith } from 'rxjs/operators';
+import { OAuthService } from 'angular-oauth2-oidc';
 
 @Component({
   selector: 'app-header',
@@ -36,53 +39,18 @@ export class HeaderComponent implements OnInit, OnDestroy {
   searchCategories: { [key: string]: number } = {};
   
   currentUser = {
-    name: 'John Doe',
-    email: 'john.doe@cbp.dhs.gov',
-    role: 'Data Curator',
+    name: '',
+    email: '',
+    role: '',
     avatar: '/assets/img/default-avatar.png',
-    initials: 'JD'
+    initials: ''
   };
   
-  notifications = [
-    {
-      id: 1,
-      title: 'New country code added',
-      message: 'Country code "ZZ" has been added to ISO3166-1',
-      time: '2 hours ago',
-      read: false,
-      type: 'info'
-    },
-    {
-      id: 2,
-      title: 'Change request approved',
-      message: 'Your request to update United States data has been approved',
-      time: '1 day ago',
-      read: false,
-      type: 'success'
-    },
-    {
-      id: 3,
-      title: 'System maintenance scheduled',
-      message: 'Planned maintenance window scheduled for Sunday 2AM-4AM EST',
-      time: '2 days ago',
-      read: true,
-      type: 'warning'
-    }
-  ];
+  notifications: Notification[] = [];
   
   helpItems = [
-    { title: 'User Guide', url: '/help/user-guide', icon: 'help_outline' },
-    { title: 'API Docs', url: '/help/api-docs', icon: 'code' }
-  ];
-  
-  // Quick access suggestions for empty search
-  quickAccessItems = [
-    { type: 'page', title: 'Countries', path: '/countries', icon: 'public' },
-    { type: 'page', title: 'Ports', path: '/ports', icon: 'anchor' },
-    { type: 'page', title: 'Airports', path: '/airports', icon: 'flight' },
-    { type: 'page', title: 'Change Requests', path: '/change-requests', icon: 'assignment' },
-    { type: 'page', title: 'Reports', path: '/reports', icon: 'description' },
-    { type: 'page', title: 'Administration', path: '/administration', icon: 'settings' }
+    { title: 'User Guide', url: '/user-guide', icon: 'help_outline' },
+    { title: 'API Docs', url: 'http://localhost:8083/swagger-ui/index.html#/countries-controller', icon: 'code' }
   ];
   
   settingsItems = [
@@ -92,13 +60,47 @@ export class HeaderComponent implements OnInit, OnDestroy {
     { title: 'Data Import/Export', path: '/data-management', icon: 'import_export' }
   ];
 
+  // Quick access suggestions for empty search
+  quickAccessItems = [
+    { type: 'page', title: 'Countries', path: '/countries', icon: 'public' },
+    { type: 'page', title: 'Ports', path: '/ports', icon: 'anchor' },
+    { type: 'page', title: 'Airports', path: '/airports', icon: 'flight' },
+    { type: 'page', title: 'Change Requests', path: '/change-requests', icon: 'assignment' },
+    { type: 'page', title: 'Reports', path: '/reports', icon: 'description' },
+    { type: 'page', title: 'Administration', path: '/administration', icon: 'settings' }
+  ];
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    if (!this.elementRef.nativeElement.contains(event.target)) {
+      this.closeMenus();
+    }
+  }
+
   constructor(
     public router: Router,
     private searchService: SearchService,
-    private elementRef: ElementRef
+    private elementRef: ElementRef,
+    private authService: AuthService,
+    private notificationService: NotificationService
   ) {}
 
   ngOnInit() {
+    this.authService.getUserProfile().then(profile => {
+      if (profile) {
+        const roleMap: { [key: string]: string } = {
+          'testuser': 'admin',
+          'dsteward': 'data-steward',
+          'consumer': 'consumer'
+        };
+
+        this.currentUser.name = profile['firstName'] + ' ' + profile['lastName'] || '';
+        this.currentUser.email = profile['email'] || '';
+        this.currentUser.initials = (profile['firstName']?.[0] || '') + (profile['lastName']?.[0] || '');
+        let role = roleMap[profile['username'] as string] || 'User';
+        this.currentUser.role = role.replace(/-/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+      }
+    });
     // Initialize search functionality
     this.initializeSearch();
     
@@ -110,6 +112,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
     
     // Load search history
     this.loadSearchHistory();
+
+    this.notificationService.getRecentNotifications().subscribe(notifications => {
+      this.notifications = notifications;
+    });
   }
   
   ngOnDestroy() {
@@ -239,26 +245,12 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.announce('Menus closed');
   }
 
+  login() {
+    this.authService.login();
+  }
+
   logout() {
-    // Clear all stored authentication data
-    localStorage.removeItem('cbp-auth-token');
-    localStorage.removeItem('cbp-refresh-token');
-    localStorage.removeItem('cbp-user-data');
-    sessionStorage.clear();
-    
-    // Clear any app-specific data
-    localStorage.removeItem('cbp-user-preferences');
-    
-    // Close all menus
-    this.closeMenus();
-    
-    // Show confirmation
-    console.log('User logged out successfully');
-    
-    // In a real app, you would redirect to login page
-    // For now, we'll reload the page to simulate logout
-    alert('You have been signed out successfully.');
-    window.location.reload();
+    this.authService.logout();
   }
 
   isActive(path: string): boolean {
@@ -298,11 +290,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   openHelpItem(item: any) {
-    if (item.url === '#') {
-      console.log(`Opening help item: ${item.title}`);
-      // Implement help item functionality
-    } else {
+    if (item.url.startsWith('http') || item.url.startsWith('https')) {
       window.open(item.url, '_blank');
+    } else {
+      this.router.navigate([item.url]);
     }
     this.helpMenuOpen = false;
   }

@@ -1,95 +1,65 @@
 # Maven
 target/
+**/target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
 *.class
+
+# ===== Java / JVM =====
+*.class
+*.log
+
+
+# Package files
 *.jar
 *.war
 *.ear
-*.iml
-.mvn/
-mvnw.cmd
+*.nar
 
-# Gradle
-.gradle/
-build/
+# JVM crash logs
+hs_err_pid*
 
-# IDE
+# ===== IDEs =====
+# IntelliJ
 .idea/
-*.ipr
+*.iml
 *.iws
+*.ipr
+
+# Eclipse
 .project
 .classpath
 .settings/
-.vscode/
-*.swp
-*.swo
-*~
+*.project
+.vscode
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
+# Log files
 *.log
-logs/
-log/
 
-# Node (for frontend)
-node_modules/
-dist/
-.angular/
-.sass-cache/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/.angular/
+karma.xml
+test-results
 
-# Environment files
-.env
-.env.local
-.env.*.local
+# macOS
+.DS_Store
 
-# Test/Development files
-mock-*.js
-check_*.js
-*-test.js
-SimpleSystemConfigApp.*
-test-output/
-coverage/
+# Other
+*.swp
+*~
+launch.json
+setting.json
+*.class
+log.txt
 
-# Temporary files
-*.tmp
-*.temp
-*.bak
-*.backup
-*.pid
-*.seed
-*.pid.lock
-
-# Docker
-*.dockerignore.local
-
-# Screenshots and images from testing
-*.png
-!frontend/src/assets/**/*.png
-
-# Database
-*.db
-*.sqlite
-*.h2.db
-
-# Package files
-*.7z
-*.dmg
-*.gz
-*.iso
-*.rar
-*.tar
-*.zip
-
-# Python (if any scripts)
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
+# Keycloak certificates
+ops/certs/keycloak/*.key
+ops/certs/keycloak/*.crt

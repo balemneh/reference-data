@@ -22,7 +22,7 @@ public class ChangeRequestMapperImpl implements ChangeRequestMapper {
         dto.setChangeType(entity.getOperationType());
         dto.setEntityType(entity.getDataType());
         dto.setEntityId(null); // No longer in entity
-        dto.setRequestor(entity.getRequesterId());
+        dto.setRequestedBy(entity.getRequesterId());
         dto.setApprover(entity.getApprovedBy());
         dto.setStatus(entity.getStatus());
         // Convert priority from String to Integer
@@ -36,7 +36,7 @@ public class ChangeRequestMapperImpl implements ChangeRequestMapper {
         } else {
             dto.setPriority(2); // Default to MEDIUM
         }
-        dto.setJustification(entity.getBusinessJustification());
+        dto.setBusinessJustification(entity.getBusinessJustification());
         dto.setRejectionReason(entity.getRejectionReason());
         dto.setProposedChanges(entity.getProposedChanges());
         dto.setCurrentValues(entity.getCurrentValues());
@@ -60,7 +60,7 @@ public class ChangeRequestMapperImpl implements ChangeRequestMapper {
         entity.setOperationType(dto.getChangeType());
         entity.setDataType(dto.getEntityType());
         // entity.setEntityId not available
-        entity.setRequesterId(dto.getRequestor());
+        entity.setRequesterId(dto.getRequestedBy());
         entity.setApprovedBy(dto.getApprover());
         entity.setStatus(dto.getStatus());
         // Convert priority from Integer to String
@@ -74,7 +74,7 @@ public class ChangeRequestMapperImpl implements ChangeRequestMapper {
         } else {
             entity.setPriority("MEDIUM");
         }
-        entity.setBusinessJustification(dto.getJustification());
+        entity.setBusinessJustification(dto.getBusinessJustification());
         entity.setRejectionReason(dto.getRejectionReason());
         entity.setProposedChanges(dto.getProposedChanges());
         entity.setCurrentValues(dto.getCurrentValues());
@@ -115,7 +115,7 @@ public class ChangeRequestMapperImpl implements ChangeRequestMapper {
         entity.setOperationType(dto.getChangeType());
         entity.setDataType(dto.getEntityType());
         // entity.setEntityId not available
-        entity.setRequesterId(dto.getRequestor());
+        entity.setRequesterId(dto.getRequestedBy());
         entity.setApprovedBy(dto.getApprover());
         entity.setStatus(dto.getStatus());
         // Convert priority from Integer to String
@@ -129,7 +129,7 @@ public class ChangeRequestMapperImpl implements ChangeRequestMapper {
         } else {
             entity.setPriority("MEDIUM");
         }
-        entity.setBusinessJustification(dto.getJustification());
+        entity.setBusinessJustification(dto.getBusinessJustification());
         entity.setRejectionReason(dto.getRejectionReason());
         entity.setProposedChanges(dto.getProposedChanges());
         entity.setCurrentValues(dto.getCurrentValues());

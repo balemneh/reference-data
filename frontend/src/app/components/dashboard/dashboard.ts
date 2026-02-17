@@ -501,7 +501,7 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
       description: this.changeRequestData.description,
       justification: this.changeRequestData.justification,
       requestedBy: 'current-user', // Would come from auth service
-      newValues: this.changeRequestData.changes
+      proposedChanges: JSON.stringify(this.changeRequestData.changes)
     };
     
     // Submit via API (for now just show success)
@@ -580,12 +580,12 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     // Create a change request for governance consistency
-    const changeRequest = {
+    const changeRequest: Partial<ChangeRequestDto> = {
       changeType: 'CREATE' as const,
-      entityType: 'COUNTRY',
+      entityType: 'COUNTRY' as const,
       description: `Create country: ${this.quickAddData.countryName}`,
       requestedBy: 'current-user',
-      newValues: this.quickAddData
+      proposedChanges: JSON.stringify(this.quickAddData)
     };
 
     this.apiService.createChangeRequest(changeRequest).subscribe({
@@ -1077,7 +1077,7 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
         // Check features flag for analytics
         return features?.analytics !== false;
       case 'recentActivity':
-        return dashboard?.showRecentActivity !== false;
+        return dashboard?.showRecentActivity !== false && features?.activityLog !== false;
       case 'systemHealth':
         return dashboard?.showSystemHealth !== false;
       default:

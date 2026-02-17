@@ -29,6 +29,10 @@
             <column name="status" type="VARCHAR(20)" defaultValue="PENDING">
                 <constraints nullable="false"/>
             </column>
+            <column name="retry_count" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="error_message" type="TEXT"/>
         </createTable>
     </changeSet>
 
@@ -60,6 +64,7 @@
             <column name="priority" type="VARCHAR(10)" defaultValue="MEDIUM"/>
             <column name="business_justification" type="TEXT"/>
             <column name="proposed_changes" type="JSONB"/>
+            <column name="current_values" type="JSONB"/>
             <column name="approval_data" type="JSONB"/>
             <column name="workflow_instance_id" type="VARCHAR(100)"/>
             <column name="created_at" type="TIMESTAMP">

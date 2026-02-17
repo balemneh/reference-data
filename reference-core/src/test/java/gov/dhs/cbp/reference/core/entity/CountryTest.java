@@ -116,7 +116,7 @@ class CountryTest {
     
     @Test
     void testChangeRequestId() {
-        String changeRequestId = "CR-2025-001";
+        UUID changeRequestId = UUID.randomUUID();
         country.setChangeRequestId(changeRequestId);
         
         assertEquals(changeRequestId, country.getChangeRequestId());

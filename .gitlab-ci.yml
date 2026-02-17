@@ -1,67 +1,93 @@
+include:
+  - remote: https://gitlab.cbp.dhs.gov/artifacts/templates/raw/master/sast-gitlab-ci.yml
+
 stages:
-  - test
+  - setup
+  - test-ui
+  - build-ui
+  - build-api
+  - sast
 
 variables:
-  NODE_ENV: test
-  CI: "true"
+  MAVEN_REPO_PATH: "$CI_PROJECT_DIR/.m2/repository"
 
-cache:
-  key: ${CI_PROJECT_NAME}-frontend-${CI_COMMIT_REF_SLUG}
-  paths:
-    - frontend/node_modules/
-
-frontend_unit:
-  image: node:20
-  stage: test
-  before_script:
-    - cd frontend
-    - npm ci
-    - node -e "console.log('Chromium:', require('puppeteer').executablePath())"
-    - export CHROME_BIN=$(node -p "require('puppeteer').executablePath()")
+setup:
+  image: docker.cbp.dhs.gov/cloud/ubi/openjdk-build:21-ubi9
+  stage: .pre
   script:
-    - npm test -- --watch=false --browsers=ChromeHeadless
+    - |
+      mkdir -p ${MAVEN_REPO_PATH}
+      echo "<settings><localRepository>${MAVEN_REPO_PATH}</localRepository></settings>" > $CI_PROJECT_DIR/.m2/settings.xml
+      ls -ltR $CI_PROJECT_DIR/.m2
+  artifacts:
+    paths:
+      - .m2/
+
+test-ui:
+  stage: test-ui
+  image: docker.cbp.dhs.gov/cloud/ubi/nodejs-build:20
+  except:
+    - tags
+  before_script:
+    # installs deps in frontend/
+    - npm --prefix frontend ci || npm --prefix frontend install
+  script:
+    - chmod +x frontend/scripts/before-test.sh
+    - ./frontend/scripts/before-test.sh
+    # Ensure folder exists (some junit reporters won't create it)
+    - mkdir -p frontend/test-results
+    # Runs ng test with coverage; karma writes test-results/karma.xml
+    - npm --prefix frontend test
+    # Optional: show where coverage landed
+    - ls -la frontend/test-results || true
+    - ls -la frontend/coverage || true
   artifacts:
     when: always
+    reports:
+      junit:
+        - frontend/test-results/karma.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: frontend/coverage/**/cobertura-coverage.xml
     paths:
+      - frontend/test-results/
       - frontend/coverage/
+    expire_in: 5 day
+  coverage: '/Lines\s*:\s*(\d+\.\d+)/'
 
-frontend_build_smoke:
-  image: node:20
-  stage: test
+build-ui:
+  stage: build-ui
+  image: docker.cbp.dhs.gov/cloud/ubi/nodejs-build:22
+  except:
+    - tags
   before_script:
-    - cd frontend
-    - npm ci
-    - npm run build -- --configuration production
-    - npx http-server -p 8080 dist/frontend &
-    - sleep 3
+    - npm --prefix frontend ci || npm --prefix frontend install
   script:
-    - BASE_URL=http://localhost:8080 node scripts/smoke.js
-  allow_failure: true
+    - npm --prefix frontend run build
+  artifacts:
+    paths:
+      - "frontend/dist"
+    expire_in: 5 day
 
-frontend_smoke:
-  image: node:20
-  stage: test
-  rules:
-    - if: '$BASE_URL'
-  before_script:
-    - cd frontend
-    - npm ci
+build-api:
+  stage: build-api
+  image: docker.cbp.dhs.gov/cloud/ubi/openjdk-build:21-ubi9
+  except:
+    - tags
   script:
-    - node scripts/smoke.js
-  variables:
-    BASE_URL: ${BASE_URL}
-  allow_failure: true
+    - mvn -B -s $CI_PROJECT_DIR/.m2/settings.xml clean verify
+  artifacts:
+    when: always
+    reports:
+      junit:
+        - '**/target/surefire-reports/TEST-*.xml'
+      coverage_report:
+        coverage_format: jacoco
+        path: "**/target/site/jacoco/jacoco.xml"
+    paths:
+      - '**/target/surefire-reports/'
+      - '**/target/site/jacoco/'
+    name: "$CI_PROJECT_NAME-$CI_COMMIT_TAG"
+    expire_in: 1 day
+  coverage: '/Line coverage of (\d+\.\d+)/'
 
-admin_ui_a11y:
-  image: node:20
-  stage: test
-  rules:
-    - if: '$BASE_URL'
-  before_script:
-    - cd admin-ui
-    - npm ci
-  script:
-    - node scripts/a11y-smoke.js
-  variables:
-    BASE_URL: ${BASE_URL}
-  allow_failure: true

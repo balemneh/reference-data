@@ -8,13 +8,22 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 public class ChangeRequestDto {
-    
+
     private UUID id;
-    
+
+    private String crNumber;
+
     @NotBlank
     @Size(max = 100)
     private String changeType;
-    
+
+    private String operationType;
+
+    @NotBlank
+    private String title = "New Change Request";
+
+    private String submittedBy;
+
     @NotBlank
     @Size(max = 100)
     private String entityType;
@@ -31,13 +40,13 @@ public class ChangeRequestDto {
     
     @NotBlank
     @Size(max = 100)
-    private String requestor;
+    private String requestedBy = "test";
     
     @Size(max = 100)
     private String approver;
     
     @Size(max = 500)
-    private String justification;
+    private String businessJustification;
     
     @Size(max = 500)
     private String rejectionReason;
@@ -64,6 +73,8 @@ public class ChangeRequestDto {
     
     @Size(max = 100)
     private String workflowInstanceId;
+
+    private String newValues;
     
     // Helper methods
     public boolean isPending() {
@@ -112,7 +123,7 @@ public class ChangeRequestDto {
     }
     
     public void setEntityId(UUID entityId) {
-        this.entityId = entityId;
+        this.id = entityId;
     }
     
     public String getProposedChanges() {
@@ -121,6 +132,10 @@ public class ChangeRequestDto {
     
     public void setProposedChanges(String proposedChanges) {
         this.proposedChanges = proposedChanges;
+    }
+    
+    public void setNewValues(String newValues) {
+        this.newValues = newValues;
     }
     
     public String getCurrentValues() {
@@ -139,12 +154,12 @@ public class ChangeRequestDto {
         this.status = status;
     }
     
-    public String getRequestor() {
-        return requestor;
+    public String getRequestedBy() {
+        return requestedBy;
     }
     
-    public void setRequestor(String requestor) {
-        this.requestor = requestor;
+    public void setRequestedBy(String requestedBy) {
+        this.requestedBy = requestedBy;
     }
     
     public String getApprover() {
@@ -155,12 +170,12 @@ public class ChangeRequestDto {
         this.approver = approver;
     }
     
-    public String getJustification() {
-        return justification;
+    public String getBusinessJustification() {
+        return businessJustification;
     }
     
-    public void setJustification(String justification) {
-        this.justification = justification;
+    public void setBusinessJustification(String businessJustification) {
+        this.businessJustification = businessJustification;
     }
     
     public String getRejectionReason() {
@@ -230,8 +245,70 @@ public class ChangeRequestDto {
     public String getWorkflowInstanceId() {
         return workflowInstanceId;
     }
-    
+
     public void setWorkflowInstanceId(String workflowInstanceId) {
         this.workflowInstanceId = workflowInstanceId;
+    }
+
+    public String getCrNumber() {
+        return crNumber;
+    }
+
+    public void setCrNumber(String crNumber) {
+        this.crNumber = crNumber;
+    }
+
+    public String getOperationType() {
+        return operationType;
+    }
+
+    public void setOperationType(String operationType) {
+        this.operationType = operationType;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getSubmittedBy() {
+        return submittedBy;
+    }
+
+    public void setSubmittedBy(String submittedBy) {
+        this.submittedBy = submittedBy;
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("ChangeRequestDto{");
+        sb.append("id=").append(id);
+        sb.append(", crNumber='").append(crNumber).append("' ");
+        sb.append(", changeType='").append(changeType).append("' ");
+        sb.append(", operationType='").append(operationType).append("' ");
+        sb.append(", title='").append(title).append("' ");
+        sb.append(", submittedBy='").append(submittedBy).append("' ");
+        sb.append(", entityType='").append(entityType).append("' ");
+        sb.append(", entityId=").append(entityId);
+        sb.append(", proposedChanges='").append(proposedChanges).append("' ");
+        sb.append(", currentValues='").append(currentValues).append("' ");
+        sb.append(", status='").append(status).append("' ");
+        sb.append(", requestedBy='").append(requestedBy).append("' ");
+        sb.append(", approver='").append(approver).append("' ");
+        sb.append(", businessJustification='").append(businessJustification).append("' ");
+        sb.append(", rejectionReason='").append(rejectionReason).append("' ");
+        sb.append(", priority=").append(priority);
+        sb.append(", effectiveDate=").append(effectiveDate);
+        sb.append(", createdAt=").append(createdAt);
+        sb.append(", updatedAt=").append(updatedAt);
+        sb.append(", approvedAt=").append(approvedAt);
+        sb.append(", appliedAt=").append(appliedAt);
+        sb.append(", externalTicketId='").append(externalTicketId).append("' ");
+        sb.append(", workflowInstanceId='").append(workflowInstanceId).append("' ");
+        sb.append('}');
+        return sb.toString();
     }
 }

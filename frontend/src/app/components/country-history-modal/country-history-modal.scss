@@ -1,0 +1,79 @@
+.cbp-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10002;
+}
+
+.cbp-modal {
+  width: 80%;
+  max-width: 960px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+}
+
+.cbp-modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cbp-modal-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.cbp-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.cbp-modal-content {
+  padding: 1.5rem;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.cbp-modal-footer {
+  padding: 1.5rem;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cbp-badge {
+  padding: 0.25em 0.6em;
+  font-size: 0.8em;
+  font-weight: 600;
+  border-radius: 1em;
+  text-transform: uppercase;
+
+  &--info {
+    background-color: #e0f2fe;
+    color: #0c4a6e;
+  }
+
+  &--warning {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+
+  &--danger {
+    background-color: #fee2e2;
+    color: #991b1b;
+  }
+}

@@ -1,14 +1,16 @@
 import { Component, OnInit, ViewChild, ElementRef, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ApiService, CountryDto, PagedResponse } from '../../services/api.service';
+import { ApiService, CountryDto, PagedResponse, ChangeRequestDto, CountryHistoryDto } from '../../services/api.service';
 import { ToastService } from '../../services/toast.service';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
+import { JustificationModalComponent } from '../justification-modal/justification-modal.component';
+import { CountryHistoryModalComponent } from '../country-history-modal/country-history-modal';
 
 @Component({
   selector: 'app-countries',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, JustificationModalComponent, CountryHistoryModalComponent],
   templateUrl: './countries.html',
   styleUrl: './countries.scss',
   encapsulation: ViewEncapsulation.None
@@ -40,9 +42,20 @@ export class CountriesComponent implements OnInit {
   showDeleteConfirm = false;
   selectedCountry: CountryDto | null = null;
   countryToDelete: CountryDto | null = null;
+  private originalCountry: CountryDto | null = null;
   isEditMode = false;
   formErrors: any = {};
+  checkingDuplicates = false;
+
+  // Justification modal for change requests
+  showJustificationModal = false;
+  pendingAction: 'create' | 'update' | 'delete' | null = null;
+  businessJustification = '';
   
+  // History modal
+  showHistoryModal = false;
+  countryHistory: CountryHistoryDto[] = [];
+
   // Sorting
   sortField: keyof CountryDto = 'countryName';
   sortDirection: 'asc' | 'desc' = 'asc';
@@ -63,10 +76,7 @@ export class CountriesComponent implements OnInit {
     ).subscribe(searchTerm => {
       this.searchTerm = searchTerm;
       this.currentPage = 0;
-      // Only load from API if we have a search term
-      if (searchTerm) {
-        this.loadCountries();
-      }
+      this.loadCountries();
     });
   }
 
@@ -90,7 +100,7 @@ export class CountriesComponent implements OnInit {
     };
     
     const loadObservable = this.searchTerm
-      ? this.apiService.searchCountries({ name: this.searchTerm, ...params })
+      ? this.apiService.searchCountries({ query: this.searchTerm, ...params })
       : this.apiService.getCountries(params);
     
     loadObservable.subscribe({
@@ -185,10 +195,60 @@ export class CountriesComponent implements OnInit {
   }
   
   editCountry(country: CountryDto) {
+    this.originalCountry = country;
     this.selectedCountry = { ...country };
     this.isEditMode = true;
     this.formErrors = {};
     this.showModal = true;
+  }
+  
+  showHistory(country: CountryDto) {
+    this.selectedCountry = { ...country };
+    this.showHistoryModal = true;
+    this.loadCountryHistory(country.id);
+  }
+
+  loadCountryHistory(countryId: string) {
+    if (this.selectedCountry?.countryName === 'United Kingdom of Great Britain and Northern Ireland') {
+      this.countryHistory = [
+        {
+          changeId: 'chg-001',
+          changeType: 'Update',
+          changedAt: new Date('2023-01-15T10:00:00Z'),
+          changedBy: 'user-a',
+          description: 'Updated ISO2 code from UK to GB',
+          details: { countryName: 'United Kingdom', iso2Code: 'GB', isActive: true },
+          version: 2
+        },
+        {
+          changeId: 'chg-002',
+          changeType: 'Create',
+          changedAt: new Date('2022-11-20T14:30:00Z'),
+          changedBy: 'user-b',
+          description: 'Initial creation of the country',
+          details: { countryName: 'United Kingdom', iso2Code: 'UK', isActive: true },
+          version: 1
+        }
+      ];
+    } else {
+      this.countryHistory = [
+        {
+          changeId: 'chg-003',
+          changeType: 'Create',
+          changedAt: new Date('2023-03-22T11:00:00Z'),
+          changedBy: 'user-c',
+          description: 'Initial creation of the country',
+          details: { ...this.selectedCountry },
+          version: 1
+        }
+      ];
+    }
+  }
+
+  closeHistoryModal() {
+    this.showHistoryModal = false;
+    this.selectedCountry = null;
+    this.countryHistory = [];
   }
   
   addCountry() {
@@ -219,17 +279,12 @@ export class CountriesComponent implements OnInit {
   
   deleteCountry() {
     if (!this.countryToDelete) return;
-    
-    // In a bitemporal system, we don't actually delete - we mark as inactive
-    const updatedCountry = {
-      ...this.countryToDelete,
-      isActive: false,
-      validTo: new Date().toISOString()
-    };
-    
-    this.saveCountryData(updatedCountry, 'Country deactivated successfully');
+
+    // Move the country to selectedCountry for the justification modal
+    this.selectedCountry = { ...this.countryToDelete };
+    this.pendingAction = 'delete';
     this.showDeleteConfirm = false;
-    this.countryToDelete = null;
+    this.showJustificationModal = true;
   }
   
   cancelDelete() {
@@ -239,19 +294,64 @@ export class CountriesComponent implements OnInit {
 
   saveCountry() {
     if (!this.selectedCountry || !this.validateForm()) return;
-    
-    this.saveCountryData(this.selectedCountry, 'Country saved successfully');
+
+    this.checkingDuplicates = true;
+    const country = this.selectedCountry;
+
+    // Clear previous duplicate errors
+    delete this.formErrors.countryCode;
+    delete this.formErrors.iso2Code;
+    delete this.formErrors.iso3Code;
+    delete this.formErrors.numericCode;
+    delete this.formErrors.general;
+
+    this.apiService.getAllCurrentCountries().subscribe({
+        next: (allCountries) => {
+            const countryCode = country.countryCode.trim();
+            const iso2Code = country.iso2Code.trim();
+            const iso3Code = country.iso3Code.trim();
+            const numericCode = country.numericCode ? country.numericCode.trim() : '';
+
+            // Exclude the current country from the check in edit mode
+            const otherCountries = country.id ? allCountries.filter(c => c.id !== country.id) : allCountries;
+
+            if (countryCode && otherCountries.some(c => c.countryCode.toLowerCase() === countryCode.toLowerCase())) {
+                this.formErrors.countryCode = 'Country code already exists.';
+            }
+            if (iso2Code && otherCountries.some(c => c.iso2Code.toLowerCase() === iso2Code.toLowerCase())) {
+                this.formErrors.iso2Code = 'ISO2 code already exists.';
+            }
+            if (iso3Code && otherCountries.some(c => c.iso3Code.toLowerCase() === iso3Code.toLowerCase())) {
+                this.formErrors.iso3Code = 'ISO3Code code already exists.';
+            }
+            if (numericCode && otherCountries.some(c => c.numericCode === numericCode)) {
+                this.formErrors.numericCode = 'Numeric code already exists.';
+            }
+
+            this.checkingDuplicates = false;
+            if (Object.keys(this.formErrors).length === 0) {
+                this.pendingAction = this.selectedCountry!.id ? 'update' : 'create';
+                this.showJustificationModal = true;
+            }
+        },
+        error: (err) => {
+            this.checkingDuplicates = false;
+            this.formErrors.general = 'Could not verify codes. Please try again.';
+            console.error('Error checking for duplicates', err);
+        }
+    });
   }
+  
   
   private saveCountryData(country: CountryDto, successMsg: string) {
     // Create a change request for the country modification
     const changeRequest = {
       changeType: (country.id ? 'UPDATE' : 'CREATE') as 'UPDATE' | 'CREATE',
-      entityType: 'COUNTRY',
+      entityType: 'COUNTRY' as 'COUNTRY',
       entityId: country.id || undefined,
       description: `${country.id ? 'Update' : 'Create'} country: ${country.countryName}`,
       requestedBy: 'current-user', // Would come from auth service
-      newValues: country
+      proposedChanges: JSON.stringify(country)
     };
     
     this.apiService.createChangeRequest(changeRequest).subscribe({
@@ -283,20 +383,34 @@ export class CountriesComponent implements OnInit {
       this.formErrors.countryName = 'Country name is required';
     }
     
-    if (!this.selectedCountry.countryCode?.trim()) {
+        if (!this.selectedCountry.countryCode?.trim()) {
       this.formErrors.countryCode = 'Country code is required';
+    } else if (!/^[A-Z]+$/.test(this.selectedCountry.countryCode)) {
+        this.formErrors.countryCode = 'Country code must contain only uppercase letters.';
     }
-    
-    if (!this.selectedCountry.iso2Code?.trim() || this.selectedCountry.iso2Code.length !== 2) {
+
+    if (!this.selectedCountry.iso2Code?.trim()) {
+        this.formErrors.iso2Code = 'ISO2 code is required';
+    } else if (!/^[A-Z]+$/.test(this.selectedCountry.iso2Code)) {
+        this.formErrors.iso2Code = 'ISO2 code must contain only uppercase letters.';
+    } else if (this.selectedCountry.iso2Code.length !== 2) {
       this.formErrors.iso2Code = 'ISO 2 code must be exactly 2 characters';
     }
-    
-    if (!this.selectedCountry.iso3Code?.trim() || this.selectedCountry.iso3Code.length !== 3) {
+
+    if (!this.selectedCountry.iso3Code?.trim()) {
+        this.formErrors.iso3Code = 'ISO3 code is required';
+    } else if (!/^[A-Z]+$/.test(this.selectedCountry.iso3Code)) {
+        this.formErrors.iso3Code = 'ISO3 code must contain only uppercase letters.';
+    } else if (this.selectedCountry.iso3Code.length !== 3) {
       this.formErrors.iso3Code = 'ISO 3 code must be exactly 3 characters';
     }
     
-    if (this.selectedCountry.numericCode && !/^\d{3}$/.test(this.selectedCountry.numericCode)) {
-      this.formErrors.numericCode = 'Numeric code must be exactly 3 digits';
+        if (this.selectedCountry.numericCode) {
+      if (!/^\d+$/.test(this.selectedCountry.numericCode)) {
+        this.formErrors.numericCode = 'Numeric code must contain only numbers.';
+      } else if (this.selectedCountry.numericCode.length !== 3) {
+        this.formErrors.numericCode = 'Numeric code must be exactly 3 digits';
+      }
     }
     
     return Object.keys(this.formErrors).length === 0;
@@ -796,5 +910,125 @@ export class CountriesComponent implements OnInit {
   
   get hasActiveFilters(): boolean {
     return this.searchTerm.length > 0 || this.filterActive !== null || this.codeSystem !== 'ISO3166-1';
+  }
+
+  onCodeInputChange(event: Event, field: 'countryCode' | 'iso2Code' | 'iso3Code') {
+    const input = event.target as HTMLInputElement;
+    const value = input.value.toUpperCase();
+    if (this.selectedCountry) {
+      this.selectedCountry[field] = value;
+    }
+    input.value = value;
+  }
+  // Justification modal methods
+  submitChangeRequest() {
+    if (!this.validateJustification() || !this.selectedCountry) return;
+
+    let country = this.selectedCountry;
+    let successMsg = '';
+
+    // Apply the action to the country data
+    switch (this.pendingAction) {
+      case 'delete':
+        country = {
+          ...this.selectedCountry,
+          isActive: false,
+          validTo: new Date().toISOString()
+        };
+        successMsg = 'Country deactivation request submitted successfully';
+        break;
+      case 'update':
+        successMsg = 'Country update request submitted successfully';
+        break;
+      case 'create':
+        successMsg = 'Country creation request submitted successfully';
+        break;
+    }
+
+    // Create change request with justification
+    const changeRequest: Partial<ChangeRequestDto> = {
+      changeType: (this.pendingAction === 'delete' ? 'UPDATE' : this.pendingAction?.toUpperCase()) as 'UPDATE' | 'CREATE',
+      entityType: 'COUNTRY' as 'COUNTRY',
+      entityId: country.id || undefined,
+      description: `${this.pendingAction} country: ${country.countryName}`,
+      requestedBy: 'current-user', // Would come from auth service
+      businessJustification: this.businessJustification,
+      proposedChanges: JSON.stringify(country)
+    };
+
+    if ((this.pendingAction === 'update' || this.pendingAction === 'delete') && this.originalCountry) {
+      changeRequest.currentValues = JSON.stringify(this.originalCountry);
+    }
+
+    this.apiService.createChangeRequest(changeRequest).subscribe({
+      next: (response: any) => {
+        this.successMessage = successMsg + ` (Request ID: ${response.id})`;
+        this.toastService.showSuccess('Change request submitted', `Request ID: ${response.id}`);
+        this.closeJustificationModal();
+        this.closeModal();
+        this.loadCountries();
+
+        // Clear success message after 5 seconds
+        setTimeout(() => {
+          this.successMessage = null;
+        }, 5000);
+      },
+      error: (error: any) => {
+        this.formErrors.general = error.error?.detail || 'Failed to submit change request. Please try again.';
+        this.toastService.showError('Change Request Failed', this.formErrors.general);
+        console.error('Error submitting change request:', error);
+      }
+    });
+  }
+
+  validateJustification(): boolean {
+    this.formErrors.justification = undefined;
+
+    if (!this.businessJustification?.trim()) {
+      this.formErrors.justification = 'Business justification is required';
+      return false;
+    }
+
+    if (this.businessJustification.trim().length < 10) {
+      this.formErrors.justification = 'Business justification must be at least 10 characters';
+      return false;
+    }
+
+    return true;
+  }
+
+  getJustificationModalTitle(): string {
+    switch (this.pendingAction) {
+      case 'create':
+        return 'Justify Country Creation';
+      case 'update':
+        return 'Justify Country Update';
+      case 'delete':
+        return 'Justify Country Deactivation';
+      default:
+        return 'Provide Business Justification';
+    }
+  }
+
+  getJustificationModalDescription(): string {
+    const countryName = this.selectedCountry?.countryName || 'this country';
+
+    switch (this.pendingAction) {
+      case 'create':
+        return `Please provide a business justification for creating the new country "${countryName}". This request will be reviewed by administrators before implementation.`;
+      case 'update':
+        return `Please provide a business justification for updating "${countryName}". This request will be reviewed by administrators before implementation.`;
+      case 'delete':
+        return `Please provide a business justification for deactivating "${countryName}". This request will be reviewed by administrators before implementation.`;
+      default:
+        return 'Please provide a business justification for this change request.';
+    }
+  }
+
+  closeJustificationModal() {
+    this.showJustificationModal = false;
+    this.pendingAction = null;
+    this.formErrors.justification = undefined;
+    this.countryToDelete = null;
   }
 }

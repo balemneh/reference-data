@@ -1,0 +1,205 @@
+<div class="cbp-modal-overlay cbp-fade-in" (click)="close()">
+  <div class="cbp-modal cbp-slide-up" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-title-edit">
+    <div class="cbp-modal-header">
+      <h2 class="cbp-modal-title" id="modal-title-edit">
+        Add New Country
+      </h2>
+      <button class="cbp-modal-close" (click)="close()" aria-label="Close modal">
+        <svg class="cbp-modal-close-icon" aria-hidden="true">
+          <use xlink:href="/assets/uswds/img/sprite.svg#close"></use>
+        </svg>
+      </button>
+    </div>
+    
+    <div class="cbp-modal-content">
+      <div *ngIf="formErrors.general" class="cbp-alert cbp-alert--error margin-bottom-3">
+        <div class="cbp-alert__content">
+          <svg class="cbp-alert__icon" aria-hidden="true">
+            <use xlink:href="/assets/uswds/img/sprite.svg#error"></use>
+          </svg>
+          <div class="cbp-alert__body">
+            <p class="cbp-alert__text">{{ formErrors.general }}</p>
+          </div>
+        </div>
+      </div>
+
+      <form *ngIf="selectedCountry" class="cbp-form">
+        <div class="cbp-form-section">
+          <h3 class="cbp-form-section-title">Basic Information</h3>
+          
+          <div class="cbp-form-row">
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="country-name">
+                Country Name *
+              </label>
+              <input
+                id="country-name"
+                class="cbp-input"
+                [class.cbp-input--error]="formErrors.countryName"
+                type="text"
+                [(ngModel)]="selectedCountry.countryName"
+                name="countryName"
+                required
+              />
+              <div *ngIf="formErrors.countryName" class="cbp-error-message">
+                {{ formErrors.countryName }}
+              </div>
+            </div>
+            
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="country-code">
+                Country Code *
+              </label>
+              <input
+                id="country-code"
+                class="cbp-input"
+                [class.cbp-input--error]="formErrors.countryCode"
+                type="text"
+                [(ngModel)]="selectedCountry.countryCode"
+                name="countryCode"
+                required
+              />
+              <div *ngIf="formErrors.countryCode" class="cbp-error-message">
+                {{ formErrors.countryCode }}
+              </div>
+            </div>
+          </div>
+
+          <div class="cbp-form-row">
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="iso2-code">
+                ISO2 Code *
+              </label>
+              <input
+                id="iso2-code"
+                class="cbp-input"
+                [class.cbp-input--error]="formErrors.iso2Code"
+                type="text"
+                maxlength="2"
+                [(ngModel)]="selectedCountry.iso2Code"
+                name="iso2Code"
+                required
+              />
+              <div *ngIf="formErrors.iso2Code" class="cbp-error-message">
+                {{ formErrors.iso2Code }}
+              </div>
+            </div>
+            
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="iso3-code">
+                ISO3 Code *
+              </label>
+              <input
+                id="iso3-code"
+                class="cbp-input"
+                [class.cbp-input--error]="formErrors.iso3Code"
+                type="text"
+                maxlength="3"
+                [(ngModel)]="selectedCountry.iso3Code"
+                name="iso3Code"
+                required
+              />
+              <div *ngIf="formErrors.iso3Code" class="cbp-error-message">
+                {{ formErrors.iso3Code }}
+              </div>
+            </div>
+          </div>
+
+          <div class="cbp-form-row">
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="numeric-code">
+                Numeric Code
+              </label>
+              <input
+                id="numeric-code"
+                class="cbp-input"
+                [class.cbp-input--error]="formErrors.numericCode"
+                type="text"
+                maxlength="3"
+                [(ngModel)]="selectedCountry.numericCode"
+                name="numericCode"
+              />
+              <div *ngIf="formErrors.numericCode" class="cbp-error-message">
+                {{ formErrors.numericCode }}
+              </div>
+            </div>
+            
+            <div class="cbp-form-group">
+              <label class="cbp-label" for="code-system-modal">
+                Code System
+              </label>
+              <select
+                id="code-system-modal"
+                class="cbp-select"
+                [(ngModel)]="selectedCountry.codeSystem"
+                name="codeSystem"
+              >
+                <option *ngFor="let system of availableCodeSystems" [value]="system">
+                  {{ system }}
+                </option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="cbp-form-section">
+          <h3 class="cbp-form-section-title">Status & Validation</h3>
+          
+          <div class="cbp-form-row">
+            <div class="cbp-form-group">
+              <div class="cbp-checkbox-wrapper">
+                <input
+                  id="is-active"
+                  class="cbp-checkbox"
+                  type="checkbox"
+                  [(ngModel)]="selectedCountry.isActive"
+                  name="isActive"
+                />
+                <label class="cbp-checkbox-label" for="is-active">
+                  Country is active
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cbp-form-section">
+          <h3 class="cbp-form-section-title">Business Justification</h3>
+          <div class="cbp-form-group" [class.cbp-form-group--error]="formErrors.justification">
+            <label class="cbp-label" for="business-justification">
+              Business Justification <span class="text-secondary-dark">*</span>
+            </label>
+            <span *ngIf="formErrors.justification" class="cbp-error-message">
+              {{ formErrors.justification }}
+            </span>
+            <textarea
+              id="business-justification"
+              name="business-justification"
+              class="cbp-textarea"
+              [class.cbp-input--error]="formErrors.justification"
+              [(ngModel)]="businessJustification"
+              rows="4"
+              placeholder="Please provide a detailed business justification for this change request..."
+              required>
+            </textarea>
+            <div class="cbp-field-hint">
+              Minimum 10 characters required. This justification will be reviewed by administrators.
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="cbp-modal-footer">
+      <button class="cbp-button cbp-button--secondary" (click)="close()">
+        Cancel
+      </button>
+      <button 
+        class="cbp-button cbp-button--primary"
+        (click)="saveCountry()"
+      >
+        Create Country
+      </button>
+    </div>
+  </div>
+</div>

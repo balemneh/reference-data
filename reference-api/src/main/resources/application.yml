@@ -3,7 +3,7 @@ spring:
     name: reference-api
   
   datasource:
-    url: jdbc:postgresql://localhost:5432/reference_data
+    url: jdbc:postgresql://localhost:5433/reference_data
     username: refdata_user
     password: refdata_pass
     driver-class-name: org.postgresql.Driver
@@ -33,7 +33,6 @@ spring:
     change-log: classpath:db/changelog/db.changelog-master.xml
   
   security:
-    enabled: false
     oauth2:
       resourceserver:
         jwt:
@@ -87,7 +86,18 @@ springdoc:
     operations-sorter: method
     tags-sorter: alpha
     display-request-duration: true
+    deepLinking: true
     
+keycloak:
+  admin:
+    server-url: ${KEYCLOAK_ADMIN_SERVER_URL}
+    realm: ${KEYCLOAK_ADMIN_REALM}
+    client-id: ${KEYCLOAK_ADMIN_CLIENT_ID}
+    client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET}
+    grant-type: ${KEYCLOAK_ADMIN_GRANT_TYPE}
+    username: ${KEYCLOAK_ADMIN_USERNAME}
+    password: ${KEYCLOAK_ADMIN_PASSWORD}
+
 ff4j:
   enabled: true
   autocreate: true
@@ -100,5 +110,4 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

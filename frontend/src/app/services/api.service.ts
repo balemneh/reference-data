@@ -3,6 +3,18 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
+import {
+  ChangeRequestDto,
+  ChangeRequestFilter,
+  ChangeRequestBatchOperation,
+  BatchOperationResponse,
+  ChangeRequestStats,
+  ApprovalHistoryEntry,
+  ChangeRequestDiff
+} from '../models/change-request.models';
+
+// Re-export commonly used interfaces
+export type { ChangeRequestDto } from '../models/change-request.models';
 
 export interface PagedResponse<T> {
   content: T[];
@@ -27,6 +39,16 @@ export interface CountryDto {
   validTo?: string;
   recordedAt: string;
   recordedBy: string;
+  version: number;
+}
+
+export interface CountryHistoryDto {
+  changeId: string;
+  changeType: string;
+  changedAt: Date;
+  changedBy: string;
+  description: string;
+  details: Partial<CountryDto>;
   version: number;
 }
 
@@ -101,29 +123,28 @@ export interface AirportDto {
   version: number;
 }
 
-export interface ChangeRequestDto {
+export interface ScheduledExport {
   id: string;
+  name: string;
   entityType: string;
-  entityId?: string;
-  changeType: 'CREATE' | 'UPDATE' | 'DELETE';
-  description: string;
-  oldValues?: any;
-  newValues?: any;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
-  requestedBy: string;
-  requestedAt: string;
-  reviewedBy?: string;
-  reviewedAt?: string;
-  comments?: string;
-  createdAt: string;
-  updatedAt: string;
+  format: string;
+  schedule: string; // cron expression
+  enabled: boolean;
+  filters?: string;
+  lastRun?: string;
+  nextRun?: string;
+  createdBy: string;
+  recipients?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
+
 
 @Injectable({
   providedIn: 'root'
 })
 export class ApiService {
-  private baseUrl = environment.apiUrl;
+  private baseUrl = 'http://localhost:8083';
   private apiUrl = environment.apiUrl + '/api';
 
   constructor(private http: HttpClient) {}
@@ -182,13 +203,18 @@ export class ApiService {
   }
 
   searchCountries(params: {
-    name: string;
+    query?: string;
     page?: number;
     size?: number;
+    systemCode?: string;
   }): Observable<PagedResponse<CountryDto>> {
-    let httpParams = new HttpParams().set('name', params.name);
+    let httpParams = new HttpParams();
+    if (params.query) {
+      httpParams = httpParams.set('q', params.query);
+    }
     if (params.page !== undefined) httpParams = httpParams.set('page', params.page.toString());
     if (params.size !== undefined) httpParams = httpParams.set('size', params.size.toString());
+    if (params.systemCode) httpParams = httpParams.set('systemCode', params.systemCode);
     return this.http.get<PagedResponse<CountryDto>>(`${this.baseUrl}/v1/countries/search`, { params: httpParams })
       .pipe(
         catchError((error) => {
@@ -458,17 +484,31 @@ export class ApiService {
       );
   }
 
-  // Change Requests
+  // Change Requests - Enhanced
   getChangeRequests(params?: {
     status?: string;
     entityType?: string;
     page?: number;
     size?: number;
+    priority?: string;
+    changeType?: string;
+    requestedBy?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    sortBy?: string;
+    sortDirection?: string;
   }): Observable<PagedResponse<ChangeRequestDto>> {
     let httpParams = new HttpParams();
     if (params) {
       if (params.status) httpParams = httpParams.set('status', params.status);
       if (params.entityType) httpParams = httpParams.set('entityType', params.entityType);
+      if (params.priority) httpParams = httpParams.set('priority', params.priority);
+      if (params.changeType) httpParams = httpParams.set('changeType', params.changeType);
+      if (params.requestedBy) httpParams = httpParams.set('requestedBy', params.requestedBy);
+      if (params.dateFrom) httpParams = httpParams.set('dateFrom', params.dateFrom);
+      if (params.dateTo) httpParams = httpParams.set('dateTo', params.dateTo);
+      if (params.sortBy) httpParams = httpParams.set('sortBy', params.sortBy);
+      if (params.sortDirection) httpParams = httpParams.set('sortDirection', params.sortDirection);
       if (params.page !== undefined) httpParams = httpParams.set('page', params.page.toString());
       if (params.size !== undefined) httpParams = httpParams.set('size', params.size.toString());
     }
@@ -476,6 +516,31 @@ export class ApiService {
       .pipe(
         catchError((error) => {
           console.error('Error fetching change requests:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  // Advanced change request filtering
+  getChangeRequestsFiltered(filter: ChangeRequestFilter): Observable<PagedResponse<ChangeRequestDto>> {
+    let httpParams = new HttpParams();
+
+    if (filter.status?.length) httpParams = httpParams.set('status', filter.status.join(','));
+    if (filter.entityType?.length) httpParams = httpParams.set('entityType', filter.entityType.join(','));
+    if (filter.priority?.length) httpParams = httpParams.set('priority', filter.priority.join(','));
+    if (filter.changeType?.length) httpParams = httpParams.set('changeType', filter.changeType.join(','));
+    if (filter.requestedBy) httpParams = httpParams.set('requestedBy', filter.requestedBy);
+    if (filter.reviewedBy) httpParams = httpParams.set('reviewedBy', filter.reviewedBy);
+    if (filter.dateFrom) httpParams = httpParams.set('dateFrom', filter.dateFrom);
+    if (filter.dateTo) httpParams = httpParams.set('dateTo', filter.dateTo);
+    if (filter.searchTerm) httpParams = httpParams.set('search', filter.searchTerm);
+    if (filter.tags?.length) httpParams = httpParams.set('tags', filter.tags.join(','));
+    if (filter.department) httpParams = httpParams.set('department', filter.department);
+
+    return this.http.get<PagedResponse<ChangeRequestDto>>(`${this.baseUrl}/v1/change-requests/filter`, { params: httpParams })
+      .pipe(
+        catchError((error) => {
+          console.error('Error filtering change requests:', error);
           return throwError(() => error);
         })
       );
@@ -522,10 +587,145 @@ export class ApiService {
   }
 
   rejectChangeRequest(id: string, comments?: string): Observable<ChangeRequestDto> {
-    return this.http.post<ChangeRequestDto>(`${this.baseUrl}/v1/change-requests/${id}/reject`, { comments })
+    const params = new HttpParams().set('reason', comments || '');
+    return this.http.post<ChangeRequestDto>(`${this.baseUrl}/v1/change-requests/${id}/reject`, null, { params })
       .pipe(
         catchError((error) => {
           console.error('Error rejecting change request:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  // Batch operations
+  batchApproveChangeRequests(operation: ChangeRequestBatchOperation): Observable<BatchOperationResponse> {
+    return this.http.post<BatchOperationResponse>(`${this.baseUrl}/v1/change-requests/batch/approve`, operation)
+      .pipe(
+        catchError((error) => {
+          console.error('Error batch approving change requests:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  batchRejectChangeRequests(operation: ChangeRequestBatchOperation): Observable<BatchOperationResponse> {
+    return this.http.post<BatchOperationResponse>(`${this.baseUrl}/v1/change-requests/batch/reject`, operation)
+      .pipe(
+        catchError((error) => {
+          console.error('Error batch rejecting change requests:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  batchCancelChangeRequests(operation: ChangeRequestBatchOperation): Observable<BatchOperationResponse> {
+    return this.http.post<BatchOperationResponse>(`${this.baseUrl}/v1/change-requests/batch/cancel`, operation)
+      .pipe(
+        catchError((error) => {
+          console.error('Error batch cancelling change requests:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  // Statistics and analytics
+  getChangeRequestStats(params?: {
+    dateFrom?: string;
+    dateTo?: string;
+    entityType?: string;
+  }): Observable<ChangeRequestStats> {
+    let httpParams = new HttpParams();
+    if (params) {
+      if (params.dateFrom) httpParams = httpParams.set('dateFrom', params.dateFrom);
+      if (params.dateTo) httpParams = httpParams.set('dateTo', params.dateTo);
+      if (params.entityType) httpParams = httpParams.set('entityType', params.entityType);
+    }
+    return this.http.get<ChangeRequestStats>(`${this.baseUrl}/v1/change-requests/stats`, { params: httpParams })
+      .pipe(
+        catchError((error) => {
+          console.error('Error fetching change request stats:', error);
+          // Return fallback stats if API fails
+          return of({
+            total: 0,
+            pending: 0,
+            approved: 0,
+            rejected: 0,
+            cancelled: 0,
+            applied: 0,
+            byEntityType: {},
+            byPriority: {},
+            byChangeType: {},
+            avgProcessingTime: 0
+          });
+        })
+      );
+  }
+
+  // Approval history
+  getChangeRequestHistory(id: string): Observable<ApprovalHistoryEntry[]> {
+    return this.http.get<ApprovalHistoryEntry[]>(`${this.baseUrl}/v1/change-requests/${id}/history`)
+      .pipe(
+        catchError((error) => {
+          console.error('Error fetching change request history:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  // Diff computation
+  getChangeRequestDiff(id: string): Observable<ChangeRequestDiff> {
+    return this.http.get<ChangeRequestDiff>(`${this.baseUrl}/v1/change-requests/${id}/diff`)
+      .pipe(
+        catchError((error) => {
+          console.error('Error computing change request diff:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  // Export functionality
+  exportChangeRequests(filter?: ChangeRequestFilter, format: 'CSV' | 'EXCEL' | 'PDF' = 'CSV'): Observable<Blob> {
+    let httpParams = new HttpParams().set('format', format);
+
+    if (filter) {
+      if (filter.status?.length) httpParams = httpParams.set('status', filter.status.join(','));
+      if (filter.entityType?.length) httpParams = httpParams.set('entityType', filter.entityType.join(','));
+      if (filter.priority?.length) httpParams = httpParams.set('priority', filter.priority.join(','));
+      if (filter.dateFrom) httpParams = httpParams.set('dateFrom', filter.dateFrom);
+      if (filter.dateTo) httpParams = httpParams.set('dateTo', filter.dateTo);
+    }
+
+    return this.http.get(`${this.baseUrl}/v1/change-requests/export`, {
+      params: httpParams,
+      responseType: 'blob'
+    }).pipe(
+      catchError((error) => {
+        console.error('Error exporting change requests:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // Pending approvals for current user
+  getPendingApprovals(userId?: string): Observable<PagedResponse<ChangeRequestDto>> {
+    let httpParams = new HttpParams().set('status', 'PENDING');
+    if (userId) httpParams = httpParams.set('assignedTo', userId);
+
+    return this.http.get<PagedResponse<ChangeRequestDto>>(`${this.baseUrl}/v1/change-requests/pending-approvals`, { params: httpParams })
+      .pipe(
+        catchError((error) => {
+          console.error('Error fetching pending approvals:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  // Overdue requests
+  getOverdueRequests(): Observable<PagedResponse<ChangeRequestDto>> {
+    return this.http.get<PagedResponse<ChangeRequestDto>>(`${this.baseUrl}/v1/change-requests/overdue`)
+      .pipe(
+        catchError((error) => {
+          console.error('Error fetching overdue requests:', error);
           return throwError(() => error);
         })
       );
@@ -629,6 +829,215 @@ export class ApiService {
       );
   }
 
+  // ==================== BULK IMPORT API METHODS ====================
 
+  /**
+   * Initiate bulk import by uploading a file
+   */
+  initiateBulkImport(formData: FormData): Observable<{batchId: string, changeRequestId: string, message: string, success: boolean}> {
+    return this.http.post<{batchId: string, changeRequestId: string, message: string, success: boolean}>(`${this.apiUrl}/v1/bulk-import/initiate`, formData)
+      .pipe(
+        catchError((error) => {
+          console.error('Error initiating bulk import:', error);
+          return throwError(() => error);
+        })
+      );
+  }
 
-}
+  /**
+   * Validate bulk import data for a specific batch
+   */
+  validateBulkImport(batchId: string): Observable<{
+    batchId: string;
+    validCount: number;
+    invalidCount: number;
+    warningCount: number;
+    message: string;
+    success: boolean;
+    errors?: any[];
+    warnings?: any[];
+    previewData?: any[];
+  }> {
+    return this.http.post<{
+      batchId: string;
+      validCount: number;
+      invalidCount: number;
+      warningCount: number;
+      message: string;
+      success: boolean;
+      errors?: any[];
+      warnings?: any[];
+      previewData?: any[];
+    }>(`${this.apiUrl}/v1/bulk-import/validate/${batchId}`, {})
+      .pipe(
+        catchError((error) => {
+          console.error('Error validating bulk import:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  /**
+   * Process bulk import for a specific batch
+   */
+  processBulkImport(batchId: string, justification?: any): Observable<{
+    batchId: string;
+    processedCount: number;
+    failedCount: number;
+    message: string;
+    success: boolean;
+  }> {
+    const body = justification ? { justification } : {};
+    return this.http.post<{
+      batchId: string;
+      processedCount: number;
+      failedCount: number;
+      message: string;
+      success: boolean;
+    }>(`${this.apiUrl}/v1/bulk-import/process/${batchId}`, body)
+      .pipe(
+        catchError((error) => {
+          console.error('Error processing bulk import:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  /**
+   * Get bulk import status for a specific batch
+   */
+    getBulkImportStatus(batchId: string): Observable<{
+      batchId: string;
+      status: 'PENDING' | 'VALIDATING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'PARTIAL';
+      progressPercentage: number;
+      totalRecords: number;
+      recordsProcessed: number;
+      failedCount: number;
+      validCount: number;
+      invalidCount: number;
+      warningCount: number;
+      startTime: string;
+      endTime?: string;
+      errorMessage?: string;
+    }> {
+      return this.http.get<{
+        batchId: string;
+        status: 'PENDING' | 'VALIDATING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'PARTIAL';
+        progressPercentage: number;
+        totalRecords: number;
+        recordsProcessed: number;
+        failedCount: number;
+        validCount: number;
+        invalidCount: number;
+        warningCount: number;
+        startTime: string;
+        endTime?: string;
+        errorMessage?: string;
+      }>(`${this.apiUrl}/v1/bulk-import/status/${batchId}`)
+        .pipe(
+          catchError((error) => {
+            console.error('Error getting bulk import status:', error);
+            return throwError(() => error);
+          })
+        );
+    }
+  
+    importRecords(payload: ImportRecordsPayload): Observable<string[]> {
+      return this.http.post<string[]>(`${this.apiUrl}/v1/import`, payload)
+        .pipe(
+          catchError((error) => {
+            console.error('Error importing records:', error);
+            return throwError(() => error);
+          })
+        );
+    }
+
+    getOperationHistory(params?: {
+      page?: number;
+      size?: number;
+      filter?: string;
+    }): Observable<PagedResponse<any>> { // Replace 'any' with a more specific type if available
+      let httpParams = new HttpParams();
+      if (params) {
+        if (params.page !== undefined) httpParams = httpParams.set('page', params.page.toString());
+        if (params.size !== undefined) httpParams = httpParams.set('size', params.size.toString());
+        if (params.filter) httpParams = httpParams.set('filter', params.filter);
+      }
+      return this.http.get<PagedResponse<any>>(`${this.apiUrl}/v1/bulk-import/history`, { params: httpParams })
+        .pipe(
+          catchError((error) => {
+            console.error('Error fetching operation history:', error);
+            return throwError(() => error);
+          })
+        );
+    }
+
+    downloadImportedFile(batchId: string): Observable<Blob> {
+        return this.http.get(`${this.apiUrl}/v1/bulk-import/download/${batchId}`, {
+            responseType: 'blob'
+        }).pipe(
+            catchError((error) => {
+                console.error('Error downloading imported file:', error);
+                return throwError(() => error);
+            })
+        );
+    }
+
+    // ==================== SCHEDULED EXPORT API METHODS ====================
+
+    getScheduledExports(): Observable<ScheduledExport[]> {
+        return this.http.get<ScheduledExport[]>(`${this.apiUrl}/v1/scheduled-exports`)
+            .pipe(
+                catchError((error) => {
+                    console.error('Error fetching scheduled exports:', error);
+                    return throwError(() => error);
+                })
+            );
+    }
+
+    createScheduledExport(scheduledExport: ScheduledExport): Observable<ScheduledExport> {
+        return this.http.post<ScheduledExport>(`${this.apiUrl}/v1/scheduled-exports`, scheduledExport)
+            .pipe(
+                catchError((error) => {
+                    console.error('Error creating scheduled export:', error);
+                    return throwError(() => error);
+                })
+            );
+    }
+
+    updateScheduledExport(id: string, scheduledExport: ScheduledExport): Observable<ScheduledExport> {
+        return this.http.put<ScheduledExport>(`${this.apiUrl}/v1/scheduled-exports/${id}`, scheduledExport)
+            .pipe(
+                catchError((error) => {
+                    console.error('Error updating scheduled export:', error);
+                    return throwError(() => error);
+                })
+            );
+    }
+
+    deleteScheduledExport(id: string): Observable<void> {
+        return this.http.delete<void>(`${this.apiUrl}/v1/scheduled-exports/${id}`)
+            .pipe(
+                catchError((error) => {
+                    console.error('Error deleting scheduled export:', error);
+                    return throwError(() => error);
+                })
+            );
+    }
+
+    exportData(entityType: string, format: string): Observable<Blob> {
+        return this.http.get(`${this.apiUrl}/v1/export?entityType=${entityType}&format=${format}`, {
+            responseType: 'blob'
+        }).pipe(
+            catchError((error) => {
+                console.error('Error exporting data:', error);
+                return throwError(() => error);
+            })
+        );
+    }
+  }
+  
+  export interface ImportRecordsPayload {
+    entityType: 'COUNTRIES' | 'PORTS' | 'AIRPORTS';
+    records: any[];
+  }

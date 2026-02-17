@@ -1,5 +1,12 @@
+const getApiUrl = () => {
+  const apiUrlFromEnv = (window as any).__env__?.apiUrl;
+  if (apiUrlFromEnv && !apiUrlFromEnv.startsWith('${')) {
+    return apiUrlFromEnv;
+  }
+  return 'http://localhost:8083';
+};
+
 export const environment = {
   production: false,
-  // API URL can be overridden by setting window.__env__.apiUrl
-  apiUrl: (window as any).__env__?.apiUrl || 'http://localhost:8081'
+  apiUrl: getApiUrl()
 };

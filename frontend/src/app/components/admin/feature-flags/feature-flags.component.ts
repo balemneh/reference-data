@@ -51,15 +51,20 @@ export class FeatureFlagsComponent implements OnInit {
     const checkbox = event.target as HTMLInputElement;
     const enabled = checkbox.checked;
 
-    this.featureFlagsService.updateFlag(category as any, flag, enabled);
-
-    this.toastService.showSuccess(
-      'Feature Flag Updated',
-      `${this.formatFlagName(flag)} has been ${enabled ? 'enabled' : 'disabled'}`
-    );
-
-    // Handle dependencies
-    this.handleDependencies(category, flag, enabled);
+    this.featureFlagsService.updateFlag(category as any, flag, enabled).subscribe({
+      next: () => {
+        this.toastService.showSuccess(
+          'Feature Flag Updated',
+          `${this.formatFlagName(flag)} has been ${enabled ? 'enabled' : 'disabled'}`
+        );
+        this.handleDependencies(category, flag, enabled);
+      },
+      error: () => {
+        this.toastService.showError('Update Failed', `Failed to update ${this.formatFlagName(flag)}`);
+        // Revert the checkbox state
+        checkbox.checked = !enabled;
+      }
+    });
   }
 
   handleDependencies(category: string, flag: string, enabled: boolean) {

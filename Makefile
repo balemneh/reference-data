@@ -16,14 +16,18 @@ bootstrap: ## Install git hooks and check required tools
 	@if [ -f .env.example ] && [ ! -f .env ]; then cp .env.example .env; echo "Created .env from .env.example"; fi
 
 up: ## Start Docker Compose infrastructure
-	docker-compose -f ops/docker-compose.yml up -d
+	docker compose -f docker-compose.yml up -d
 
 down: ## Stop Docker Compose infrastructure
-	docker-compose -f ops/docker-compose.yml down
+	docker compose -f docker-compose.yml down
+
+clear-checksums: ## Clear Liquibase checksums
+	@echo "Clearing Liquibase checksums..."
+	cd reference-core && mvn liquibase:clearCheckSums -Dliquibase.url=jdbc:postgresql://localhost:5433/reference_data -Dliquibase.username=refdata_user -Dliquibase.password=refdata_pass -Dliquibase.changeLogFile=src/main/resources/db/changelog/db.changelog-master.xml
 
 migrate: ## Run database migrations
 	@echo "Running Liquibase migrations..."
-	cd reference-core && mvn liquibase:update
+	cd reference-core && mvn liquibase:update -Dliquibase.url=jdbc:postgresql://localhost:5433/reference_data -Dliquibase.username=refdata_user -Dliquibase.password=refdata_pass
 
 seed: ## Seed initial data
 	@echo "Seeding initial data..."
@@ -31,6 +35,7 @@ seed: ## Seed initial data
 
 build: ## Build all modules
 	mvn clean package -DskipTests
+	cd frontend && npm install && npm test
 
 test: ## Run unit tests only
 	mvn test
@@ -79,14 +84,14 @@ clean: ## Clean build artifacts
 	rm -rf target/
 
 logs: ## Show application logs
-	docker-compose -f ops/docker-compose.yml logs -f
+	docker compose -f docker-compose.yml logs -f
 
 status: ## Check service status
 	@echo "Infrastructure status:"
-	docker-compose -f ops/docker-compose.yml ps
+	docker compose -f docker-compose.yml ps
 	@echo ""
 	@echo "Application status:"
-	@curl -s http://localhost:8080/actuator/health 2>/dev/null || echo "API not running"
+	@curl -s http://localhost:8083/actuator/health 2>/dev/null || echo "API not running"
 
 install: ## Install Maven dependencies
 	mvn clean install -DskipTests
@@ -94,11 +99,11 @@ install: ## Install Maven dependencies
 dev: ## Run in development mode with hot reload
 	mvn spring-boot:run -pl reference-api -Dspring-boot.run.profiles=dev
 
-ui: ## Start the Admin UI
-	cd admin-ui && npm install && npm start
+ui: ## Start the Frontend UI
+	cd frontend && npm install && npm start
 
 stop: ## Stop all running services
-	docker-compose -f ops/docker-compose.yml stop
+	docker compose -f docker-compose.yml stop
 	@pkill -f spring-boot:run || true
 
 restart: down up migrate ## Restart infrastructure and migrate
@@ -107,13 +112,13 @@ ps: ## Show running Java processes
 	@jps -l | grep reference || echo "No reference services running"
 
 db-console: ## Connect to PostgreSQL console
-	docker-compose -f ops/docker-compose.yml exec postgres psql -U reference_user -d reference_db
+	docker compose -f docker-compose.yml exec postgres psql -U refdata_user -d reference_data
 
 kafka-console: ## Start Kafka console consumer
-	docker-compose -f ops/docker-compose.yml exec kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic reference-events --from-beginning
+	docker compose -f docker-compose.yml exec kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic reference-events --from-beginning
 
 redis-cli: ## Connect to Redis CLI
-	docker-compose -f ops/docker-compose.yml exec redis redis-cli
+	docker compose -f docker-compose.yml exec redis redis-cli
 
 format: ## Format code with Spotless
 	mvn spotless:apply
@@ -132,8 +137,11 @@ docs: ## Generate JavaDoc documentation
 package: clean build ## Build deployable packages
 	@echo "Packages built in target/ directories"
 
-docker-build: ## Build Docker images
-	docker build -t cbp-reference-api:latest -f reference-api/Dockerfile .
+docker-build: ## Build and start all services using Docker Compose
+	docker compose up --build -d
+
+docker-build-frontend: ## Build frontend Docker image
+	cd frontend && docker build --no-cache -t cbp-reference-frontend:latest .
 	@echo "Docker image built: cbp-reference-api:latest"
 
 load-iso: ## Load ISO country data
@@ -141,6 +149,20 @@ load-iso: ## Load ISO country data
 
 load-genc: ## Load GENC data
 	cd reference-loaders/genc && mvn spring-boot:run
+
+rebuild: docker-clean build ## Clean Docker environment, rebuild ALL images, and recreate containers
+	@echo "Rebuilding and restarting project..."
+	docker compose up -d --build --force-recreate
+
+rebuild-backend: build ## Rebuild and recreate ONLY the backend service
+	@echo "Rebuilding and restarting backend service..."
+	docker compose build --no-cache reference-api
+	docker compose up -d --force-recreate reference-api
+
+rebuild-frontend: ## Rebuild and recreate ONLY the frontend service
+	@echo "Rebuilding and restarting frontend service..."
+	docker compose build --no-cache frontend
+	docker compose up -d --force-recreate frontend
 
 load-all: load-iso load-genc ## Load all reference data
 
@@ -166,24 +188,24 @@ setup-e2e: ## Set up end-to-end testing framework
 
 # Enhanced Infrastructure Commands
 up-dev: ## Start development infrastructure (without application containers)
-	docker-compose -f ops/docker-compose.yml up -d postgres kafka zookeeper schema-registry keycloak redis opensearch opensearch-dashboards kafka-ui
+	docker compose -f docker-compose.yml up -d postgres redpanda keycloak redis kafka-ui
 
 up-full: ## Start full infrastructure including OpenMetadata
-	docker-compose -f ops/docker-compose.yml up -d
+	docker compose -f docker-compose.yml up -d
 
 up-minimal: ## Start minimal infrastructure (postgres, kafka, redis only)
-	docker-compose -f ops/docker-compose.yml up -d postgres kafka zookeeper schema-registry redis
+	docker compose -f docker-compose.yml up -d postgres kafka zookeeper schema-registry redis
 
 # Database Operations
 db-reset: ## Reset database and run migrations
 	@echo "Resetting database..."
-	docker-compose -f ops/docker-compose.yml exec postgres psql -U reference_user -d reference_db -c "DROP SCHEMA IF EXISTS reference_data CASCADE; DROP SCHEMA IF EXISTS keycloak CASCADE;"
+	docker compose -f docker-compose.yml exec postgres psql -U refdata_user -d reference_data -c "DROP SCHEMA IF EXISTS reference_data CASCADE; DROP SCHEMA IF EXISTS keycloak CASCADE;"
 	$(MAKE) migrate
 
 db-backup: ## Create database backup
 	@echo "Creating database backup..."
 	@mkdir -p backups
-	docker-compose -f ops/docker-compose.yml exec postgres pg_dump -U reference_user reference_db > backups/reference_db_$(shell date +%Y%m%d_%H%M%S).sql
+	docker-compose -f docker-compose.yml exec postgres pg_dump -U refdata_user reference_data > backups/reference_db_$(shell date +%Y%m%d_%H%M%S).sql
 	@echo "Backup created in backups/ directory"
 
 db-restore: ## Restore database from backup (requires BACKUP_FILE variable)
@@ -191,20 +213,20 @@ db-restore: ## Restore database from backup (requires BACKUP_FILE variable)
 		echo "Usage: make db-restore BACKUP_FILE=backups/filename.sql"; \
 		exit 1; \
 	fi
-	docker-compose -f ops/docker-compose.yml exec -T postgres psql -U reference_user -d reference_db < $(BACKUP_FILE)
+	docker compose -f docker-compose.yml exec -T postgres psql -U reference_user -d reference_db < $(BACKUP_FILE)
 
 # Docker Operations
 docker-clean: ## Clean up Docker containers, volumes, and images
 	@echo "Cleaning up Docker resources..."
-	docker-compose -f ops/docker-compose.yml down -v --remove-orphans
+	docker compose -f docker-compose.yml down -v --remove-orphans
 	docker system prune -f
 	docker volume prune -f
 
 docker-logs: ## Show logs for all containers
-	docker-compose -f ops/docker-compose.yml logs -f
+	docker compose -f docker-compose.yml logs -f
 
 docker-ps: ## Show running containers
-	docker-compose -f ops/docker-compose.yml ps
+	docker compose -f docker-compose.yml ps
 
 # Code Quality
 quality: lint format test-coverage ## Run all code quality checks
@@ -270,6 +292,10 @@ ports: ## Show all used ports
 	@echo "Application ports:"
 	@echo "  Reference API:   8080"
 	@echo "  Admin UI:        4200"
+
+nuke: ## Stop all containers, remove them, and remove the postgres volume
+	docker compose down -v
+	docker volume rm refdata-postgres-data || true
 
 # Help enhancement
 help-dev: ## Show development workflow help

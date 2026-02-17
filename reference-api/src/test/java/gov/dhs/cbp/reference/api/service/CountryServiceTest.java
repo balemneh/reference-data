@@ -263,18 +263,19 @@ class CountryServiceTest {
     }
 
     @Test
-    void searchByName_WithValidName_ReturnsPagedResponse() {
+    void search_WithValidName_ReturnsPagedResponse() {
         // Given
-        String name = "United";
+        String q = "United";
+        String systemCode = "ISO3166-1";
         PageRequest pageRequest = PageRequest.of(0, 10);
         List<Country> countries = Arrays.asList(sampleCountry);
         Page<Country> countryPage = new PageImpl<>(countries, pageRequest, 1);
 
-        given(countryRepository.searchByName(name, pageRequest)).willReturn(countryPage);
+        given(countryRepository.searchByName(q, systemCode, pageRequest)).willReturn(countryPage);
         given(countryMapper.toDto(sampleCountry)).willReturn(sampleCountryDto);
 
         // When
-        PagedResponse<CountryDto> result = countryService.searchByName(name, pageRequest);
+        PagedResponse<CountryDto> result = countryService.searchByName(q, systemCode, pageRequest);
 
         // Then
         assertThat(result).isNotNull();
@@ -283,44 +284,46 @@ class CountryServiceTest {
         assertThat(result.getPage()).isEqualTo(0);
         assertThat(result.getSize()).isEqualTo(10);
         assertThat(result.getTotalElements()).isEqualTo(1);
-        verify(countryRepository).searchByName(name, pageRequest);
+        verify(countryRepository).searchByName(q, systemCode, pageRequest);
     }
 
     @Test
-    void searchByName_WithNoMatches_ReturnsEmptyPagedResponse() {
+    void search_WithNoMatches_ReturnsEmptyPagedResponse() {
         // Given
-        String name = "NonExistentCountry";
+        String q = "NonExistentCountry";
+        String systemCode = "ISO3166-1";
         PageRequest pageRequest = PageRequest.of(0, 10);
         Page<Country> emptyPage = new PageImpl<>(Collections.emptyList(), pageRequest, 0);
 
-        given(countryRepository.searchByName(name, pageRequest)).willReturn(emptyPage);
+        given(countryRepository.searchByName(q, systemCode, pageRequest)).willReturn(emptyPage);
 
         // When
-        PagedResponse<CountryDto> result = countryService.searchByName(name, pageRequest);
+        PagedResponse<CountryDto> result = countryService.searchByName(q, systemCode, pageRequest);
 
         // Then
         assertThat(result).isNotNull();
         assertThat(result.getContent()).isEmpty();
         assertThat(result.getTotalElements()).isEqualTo(0);
-        verify(countryRepository).searchByName(name, pageRequest);
+        verify(countryRepository).searchByName(q, systemCode, pageRequest);
     }
 
     @Test
-    void searchByName_WithEmptyName_HandlesGracefully() {
+    void searchByName_WithEmptyQuery_HandlesGracefully() {
         // Given
-        String emptyName = "";
+        String emptyQuery = "";
+        String systemCode = "ISO3166-1";
         PageRequest pageRequest = PageRequest.of(0, 10);
         Page<Country> emptyPage = new PageImpl<>(Collections.emptyList(), pageRequest, 0);
 
-        given(countryRepository.searchByName(emptyName, pageRequest)).willReturn(emptyPage);
+        given(countryRepository.searchByName(emptyQuery, systemCode, pageRequest)).willReturn(emptyPage);
 
         // When
-        PagedResponse<CountryDto> result = countryService.searchByName(emptyName, pageRequest);
+        PagedResponse<CountryDto> result = countryService.searchByName(emptyQuery, systemCode, pageRequest);
 
         // Then
         assertThat(result).isNotNull();
         assertThat(result.getContent()).isEmpty();
-        verify(countryRepository).searchByName(emptyName, pageRequest);
+        verify(countryRepository).searchByName(emptyQuery, systemCode, pageRequest);
     }
 
     @Test

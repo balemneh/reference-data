@@ -247,9 +247,20 @@ export class ActivityLogComponent implements OnInit {
     this.expandedEntry = this.expandedEntry === entryId ? null : entryId;
   }
 
-  formatTimestamp(timestamp: string): string {
-    const date = new Date(timestamp);
-    return date.toLocaleString();
+  formatDate(date: string | undefined): string {
+    if (!date) return 'N/A';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) {
+      return 'N/A';
+    }
+    return d.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
   }
 
   getResultIcon(result: string): string {
@@ -317,7 +328,7 @@ export class ActivityLogComponent implements OnInit {
   private generateCSV(): string {
     const headers = ['Timestamp', 'Action', 'Entity Type', 'Entity ID', 'Description', 'Result', 'User', 'IP Address'];
     const rows = this.activities.map(activity => [
-      this.formatTimestamp(activity.timestamp),
+      this.formatDate(activity.timestamp),
       activity.action,
       activity.entityType,
       activity.entityId,

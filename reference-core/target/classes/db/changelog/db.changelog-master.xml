@@ -7,24 +7,44 @@
 
     <!-- Schema Definitions -->
     <include file="schema/001-initial-schema.xml" relativeToChangelogFile="true"/>
-    
+
     <include file="schema/002-code-system-tables.xml" relativeToChangelogFile="true"/>
     <include file="schema/003-countries-tables.xml" relativeToChangelogFile="true"/>
     <include file="schema/004-airports-tables.xml" relativeToChangelogFile="true"/>
     <include file="schema/005-ports-tables.xml" relativeToChangelogFile="true"/>
     <include file="schema/006-workflow-tables.xml" relativeToChangelogFile="true"/>
+    <include file="schema/007-add-retry-count-to-outbox.xml" relativeToChangelogFile="true"/>
     <include file="schema/006-create-system-configuration-tables.xml" relativeToChangelogFile="true"/>
+
+    <!-- Change Request Workflow Schema Changes -->
+    <include file="schema/007-change-request-tracking.xml" relativeToChangelogFile="true"/>
+    <include file="schema/008-bulk-import-staging.xml" relativeToChangelogFile="true"/>
+    <include file="schema/009-audit-log.xml" relativeToChangelogFile="true"/>
+
+    <include file="schema/011-add-source-file-to-batch.xml" relativeToChangelogFile="true"/>
+    <include file="schema/012-add-partial-status-to-batch.xml" relativeToChangelogFile="true"/>
+    <include file="schema/013-create-scheduled-exports-table.xml" relativeToChangelogFile="true"/>
+    
 
     <!-- Indexes -->
     <include file="indexes/001-indexes.xml" relativeToChangelogFile="true"/>
 
     <!-- Initial Data -->
     <include file="data/001-code-systems.xml" relativeToChangelogFile="true"/>
-    
+
+    <!-- Seed Change Requests (must come before entity seed data) -->
+    <include file="data/001-seed-change-requests.xml" relativeToChangelogFile="true"/>
+
     <!-- Seed Data -->
     <include file="data/002-countries-seed.xml" relativeToChangelogFile="true"/>
     <include file="data/003-airports-seed.xml" relativeToChangelogFile="true"/>
     <include file="data/004-ports-seed.xml" relativeToChangelogFile="true"/>
     <include file="data/005-change-requests-seed.xml" relativeToChangelogFile="true"/>
+
+    <!-- Clear audit log after all seed data is loaded -->
+    <changeSet id="999-clear-audit-log" author="reference-data" dbms="postgresql">
+        <comment>Clear the audit log to remove history of seed data loading</comment>
+        <sql>DELETE FROM reference_data.audit_log;</sql>
+    </changeSet>
 
 </databaseChangeLog>

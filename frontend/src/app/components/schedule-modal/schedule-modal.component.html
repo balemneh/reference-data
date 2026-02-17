@@ -1,0 +1,107 @@
+<div class="cbp-modal-overlay cbp-fade-in" *ngIf="showModal" (click)="closeModal()">
+  <div class="cbp-modal cbp-slide-up" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="schedule-modal-title">
+    <div class="cbp-modal-header">
+      <h2 class="cbp-modal-title" id="schedule-modal-title">{{ schedule ? 'Edit Scheduled Export' : 'Create Scheduled Export' }}</h2>
+      <button class="cbp-modal-close" (click)="closeModal()" aria-label="Close modal">
+        <svg class="cbp-modal-close-icon" aria-hidden="true">
+          <use xlink:href="/assets/uswds/img/sprite.svg#close"></use>
+        </svg>
+      </button>
+    </div>
+    <div class="cbp-modal-content">
+      <form class="usa-form">
+        <div class="grid-row gap-2">
+          <div class="grid-col-12">
+            <label class="usa-label" for="schedule-name">
+              Schedule Name <abbr title="required" class="usa-hint usa-hint--required">*</abbr>
+            </label>
+            <input 
+              class="usa-input" 
+              id="schedule-name" 
+              type="text" 
+              [(ngModel)]="scheduleForm.name"
+              name="scheduleName"
+              required
+            />
+          </div>
+
+          <div class="grid-col-12 tablet:grid-col-6">
+            <label class="usa-label" for="schedule-entity-type">Entity Type</label>
+            <select 
+              class="usa-select" 
+              id="schedule-entity-type" 
+              [(ngModel)]="scheduleForm.entityType"
+              name="scheduleEntityType"
+            >
+              <option value="COUNTRIES">Countries</option>
+              <option value="PORTS">Ports</option>
+              <option value="AIRPORTS">Airports</option>
+              <option value="ALL">All Entity Types</option>
+            </select>
+          </div>
+
+          <div class="grid-col-12 tablet:grid-col-6">
+            <label class="usa-label" for="schedule-format">Export Format</label>
+            <select 
+              class="usa-select" 
+              id="schedule-format" 
+              [(ngModel)]="scheduleForm.format"
+              name="scheduleFormat"
+            >
+              <option value="CSV">CSV</option>
+              <option value="JSON">JSON</option>
+              <option value="XML">XML</option>
+              <option value="EXCEL">Excel</option>
+            </select>
+          </div>
+
+          <div class="grid-col-12">
+            <label class="usa-label" for="schedule-cron">Schedule</label>
+            <select 
+              class="usa-select" 
+              id="schedule-cron" 
+              [(ngModel)]="scheduleForm.schedule"
+              name="scheduleCron"
+            >
+              <option *ngFor="let option of cronOptions" [value]="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="grid-col-12">
+            <fieldset class="usa-fieldset">
+              <legend class="usa-legend">Status</legend>
+              <div class="usa-checkbox">
+                <input 
+                  class="usa-checkbox__input" 
+                  id="schedule-enabled" 
+                  type="checkbox" 
+                  [(ngModel)]="scheduleForm.enabled"
+                  name="scheduleEnabled"
+                />
+                <label class="usa-checkbox__label" for="schedule-enabled">
+                  Enable this scheduled export
+                </label>
+              </div>
+            </fieldset>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="cbp-modal-footer">
+      <ul class="usa-button-group">
+        <li class="usa-button-group__item">
+          <button type="button" class="usa-button" (click)="saveSchedule()">
+            {{ schedule ? 'Update Schedule' : 'Create Schedule' }}
+          </button>
+        </li>
+        <li class="usa-button-group__item">
+          <button type="button" class="usa-button usa-button--outline" (click)="closeModal()">
+            Cancel
+          </button>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>

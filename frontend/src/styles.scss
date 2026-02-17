@@ -1,9 +1,17 @@
+@use "uswds-core" with (
+    $theme-font-path: "/assets/uswds/fonts",
+    $theme-image-path: "/assets/uswds/img"
+);
+
+@forward "uswds";
+
+@use './styles/cbp-ui';
+@use './styles/cbp-components';
+@use './app/components/countries/countries';
+@use './app/components/change-requests/change-requests';
+
 /* CBP Reference Data Admin UI - Global Styles */
 @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap');
-
-// Import component styles that need global scope
-@import './styles/_cbp-components.scss';
-@import './app/components/countries/countries.scss';
 
 // Reset and base styles
 * {
@@ -301,12 +309,13 @@ svg.cbp-icon,
 
   &--outline {
     background-color: transparent;
-    color: #003366;
-    border-color: #dee2e6;
+    color: var(--cbp-primary);
+    border: 1px solid var(--cbp-primary);
 
     &:hover:not(:disabled) {
-      background-color: #f8f9fa;
-      border-color: #003366;
+      background-color: var(--cbp-neutral-50);
+      border-color: var(--cbp-primary-dark);
+      color: var(--cbp-primary-dark);
     }
   }
 
@@ -617,7 +626,6 @@ svg.cbp-icon,
 .cbp-table table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: auto;
 }
 
 .cbp-table th {

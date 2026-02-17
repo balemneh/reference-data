@@ -55,6 +55,10 @@ while :; do
   sleep 2
 done
 
+echo "$(ts) | 🔧 enforcing sslRequired=NONE on master realm"
+/opt/keycloak/bin/kcadm.sh update realms/master -s sslRequired=NONE >/dev/null
+
+
 # -----------------------------
 # JSON helpers (BusyBox-safe, tolerate spaces like "key" : "value")
 # -----------------------------
@@ -186,10 +190,44 @@ if [ -z "${UI_ID}" ]; then
     -s directAccessGrantsEnabled=false \
     -s 'attributes."pkce.code.challenge.method"="S256"' \
     -s "rootUrl=${UI_ROOT_URL}" \
-    -s "webOrigins=${UI_WEB_ORIGINS}" \
+    -s "webOrigins=[\"${UI_WEB_ORIGINS}\"]" \
     -s "redirectUris=[${redirects_json}]" >/dev/null 2>&1 || true
 else
   echo "$(ts) | ➡️  client '${UI_CLIENT_ID}' exists"
+fi
+
+# -----------------------------
+# Ensure client-level roles for entity permissions
+# -----------------------------
+UI_ID_ROLES="$(get_client_id "${REALM}" "${UI_CLIENT_ID}")"
+if [ -n "${UI_ID_ROLES}" ]; then
+  echo "$(ts) | 👤 creating client roles for '${UI_CLIENT_ID}'"
+  if ! /opt/keycloak/bin/kcadm.sh get "clients/${UI_ID_ROLES}/roles/country-owner" -r "${REALM}" >/dev/null 2>&1; then
+    /opt/keycloak/bin/kcadm.sh create "clients/${UI_ID_ROLES}/roles" -r "${REALM}" -s name=country-owner
+  fi
+  if ! /opt/keycloak/bin/kcadm.sh get "clients/${UI_ID_ROLES}/roles/airport-owner" -r "${REALM}" >/dev/null 2>&1; then
+    /opt/keycloak/bin/kcadm.sh create "clients/${UI_ID_ROLES}/roles" -r "${REALM}" -s name=airport-owner
+  fi
+  if ! /opt/keycloak/bin/kcadm.sh get "clients/${UI_ID_ROLES}/roles/port-owner" -r "${REALM}" >/dev/null 2>&1; then
+    /opt/keycloak/bin/kcadm.sh create "clients/${UI_ID_ROLES}/roles" -r "${REALM}" -s name=port-owner
+  fi
+fi
+
+# -----------------------------
+# Ensure E2E user
+# -----------------------------
+UI_ID_ROLES="$(get_client_id "${REALM}" "${UI_CLIENT_ID}")"
+if [ -n "${UI_ID_ROLES}" ]; then
+  echo "$(ts) | 👤 creating client roles for '${UI_CLIENT_ID}'"
+  if ! /opt/keycloak/bin/kcadm.sh get "clients/${UI_ID_ROLES}/roles/country-owner" -r "${REALM}" >/dev/null 2>&1; then
+    /opt/keycloak/bin/kcadm.sh create "clients/${UI_ID_ROLES}/roles" -r "${REALM}" -s name=country-owner
+  fi
+  if ! /opt/keycloak/bin/kcadm.sh get "clients/${UI_ID_ROLES}/roles/airport-owner" -r "${REALM}" >/dev/null 2>&1; then
+    /opt/keycloak/bin/kcadm.sh create "clients/${UI_ID_ROLES}/roles" -r "${REALM}" -s name=airport-owner
+  fi
+  if ! /opt/keycloak/bin/kcadm.sh get "clients/${UI_ID_ROLES}/roles/port-owner" -r "${REALM}" >/dev/null 2>&1; then
+    /opt/keycloak/bin/kcadm.sh create "clients/${UI_ID_ROLES}/roles" -r "${REALM}" -s name=port-owner
+  fi
 fi
 
 # -----------------------------
@@ -202,6 +240,72 @@ if ! /opt/keycloak/bin/kcadm.sh get "users?username=${TEST_USER}" -r "${REALM}" 
   /opt/keycloak/bin/kcadm.sh set-password -r "${REALM}" --userid "${USER_ID}" --new-password "${TEST_PASS}" --temporary=false
 else
   echo "$(ts) | ➡️  user '${TEST_USER}' exists"
+fi
+
+# -----------------------------
+# Ensure roles
+# -----------------------------
+if ! /opt/keycloak/bin/kcadm.sh get roles/DATA_STEWARD -r "${REALM}" >/dev/null 2>&1; then
+  echo "$(ts) | 👤 creating role 'DATA_STEWARD'"
+  /opt/keycloak/bin/kcadm.sh create roles -r "${REALM}" -s name=DATA_STEWARD
+fi
+
+if ! /opt/keycloak/bin/kcadm.sh get roles/ADMIN -r "${REALM}" >/dev/null 2>&1; then
+  echo "$(ts) | 👤 creating role 'ADMIN'"
+  /opt/keycloak/bin/kcadm.sh create roles -r "${REALM}" -s name=ADMIN
+fi
+
+# -----------------------------
+# Create testuser and assign ADMIN role
+# -----------------------------
+if ! /opt/keycloak/bin/kcadm.sh get "users?username=testuser" -r "${REALM}" 2>/dev/null | grep -q "\"username\"[[:space:]]*:[[:space:]]*\"testuser\""; then
+  echo "$(ts) | 👤 creating user 'testuser'"
+  TESTUSER_ID="$(/opt/keycloak/bin/kcadm.sh create users -r "${REALM}" -s username="testuser" -s enabled=true -s firstName="Test" -s lastName="User" -s email="testuser@example.com" -i)"
+  /opt/keycloak/bin/kcadm.sh set-password -r "${REALM}" --userid "${TESTUSER_ID}" --new-password "testpass" --temporary=false
+  /opt/keycloak/bin/kcadm.sh add-roles -r "${REALM}" --uid "${TESTUSER_ID}" --rolename ADMIN
+  echo "$(ts) | ✅ assigned ADMIN role and details to testuser"
+else
+  echo "$(ts) | ➡️  user 'testuser' exists, ensuring details and role"
+  TESTUSER_ID=$(/opt/keycloak/bin/kcadm.sh get "users?username=testuser" -r "${REALM}" | extract_first_json_field id)
+  /opt/keycloak/bin/kcadm.sh update "users/${TESTUSER_ID}" -r "${REALM}" -s firstName="Test" -s lastName="User" -s email="testuser@example.com"
+  /opt/keycloak/bin/kcadm.sh add-roles -r "${REALM}" --uid "${TESTUSER_ID}" --rolename ADMIN >/dev/null 2>&1 || true
+fi
+
+# -----------------------------
+# Create country-steward and assign DATA_STEWARD and country-owner roles
+# -----------------------------
+UI_ID_ROLES="$(get_client_id "${REALM}" "${UI_CLIENT_ID}")"
+if ! /opt/keycloak/bin/kcadm.sh get "users?username=country-steward" -r "${REALM}" 2>/dev/null | grep -q "\"username\"[[:space:]]*:[[:space:]]*\"country-steward\""; then
+  echo "$(ts) | 👤 creating user 'country-steward'"
+  COUNTRY_STEWARD_ID="$(/opt/keycloak/bin/kcadm.sh create users -r "${REALM}" -s username="country-steward" -s enabled=true -i)"
+  /opt/keycloak/bin/kcadm.sh set-password -r "${REALM}" --userid "${COUNTRY_STEWARD_ID}" --new-password "password" --temporary=false
+  /opt/keycloak/bin/kcadm.sh add-roles -r "${REALM}" --uid "${COUNTRY_STEWARD_ID}" --rolename DATA_STEWARD
+  /opt/keycloak/bin/kcadm.sh add-roles -r "${REALM}" --uid "${COUNTRY_STEWARD_ID}" --cclientid "${UI_CLIENT_ID}" --rolename country-owner
+  echo "$(ts) | ✅ assigned DATA_STEWARD and country-owner roles to country-steward"
+fi
+
+# -----------------------------
+# Create airport-steward and assign DATA_STEWARD and airport-owner roles
+# -----------------------------
+if ! /opt/keycloak/bin/kcadm.sh get "users?username=airport-steward" -r "${REALM}" 2>/dev/null | grep -q "\"username\"[[:space:]]*:[[:space:]]*\"airport-steward\""; then
+  echo "$(ts) | 👤 creating user 'airport-steward'"
+  AIRPORT_STEWARD_ID="$(/opt/keycloak/bin/kcadm.sh create users -r "${REALM}" -s username="airport-steward" -s enabled=true -i)"
+  /opt/keycloak/bin/kcadm.sh set-password -r "${REALM}" --userid "${AIRPORT_STEWARD_ID}" --new-password "password" --temporary=false
+  /opt/keycloak/bin/kcadm.sh add-roles -r "${REALM}" --uid "${AIRPORT_STEWARD_ID}" --rolename DATA_STEWARD
+  /opt/keycloak/bin/kcadm.sh add-roles -r "${REALM}" --uid "${AIRPORT_STEWARD_ID}" --cclientid "${UI_CLIENT_ID}" --rolename airport-owner
+  echo "$(ts) | ✅ assigned DATA_STEWARD and airport-owner roles to airport-steward"
+fi
+
+# -----------------------------
+# Create port-steward and assign DATA_STEWARD and port-owner roles
+# -----------------------------
+if ! /opt/keycloak/bin/kcadm.sh get "users?username=port-steward" -r "${REALM}" 2>/dev/null | grep -q "\"username\"[[:space:]]*:[[:space:]]*\"port-steward\""; then
+  echo "$(ts) | 👤 creating user 'port-steward'"
+  PORT_STEWARD_ID="$(/opt/keycloak/bin/kcadm.sh create users -r "${REALM}" -s username="port-steward" -s enabled=true -i)"
+  /opt/keycloak/bin/kcadm.sh set-password -r "${REALM}" --userid "${PORT_STEWARD_ID}" --new-password "password" --temporary=false
+  /opt/keycloak/bin/kcadm.sh add-roles -r "${REALM}" --uid "${PORT_STEWARD_ID}" --rolename DATA_STEWARD
+  /opt/keycloak/bin/kcadm.sh add-roles -r "${REALM}" --uid "${PORT_STEWARD_ID}" --cclientid "${UI_CLIENT_ID}" --rolename port-owner
+  echo "$(ts) | ✅ assigned DATA_STEWARD and port-owner roles to port-steward"
 fi
 
 echo "$(ts) | ✅ kc-init complete"

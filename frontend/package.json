@@ -6,7 +6,7 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test",
+    "test": "ng test --browsers=ChromeHeadless --watch=false --code-coverage",
     "a11y": "node scripts/a11y-smoke.js",
     "smoke": "node scripts/smoke.js"
   },
@@ -29,27 +29,35 @@
     "@angular/forms": "^20.1.0",
     "@angular/platform-browser": "^20.1.0",
     "@angular/router": "^20.1.0",
-    "@uswds/uswds": "^3.13.0",
+    "@angular/cdk": "~20.1.0",
+    "@uswds/uswds": "3.13.0",
     "chart.js": "^4.5.0",
+    "keycloak-angular": "^20.0.0",
+    "keycloak-js": "^26.2.2",
     "ng2-charts": "^8.0.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
-    "zone.js": "~0.15.0"
+    "uswds": "^2.14.0",
+    "zone.js": "~0.15.0",
+    "angular-oauth2-oidc": "^15.0.1",
+    "angular-oauth2-oidc-jwks": "^15.0.1",
+    "ngx-markdown": "^20.0.0"
   },
   "devDependencies": {
     "@angular/build": "^20.1.5",
     "@angular/cli": "^20.1.5",
     "@angular/compiler-cli": "^20.1.0",
+    "@axe-core/puppeteer": "^4.9.1",
     "@types/jasmine": "~5.1.0",
+    "axe-core": "^4.9.1",
     "jasmine-core": "~5.8.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
+    "karma-junit-reporter": "^2.0.1",
     "puppeteer": "^24.16.2",
-    "@axe-core/puppeteer": "^4.9.1",
-    "axe-core": "^4.9.1",
     "typescript": "~5.8.2"
   }
 }
