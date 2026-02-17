@@ -1,9 +1,9 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;INIT=RUNSCRIPT FROM 'classpath:schema-h2-init.sql'
     driver-class-name: org.h2.Driver
     username: sa
-    password: 
+    password:
   
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
@@ -11,6 +11,7 @@ spring:
       ddl-auto: none  # Let Liquibase handle schema creation
       naming:
         physical-strategy: gov.dhs.cbp.reference.core.config.TestJpaConfig
+        implicit-strategy: org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy
     show-sql: false
     properties:
       hibernate:

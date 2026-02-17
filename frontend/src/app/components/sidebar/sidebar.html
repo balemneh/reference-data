@@ -24,11 +24,12 @@
   <div class="cbp-sidebar__content">
     <ul class="cbp-sidebar__list" role="menubar">
       
+      <ng-container *ngIf="featureFlags$ | async as flags">
       <!-- Iterate through navigation items -->
       <ng-container *ngFor="let item of navigationItems">
         <li
           class="cbp-sidebar__item"
-          *ngIf="item.type === 'navigation' ? isItemVisible(item) : isCategoryVisible(item)"
+          *ngIf="item.type === 'navigation' ? isItemVisible(item, flags) : isCategoryVisible(item, flags)"
           [class.cbp-sidebar__item--active]="item.type === 'navigation' && isItemActive(item)"
           [class.cbp-sidebar__item--category-active]="item.type === 'category' && isCategoryActive(item)"
           role="none"
@@ -101,7 +102,7 @@
           >
             <li
               class="cbp-sidebar__subitem"
-              *ngFor="let child of getVisibleChildren(item)"
+              *ngFor="let child of getVisibleChildren(item, flags)"
               [class.cbp-sidebar__subitem--active]="isItemActive(child)"
               role="none"
             >
@@ -133,6 +134,7 @@
           </ul>
         </ng-container>
       </li>
+    </ng-container>
     </ng-container>
     </ul>
   </div>

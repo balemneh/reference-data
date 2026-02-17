@@ -1,7 +1,7 @@
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ApiService, PortDto, PagedResponse } from '../../services/api.service';
+import { ApiService, PortDto, PagedResponse, ChangeRequestDto } from '../../services/api.service';
 import { ToastService } from '../../services/toast.service';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 
@@ -277,15 +277,15 @@ export class PortsComponent implements OnInit {
   
   private savePortData(port: PortDto, successMsg: string) {
     // Create a change request for the port modification
-    const changeRequest = {
+    const changeRequest: Partial<ChangeRequestDto> = {
       changeType: (port.id ? 'UPDATE' : 'CREATE') as 'UPDATE' | 'CREATE',
-      entityType: 'PORT',
+      entityType: 'PORT' as const,
       entityId: port.id || undefined,
       description: `${port.id ? 'Update' : 'Create'} port: ${port.portName}`,
       requestedBy: 'current-user', // Would come from auth service
-      newValues: port
+      proposedChanges: JSON.stringify(port)
     };
-    
+
     this.apiService.createChangeRequest(changeRequest).subscribe({
       next: (response: any) => {
         this.successMessage = successMsg + ` (Request ID: ${response.id})`;

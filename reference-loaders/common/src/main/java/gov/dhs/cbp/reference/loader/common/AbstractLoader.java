@@ -99,7 +99,7 @@ public abstract class AbstractLoader<S, T, ST extends StagingEntity> {
                 result.setChangesApplied(true);
             } else if (diffResult.hasChanges()) {
                 logger.info("Changes detected but auto-apply is disabled. Creating change request...");
-                String changeRequestId = createChangeRequest(diffResult, context);
+                UUID changeRequestId = createChangeRequest(diffResult, context);
                 result.setChangeRequestId(changeRequestId);
             }
             
@@ -194,7 +194,7 @@ public abstract class AbstractLoader<S, T, ST extends StagingEntity> {
     protected abstract void saveStagingBatch(List<ST> batch);
     protected abstract void clearStagingTables();
     protected abstract void publishEvents(DiffResult<ST, T> diffResult, String executionId);
-    protected abstract String createChangeRequest(DiffResult<ST, T> diffResult, LoaderContext context);
+    protected abstract UUID createChangeRequest(DiffResult<ST, T> diffResult, LoaderContext context);
     protected abstract LocalDateTime getLastSuccessfulRunTime();
     protected abstract void saveLoaderResult(LoaderResult result);
     protected abstract void handleLoadFailure(Exception e, LoaderContext context);

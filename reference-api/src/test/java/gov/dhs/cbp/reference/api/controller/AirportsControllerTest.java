@@ -5,6 +5,13 @@ import gov.dhs.cbp.reference.api.config.WebMvcTestConfig;
 import gov.dhs.cbp.reference.api.dto.AirportDto;
 import gov.dhs.cbp.reference.api.dto.PagedResponse;
 import gov.dhs.cbp.reference.api.service.AirportService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -445,8 +452,9 @@ class AirportsControllerTest {
         when(airportService.findByCodeAndSystemAsOf(eq("LAX"), eq("IATA"), eq(asOfDate)))
                 .thenReturn(Optional.of(sampleAirport));
 
-        // Note: This might conflict with the /{id} path, depending on route order
-        mockMvc.perform(get("/v1/airports/{code}", "LAX")
+        // Test with asOf date parameter
+        mockMvc.perform(get("/v1/airports/by-code")
+                .param("code", "LAX")
                 .param("codeSystem", "IATA")
                 .param("asOf", "2024-06-15"))
                 .andExpect(status().isOk())
@@ -458,7 +466,8 @@ class AirportsControllerTest {
         when(airportService.findByCodeAndSystem(eq("LAX"), eq("IATA")))
                 .thenReturn(Optional.of(sampleAirport));
 
-        mockMvc.perform(get("/v1/airports/{code}", "LAX")
+        mockMvc.perform(get("/v1/airports/by-code")
+                .param("code", "LAX")
                 .param("codeSystem", "IATA"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.iataCode").value("LAX"));
@@ -466,7 +475,8 @@ class AirportsControllerTest {
 
     @Test
     void testGetAirportByCode_InvalidDate() throws Exception {
-        mockMvc.perform(get("/v1/airports/{code}", "LAX")
+        mockMvc.perform(get("/v1/airports/by-code")
+                .param("code", "LAX")
                 .param("codeSystem", "IATA")
                 .param("asOf", "invalid-date"))
                 .andExpect(status().isBadRequest());
@@ -474,11 +484,13 @@ class AirportsControllerTest {
 
     @Test
     void testGetAirportByCode_InvalidCodeLength() throws Exception {
-        mockMvc.perform(get("/v1/airports/{code}", "LA")
+        mockMvc.perform(get("/v1/airports/by-code")
+                .param("code", "LA")
                 .param("codeSystem", "IATA"))
                 .andExpect(status().isBadRequest());
 
-        mockMvc.perform(get("/v1/airports/{code}", "TOOLONG")
+        mockMvc.perform(get("/v1/airports/by-code")
+                .param("code", "TOOLONG")
                 .param("codeSystem", "IATA"))
                 .andExpect(status().isBadRequest());
     }

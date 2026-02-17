@@ -46,6 +46,58 @@ public class EventPublisherService {
     }
 
     /**
+     * Publish change request lifecycle events
+     */
+    public void publishChangeRequestCreated(ChangeRequest changeRequest) {
+        publishChangeRequestEvent(changeRequest, "CHANGE_REQUEST_CREATED");
+    }
+
+    public void publishChangeRequestApproved(ChangeRequest changeRequest) {
+        publishChangeRequestEvent(changeRequest, "CHANGE_REQUEST_APPROVED");
+    }
+
+    public void publishChangeRequestRejected(ChangeRequest changeRequest) {
+        publishChangeRequestEvent(changeRequest, "CHANGE_REQUEST_REJECTED");
+    }
+
+    public void publishChangeRequestCompleted(ChangeRequest changeRequest) {
+        publishChangeRequestEvent(changeRequest, "CHANGE_REQUEST_COMPLETED");
+    }
+
+    private void publishChangeRequestEvent(ChangeRequest changeRequest, String eventType) {
+        try {
+            // Create event payload
+            var eventPayload = new java.util.HashMap<String, Object>();
+            eventPayload.put("eventType", eventType);
+            eventPayload.put("eventId", UUID.randomUUID().toString());
+            eventPayload.put("timestamp", LocalDateTime.now());
+            eventPayload.put("changeRequestId", changeRequest.getId());
+            eventPayload.put("crNumber", changeRequest.getCrNumber());
+            eventPayload.put("title", changeRequest.getTitle());
+            eventPayload.put("dataType", changeRequest.getDataType());
+            eventPayload.put("operationType", changeRequest.getOperationType());
+            eventPayload.put("status", changeRequest.getStatus());
+            eventPayload.put("requesterId", changeRequest.getRequesterId());
+
+            String payload = objectMapper.writeValueAsString(eventPayload);
+
+            outboxPublisher.createEvent(
+                changeRequest.getId().toString(),
+                "ChangeRequest",
+                eventType,
+                payload
+            );
+
+            logger.info("Published {} event for change request {}", eventType, changeRequest.getCrNumber());
+
+        } catch (JsonProcessingException e) {
+            logger.error("Failed to serialize change request event for {}: {}",
+                    changeRequest.getCrNumber(), e.getMessage(), e);
+            throw new EventPublishException("Failed to serialize change request event", e);
+        }
+    }
+
+    /**
      * Publish a country changed event
      */
     public void publishCountryEvent(CountryChangedEvent event) {

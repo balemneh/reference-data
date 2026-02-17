@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, of } from 'rxjs';
+import { BehaviorSubject, Observable, of, forkJoin } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
@@ -33,6 +33,7 @@ export interface FeatureFlagsConfig {
     advancedSearch: boolean;
     apiAccess: boolean;
     webhooks: boolean;
+    activityLog: boolean;
   };
   experimental: {
     [key: string]: boolean;
@@ -47,6 +48,10 @@ export interface FeatureFlagsConfig {
     // Data visibility is controlled by referenceData flags
     showRecentActivity: boolean;
     showSystemHealth: boolean;
+  };
+  admin: {
+    [key: string]: boolean;
+    admin: boolean;
   };
 }
 
@@ -74,7 +79,8 @@ export class FeatureFlagsService {
       bulkOperations: true,
       advancedSearch: true,
       apiAccess: true,
-      webhooks: false
+      webhooks: false,
+      activityLog: true
     },
     experimental: {
       aiAssistant: false,
@@ -86,6 +92,9 @@ export class FeatureFlagsService {
       // Only non-data related dashboard features
       showRecentActivity: true,
       showSystemHealth: true
+    },
+    admin: {
+      admin: true
     }
   };
 
@@ -98,26 +107,15 @@ export class FeatureFlagsService {
 
   loadFlags() {
     // Load from backend API
-    this.http.get<any>(`${this.apiUrl}/feature-flags`).pipe(
+    this.http.get<FeatureFlagsConfig>(`${this.apiUrl}/feature-flags`).pipe(
       tap(response => {
-        // Check if response has the expected structure
-        let flags: FeatureFlagsConfig;
-
-        // If the response doesn't have the expected structure, use defaults
-        if (!response || !response.dashboard) {
-          console.warn('Feature flags from server have incomplete structure, using defaults with server data:', response);
-          flags = { ...this.defaultFlags };
-          // Merge any partial data from server
-          if (response) {
-            Object.keys(response).forEach(key => {
-              if (flags.hasOwnProperty(key)) {
-                (flags as any)[key] = { ...this.defaultFlags[key as keyof FeatureFlagsConfig], ...response[key] };
-              }
-            });
-          }
-        } else {
-          flags = response as FeatureFlagsConfig;
-        }
+        const flags: FeatureFlagsConfig = {
+          referenceData: { ...this.defaultFlags.referenceData, ...response.referenceData },
+          features: { ...this.defaultFlags.features, ...response.features },
+          experimental: { ...this.defaultFlags.experimental, ...response.experimental },
+          dashboard: { ...this.defaultFlags.dashboard, ...response.dashboard },
+          admin: { ...this.defaultFlags.admin, ...response.admin }
+        };
 
         this.flags.next(flags);
         // Cache in localStorage as fallback
@@ -131,14 +129,17 @@ export class FeatureFlagsService {
           try {
             const parsed = JSON.parse(stored);
             this.flags.next(parsed);
-            return of(parsed);
           } catch (e) {
             console.error('Failed to parse stored feature flags', e);
+            // Fall back to defaults if stored flags are invalid
+            this.flags.next(this.defaultFlags);
           }
+        } else {
+          // Fall back to defaults if nothing is stored
+          this.flags.next(this.defaultFlags);
         }
-        // Fall back to defaults
-        this.flags.next(this.defaultFlags);
-        return of(this.defaultFlags);
+        // Re-throw the error to be caught by global error handlers
+        throw error;
       })
     ).subscribe();
   }
@@ -190,34 +191,39 @@ export class FeatureFlagsService {
     return allFlags;
   }
 
-  updateFlag(category: keyof FeatureFlagsConfig, flag: string, enabled: boolean) {
-    // Update on backend
-    this.http.put(`${this.apiUrl}/feature-flags/${category}/${flag}`, { enabled }).pipe(
+  updateFlag(category: keyof FeatureFlagsConfig, flag: string, enabled: boolean): Observable<any> {
+    const featureId = flag;
+    const primaryUpdate = this.http.put(`${this.apiUrl}/feature-flags/${featureId}`, { enabled });
+
+    const updates: Observable<any>[] = [primaryUpdate];
+
+    // If activityLog is being updated, also update showRecentActivity
+    if (flag === 'activityLog') {
+      const secondaryUpdate = this.http.put(`${this.apiUrl}/feature-flags/showRecentActivity`, { enabled });
+      updates.push(secondaryUpdate);
+    }
+
+    return forkJoin(updates).pipe(
       tap(() => {
-        // Update local state
         const current = this.flags.getValue();
         const updated = { ...current };
 
         if (updated[category]) {
           updated[category][flag] = enabled;
-          this.flags.next(updated);
-          this.saveFlags(updated);
+          if (flag === 'activityLog') {
+            updated.dashboard.showRecentActivity = enabled;
+          }
         }
+
+        this.flags.next(updated);
+        this.saveFlags(updated);
       }),
       catchError(error => {
         console.error('Failed to update feature flag on server', error);
-        // Still update locally
-        const current = this.flags.getValue();
-        const updated = { ...current };
-
-        if (updated[category]) {
-          updated[category][flag] = enabled;
-          this.flags.next(updated);
-          this.saveFlags(updated);
-        }
-        return of(null);
+        // Re-throw the error to be caught by the component
+        throw error;
       })
-    ).subscribe();
+    );
   }
 
   bulkUpdate(category: keyof FeatureFlagsConfig, updates: Record<string, boolean>) {
@@ -282,7 +288,7 @@ export class FeatureFlagsService {
 
       // Validate structure
       if (!config.referenceData || !config.features ||
-          !config.experimental || !config.dashboard) {
+          !config.experimental || !config.dashboard || !config.admin) {
         return false;
       }
 

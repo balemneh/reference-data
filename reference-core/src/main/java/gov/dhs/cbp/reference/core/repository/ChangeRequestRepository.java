@@ -31,14 +31,16 @@ public interface ChangeRequestRepository extends JpaRepository<ChangeRequest, UU
            "(:requestor IS NULL OR cr.requesterId = :requestor) AND " +
            "(:entityType IS NULL OR cr.dataType = :entityType) AND " +
            "(:changeType IS NULL OR cr.operationType = :changeType) AND " +
-           "cr.createdAt >= :fromDate " +
+           "cr.createdAt >= :fromDate AND " +
+           "(:ownedEntityTypes IS NULL OR cr.dataType IN :ownedEntityTypes) " +
            "ORDER BY cr.createdAt DESC")
     Page<ChangeRequest> findByFilters(@Param("status") String status,
                                      @Param("requestor") String requestor,
                                      @Param("entityType") String entityType,
                                      @Param("changeType") String changeType,
                                      @Param("fromDate") LocalDateTime fromDate,
-                                     Pageable pageable);
+                                     Pageable pageable,
+                                     @Param("ownedEntityTypes") List<String> ownedEntityTypes);
     
     @Query("SELECT cr FROM ChangeRequest cr WHERE cr.status = 'APPROVED' " +
            "AND cr.submittedAt <= CURRENT_TIMESTAMP " +

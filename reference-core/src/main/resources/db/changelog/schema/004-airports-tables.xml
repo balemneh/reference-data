@@ -44,7 +44,7 @@
             <column name="recorded_by" type="VARCHAR(100)">
                 <constraints nullable="false"/>
             </column>
-            <column name="change_request_id" type="VARCHAR(100)"/>
+            <column name="change_request_id" type="UUID"/>
             <column name="is_correction" type="BOOLEAN" defaultValueBoolean="false"/>
             <column name="metadata" type="JSONB"/>
         </createTable>

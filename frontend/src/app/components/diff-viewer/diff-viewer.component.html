@@ -1,0 +1,263 @@
+<!-- Diff Viewer Component -->
+<div class="diff-viewer" [class.loading]="loading">
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="usa-alert usa-alert--info usa-alert--no-icon" role="status" aria-live="polite">
+    <div class="usa-alert__body">
+      <p class="usa-alert__text">Computing differences...</p>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="usa-alert usa-alert--error" role="alert">
+    <div class="usa-alert__body">
+      <h3 class="usa-alert__heading">Error Computing Diff</h3>
+      <p class="usa-alert__text">{{ error }}</p>
+    </div>
+  </div>
+
+  <!-- Diff Content -->
+  <div *ngIf="!loading && !error" class="diff-viewer__content">
+
+    <!-- Controls and Statistics -->
+    <div class="diff-viewer__header">
+      <div class="diff-viewer__stats">
+        <span class="usa-tag usa-tag--big">
+          <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+            <use xlink:href="/assets/img/sprite.svg#timeline"></use>
+          </svg>
+          {{ statistics.totalChanges }} changes
+        </span>
+
+        <span *ngIf="statistics.additions > 0" class="usa-tag usa-tag--big text-green">
+          <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+            <use xlink:href="/assets/img/sprite.svg#add_circle"></use>
+          </svg>
+          +{{ statistics.additions }}
+        </span>
+
+        <span *ngIf="statistics.deletions > 0" class="usa-tag usa-tag--big text-red">
+          <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+            <use xlink:href="/assets/img/sprite.svg#remove_circle"></use>
+          </svg>
+          -{{ statistics.deletions }}
+        </span>
+
+        <span *ngIf="statistics.modifications > 0" class="usa-tag usa-tag--big text-orange">
+          <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+            <use xlink:href="/assets/img/sprite.svg#edit"></use>
+          </svg>
+          ~{{ statistics.modifications }}
+        </span>
+      </div>
+
+      <div class="diff-viewer__controls">
+        <button
+          type="button"
+          class="usa-button usa-button--outline usa-button--small"
+          [class.usa-button--active]="viewMode === 'SIDE_BY_SIDE'"
+          (click)="toggleViewMode()"
+          [attr.aria-pressed]="viewMode === 'SIDE_BY_SIDE'"
+        >
+          <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+            <use xlink:href="/assets/img/sprite.svg#view_column"></use>
+          </svg>
+          {{ viewMode === 'SIDE_BY_SIDE' ? 'Side by Side' : 'Unified' }}
+        </button>
+
+        <button
+          type="button"
+          class="usa-button usa-button--outline usa-button--small"
+          [class.usa-button--active]="showLineNumbers"
+          (click)="toggleLineNumbers()"
+          [attr.aria-pressed]="showLineNumbers"
+        >
+          <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+            <use xlink:href="/assets/img/sprite.svg#format_list_numbered"></use>
+          </svg>
+          Line Numbers
+        </button>
+
+        <button
+          type="button"
+          class="usa-button usa-button--outline usa-button--small"
+          [class.usa-button--active]="highlightChanges"
+          (click)="toggleHighlight()"
+          [attr.aria-pressed]="highlightChanges"
+        >
+          <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+            <use xlink:href="/assets/img/sprite.svg#highlight"></use>
+          </svg>
+          Highlight
+        </button>
+
+        <button
+          type="button"
+          class="usa-button usa-button--outline usa-button--small"
+          [class.usa-button--active]="collapseUnchanged"
+          (click)="toggleCollapseUnchanged()"
+          [attr.aria-pressed]="collapseUnchanged"
+        >
+          <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+            <use xlink:href="/assets/img/sprite.svg#unfold_less"></use>
+          </svg>
+          Collapse Unchanged
+        </button>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="isEmpty()" class="diff-viewer__empty">
+      <div class="usa-alert usa-alert--info usa-alert--no-icon">
+        <div class="usa-alert__body">
+          <p class="usa-alert__text">No data to compare.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- No Changes -->
+    <div *ngIf="!isEmpty() && !hasChanges()" class="diff-viewer__no-changes">
+      <div class="usa-alert usa-alert--success usa-alert--no-icon">
+        <div class="usa-alert__body">
+          <p class="usa-alert__text">
+            <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+              <use xlink:href="/assets/img/sprite.svg#check_circle"></use>
+            </svg>
+            No changes detected - all values are identical.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Side-by-Side View -->
+    <div *ngIf="!isEmpty() && viewMode === 'SIDE_BY_SIDE'" class="diff-viewer__side-by-side">
+      <div class="diff-viewer__panes">
+
+        <!-- Left Pane (Original) -->
+        <div class="diff-viewer__pane diff-viewer__pane--left">
+          <div class="diff-viewer__pane-header">
+            <h3 class="diff-viewer__pane-title">
+              <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                <use xlink:href="/assets/img/sprite.svg#history"></use>
+              </svg>
+              Original Values
+            </h3>
+          </div>
+          <div class="diff-viewer__pane-content">
+            <div class="diff-viewer__lines">
+              <div
+                *ngFor="let line of leftLines; trackBy: trackByLineNumber"
+                [class]="getLineClass(line)"
+                [attr.aria-label]="getChangeTypeLabel(line.type) + ' line: ' + line.content"
+              >
+                <span *ngIf="showLineNumbers" class="diff-line__number">{{ line.lineNumber }}</span>
+                <span class="diff-line__indicator">
+                  <svg *ngIf="line.type !== 'UNCHANGED'" class="usa-icon usa-icon--size-3" aria-hidden="true" focusable="false" role="img">
+                    <use [attr.xlink:href]="'/assets/img/sprite.svg#' + getChangeTypeIcon(line.type)"></use>
+                  </svg>
+                </span>
+                <span class="diff-line__content">{{ line.content }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Pane (New) -->
+        <div class="diff-viewer__pane diff-viewer__pane--right">
+          <div class="diff-viewer__pane-header">
+            <h3 class="diff-viewer__pane-title">
+              <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                <use xlink:href="/assets/img/sprite.svg#published_with_changes"></use>
+              </svg>
+              Proposed Values
+            </h3>
+          </div>
+          <div class="diff-viewer__pane-content">
+            <div class="diff-viewer__lines">
+              <div
+                *ngFor="let line of rightLines; trackBy: trackByLineNumber"
+                [class]="getLineClass(line)"
+                [attr.aria-label]="getChangeTypeLabel(line.type) + ' line: ' + line.content"
+              >
+                <span *ngIf="showLineNumbers" class="diff-line__number">{{ line.lineNumber }}</span>
+                <span class="diff-line__indicator">
+                  <svg *ngIf="line.type !== 'UNCHANGED'" class="usa-icon usa-icon--size-3" aria-hidden="true" focusable="false" role="img">
+                    <use [attr.xlink:href]="'/assets/img/sprite.svg#' + getChangeTypeIcon(line.type)"></use>
+                  </svg>
+                </span>
+                <span class="diff-line__content">{{ line.content }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Unified View -->
+    <div *ngIf="!isEmpty() && viewMode === 'UNIFIED'" class="diff-viewer__unified">
+      <div class="diff-viewer__pane">
+        <div class="diff-viewer__pane-header">
+          <h3 class="diff-viewer__pane-title">
+            <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+              <use xlink:href="/assets/img/sprite.svg#compare_arrows"></use>
+            </svg>
+            Unified Diff View
+          </h3>
+        </div>
+        <div class="diff-viewer__pane-content">
+          <div class="diff-viewer__lines">
+            <div
+              *ngFor="let line of unifiedLines; trackBy: trackByLineNumber"
+              [class]="getLineClass(line)"
+              [attr.aria-label]="getChangeTypeLabel(line.type) + ' line: ' + line.content"
+            >
+              <span *ngIf="showLineNumbers" class="diff-line__number">{{ line.lineNumber }}</span>
+              <span class="diff-line__indicator">
+                <svg *ngIf="line.type !== 'UNCHANGED'" class="usa-icon usa-icon--size-3" aria-hidden="true" focusable="false" role="img">
+                  <use [attr.xlink:href]="'/assets/img/sprite.svg#' + getChangeTypeIcon(line.type)"></use>
+                </svg>
+              </span>
+              <span class="diff-line__content">{{ line.content }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Diff Legend -->
+    <div *ngIf="hasChanges()" class="diff-viewer__legend">
+      <div class="usa-grid-row">
+        <div class="usa-grid-col-12">
+          <h4 class="diff-viewer__legend-title">Legend:</h4>
+          <div class="diff-viewer__legend-items">
+            <div class="diff-viewer__legend-item">
+              <svg class="usa-icon usa-icon--size-3 text-green" aria-hidden="true" focusable="false" role="img">
+                <use xlink:href="/assets/img/sprite.svg#add_circle"></use>
+              </svg>
+              <span>Added</span>
+            </div>
+            <div class="diff-viewer__legend-item">
+              <svg class="usa-icon usa-icon--size-3 text-red" aria-hidden="true" focusable="false" role="img">
+                <use xlink:href="/assets/img/sprite.svg#remove_circle"></use>
+              </svg>
+              <span>Removed</span>
+            </div>
+            <div class="diff-viewer__legend-item">
+              <svg class="usa-icon usa-icon--size-3 text-orange" aria-hidden="true" focusable="false" role="img">
+                <use xlink:href="/assets/img/sprite.svg#edit"></use>
+              </svg>
+              <span>Modified</span>
+            </div>
+            <div class="diff-viewer__legend-item">
+              <svg class="usa-icon usa-icon--size-3 text-gray-50" aria-hidden="true" focusable="false" role="img">
+                <use xlink:href="/assets/img/sprite.svg#radio_button_unchecked"></use>
+              </svg>
+              <span>Unchanged</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

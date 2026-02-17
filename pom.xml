@@ -11,12 +11,12 @@
     <packaging>pom</packaging>
 
     <name>CBP Reference Data Service</name>
-    <description>Centralized canonical reference data service with bitemporal history</description>
+    <description>Centralized reference data service</description>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.4</version>
+        <version>3.5.6</version>
         <relativePath/>
     </parent>
 
@@ -27,7 +27,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-cloud.version>2025.0.0</spring-cloud.version>
         <mapstruct.version>1.6.3</mapstruct.version>
-        <h2.version>2.2.224</h2.version>
+        <h2.version>2.3.232</h2.version>
         <springdoc.version>2.8.9</springdoc.version>
         <liquibase.version>4.33.0</liquibase.version>
         <kafka.version>4.0.0</kafka.version>
@@ -38,13 +38,21 @@
         <module>reference-core</module>
         <module>reference-api</module>
         <module>reference-events</module>
-        <module>reference-workflow</module>
         <module>translation-service</module>
         <module>catalog-integration</module>
         <module>reference-loaders/common</module>
         <module>reference-loaders/iso</module>
         <module>reference-loaders/genc</module>
     </modules>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
 
     <dependencyManagement>
         <dependencies>
@@ -161,6 +169,38 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.liquibase</groupId>
+                <artifactId>liquibase-maven-plugin</artifactId>
+                <version>${liquibase.version}</version>
+                <configuration>
+                    <changeLogFile>reference-core/src/main/resources/db/changelog/db.changelog-master.xml</changeLogFile>
+                    <driver>org.postgresql.Driver</driver>
+                    <url>jdbc:postgresql://localhost:5433/reference_data</url>
+                    <username>refdata_user</username>
+                    <password>refdata_pass</password>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.postgresql</groupId>
+                        <artifactId>postgresql</artifactId>
+                        <version>42.7.2</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
         </plugins>
     </build>
+   <repositories>
+        <repository>
+            <id>central</id>
+            <name>maven-central</name>
+            <url>https://artifactory.cbp.dhs.gov/artifactory/maven-central</url>
+        </repository>
+        <repository>
+            <id>confluent-cache</id>
+            <name>confluent</name>
+            <url>https://artifactory.cbp.dhs.gov/artifactory/confluent-mvn-cache</url>
+        </repository>
+    </repositories> 
+
 </project>

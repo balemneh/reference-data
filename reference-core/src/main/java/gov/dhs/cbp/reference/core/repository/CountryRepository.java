@@ -4,6 +4,7 @@ import gov.dhs.cbp.reference.core.entity.CodeSystem;
 import gov.dhs.cbp.reference.core.entity.Country;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -40,6 +41,11 @@ public interface CountryRepository extends BitemporalRepository<Country> {
     @Query("SELECT c FROM Country c WHERE c.iso3Code = :iso3 " +
            "AND (c.validTo IS NULL OR c.validTo > CURRENT_DATE)")
     List<Country> findCurrentByIso3Code(@Param("iso3") String iso3);
+
+    @Query("SELECT c FROM Country c WHERE c.numericCode = :numericCode " +
+           "AND (c.validTo IS NULL OR c.validTo > CURRENT_DATE)")
+    List<Country> findCurrentByNumericCode(@Param("numericCode") String numericCode);
+    
     
     @Query("SELECT c FROM Country c WHERE c.countryCode = :code " +
            "AND c.codeSystem.code = :systemCode " +
@@ -50,11 +56,12 @@ public interface CountryRepository extends BitemporalRepository<Country> {
                                               @Param("systemCode") String systemCode,
                                               @Param("asOfDate") LocalDate asOfDate);
     
-    @Query("SELECT c FROM Country c WHERE " +
-           "LOWER(c.countryName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
-           "AND (c.validTo IS NULL OR c.validTo > CURRENT_DATE)")
-    Page<Country> searchByName(@Param("searchTerm") String searchTerm, Pageable pageable);
-    
+        @Query("SELECT c FROM Country c WHERE " +
+               "(:name IS NULL OR (LOWER(c.countryName) LIKE LOWER(CONCAT('%', :name, '%')) OR " +
+               "LOWER(c.countryCode) = LOWER(:name))) " +
+               "AND (:systemCode IS NULL OR c.codeSystem.code = :systemCode) " +
+               "AND (c.validTo IS NULL OR c.validTo > CURRENT_DATE)")
+        Page<Country> searchByName(@Param("name") String name, @Param("systemCode") String systemCode, Pageable pageable);    
     @Query("SELECT DISTINCT c.countryCode FROM Country c WHERE c.codeSystem.code = :systemCode " +
            "ORDER BY c.countryCode")
     List<String> findAllCountryCodes(@Param("systemCode") String systemCode);
@@ -71,14 +78,10 @@ public interface CountryRepository extends BitemporalRepository<Country> {
         return findCurrentByCodeAndSystemCode(code, systemCode);
     }
     
-    default Optional<Country> findByCountryCodeAndSystemCode(String code, String systemCode) {
-        return findCurrentByCodeAndSystemCode(code, systemCode);
-    }
-    
     // Additional methods for integration tests
     
     @Query("SELECT c FROM Country c WHERE c.countryCode = :code AND c.codeSystem = :codeSystem " +
-           "AND (c.validTo IS NULL OR c.validTo > CURRENT_DATE) " +
+           "AND c.isActive = true AND (c.validTo IS NULL OR c.validTo > CURRENT_DATE) " +
            "ORDER BY c.version DESC LIMIT 1")
     Optional<Country> findByCountryCodeAndCodeSystem(@Param("code") String code, 
                                                     @Param("codeSystem") CodeSystem codeSystem);
@@ -102,8 +105,6 @@ public interface CountryRepository extends BitemporalRepository<Country> {
            "LOWER(c.countryName) LIKE LOWER(CONCAT('%', :pattern, '%'))")
     List<Country> findByCountryNameContainingIgnoreCase(@Param("pattern") String pattern);
 
-    @Query("SELECT c FROM Country c WHERE " +
-           "(c.validTo IS NULL OR c.validTo > CURRENT_DATE) " +
-           "ORDER BY c.countryCode")
-    List<Country> findAllCurrent();
+    @Query("SELECT c FROM Country c WHERE c.id = :id AND c.isActive = true")
+    Optional<Country> findCurrentById(@Param("id") UUID id);
 }

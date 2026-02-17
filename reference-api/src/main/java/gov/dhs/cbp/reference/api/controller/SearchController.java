@@ -16,10 +16,15 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Arrays;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @RestController
 @RequestMapping("/v1/search")
 @Tag(name = "Search", description = "Full-text and fuzzy search endpoints")
 public class SearchController {
+    
+    private static final Logger logger = LoggerFactory.getLogger(SearchController.class);
     
     private final SearchService searchService;
     
@@ -70,6 +75,8 @@ public class SearchController {
             
             @Parameter(description = "Page size")
             @RequestParam(defaultValue = "20") int size) {
+        
+        logger.info("Searching for countries with q={}, threshold={}", q, threshold);
         
         Pageable pageable = PageRequest.of(page, size);
         Page<SearchResult> results = searchService.searchCountries(q, threshold, pageable);

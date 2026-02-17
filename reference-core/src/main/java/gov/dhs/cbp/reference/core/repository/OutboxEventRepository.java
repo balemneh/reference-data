@@ -9,11 +9,13 @@ import java.util.UUID;
 
 @Repository
 public interface OutboxEventRepository extends JpaRepository<OutboxEvent, UUID> {
-    
+
     List<OutboxEvent> findByStatusOrderByCreatedAtAsc(OutboxEvent.EventStatus status);
-    
+
     List<OutboxEvent> findByStatusAndRetryCountLessThanOrderByCreatedAtAsc(
             OutboxEvent.EventStatus status, int maxRetries);
-    
+
     long countByStatus(OutboxEvent.EventStatus status);
+
+    List<OutboxEvent> findByAggregateId(String aggregateId);
 }

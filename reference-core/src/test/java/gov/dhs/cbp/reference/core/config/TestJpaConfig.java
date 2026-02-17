@@ -18,13 +18,19 @@ public class TestJpaConfig extends PhysicalNamingStrategyStandardImpl {
 
     @Override
     public Identifier toPhysicalTableName(Identifier name, JdbcEnvironment context) {
-        // Keep table names as-is
-        return name;
+        // Ensure table names are lowercase for H2 compatibility
+        if (name == null) {
+            return null;
+        }
+        return Identifier.toIdentifier(name.getText().toLowerCase());
     }
 
     @Override
     public Identifier toPhysicalColumnName(Identifier name, JdbcEnvironment context) {
-        // Keep column names as-is
-        return name;
+        // Ensure column names are lowercase for H2 compatibility
+        if (name == null) {
+            return null;
+        }
+        return Identifier.toIdentifier(name.getText().toLowerCase());
     }
 }

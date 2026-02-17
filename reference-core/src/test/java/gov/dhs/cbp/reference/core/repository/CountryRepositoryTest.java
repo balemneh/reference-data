@@ -120,8 +120,8 @@ class CountryRepositoryTest {
     }
 
     @Test
-    void testSearchByName() {
-        Page<Country> page = countryRepository.searchByName("United", PageRequest.of(0, 10));
+    void testSearch() {
+        Page<Country> page = countryRepository.searchByName("United", "ISO3166-1", PageRequest.of(0, 10));
         
         assertFalse(page.isEmpty());
         assertEquals(1, page.getTotalElements());
@@ -129,8 +129,8 @@ class CountryRepositoryTest {
     }
 
     @Test
-    void testSearchByNameCaseInsensitive() {
-        Page<Country> page = countryRepository.searchByName("united", PageRequest.of(0, 10));
+    void testSearchCaseInsensitive() {
+        Page<Country> page = countryRepository.searchByName("united", "ISO3166-1", PageRequest.of(0, 10));
         
         assertFalse(page.isEmpty());
         assertEquals(1, page.getTotalElements());

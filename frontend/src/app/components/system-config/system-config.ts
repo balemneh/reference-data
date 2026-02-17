@@ -846,12 +846,20 @@ export class SystemConfigComponent implements OnInit, OnDestroy {
     const checkbox = event.target as HTMLInputElement;
     const enabled = checkbox.checked;
 
-    this.featureFlagsService.updateFlag(category, flag, enabled);
-
-    this.toastService.showSuccess(
-      'Feature Flag Updated',
-      `${flag} has been ${enabled ? 'enabled' : 'disabled'}`
-    );
+    this.featureFlagsService.updateFlag(category, flag, enabled)
+      .subscribe({
+        next: () => {
+          this.toastService.showSuccess(
+            'Feature Flag Updated',
+            `${flag} has been ${enabled ? 'enabled' : 'disabled'}`
+          );
+        },
+        error: (error) => {
+          this.toastService.showError('Failed to update feature flag');
+          // Revert the checkbox state
+          checkbox.checked = !enabled;
+        }
+      });
   }
 
 }

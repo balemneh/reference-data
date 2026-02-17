@@ -31,7 +31,7 @@
                 NULL,
                 CURRENT_TIMESTAMP,
                 'system',
-                'SEED-001',
+                '00000000-0000-0000-0000-000000000001'::UUID,
                 false,
                 true,
                 jsonb_build_object('source', 'countries.csv', 'imported_at', CURRENT_TIMESTAMP::text)
@@ -290,7 +290,7 @@
 
         <rollback>
             <delete tableName="countries_v" schemaName="reference_data">
-                <where>change_request_id = 'SEED-001'</where>
+                <where>change_request_id = '00000000-0000-0000-0000-000000000001'</where>
             </delete>
         </rollback>
     </changeSet>

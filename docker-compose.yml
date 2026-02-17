@@ -86,7 +86,9 @@ services:
       KC_HTTP_ENABLED: true
       KC_HTTPS_ENABLED: false
       KC_HOSTNAME_STRICT: false
-    command: start-dev
+      KC_HOSTNAME_URL: http://localhost:8085
+      KC_HOSTNAME_ADMIN_URL: http://localhost:8085
+    command: start-dev --import-realm
     ports:
       - "8085:8080"
     depends_on:
@@ -99,6 +101,7 @@ services:
       retries: 5
     volumes:
       - ./ops/keycloak-entrypoint.sh:/opt/keycloak/keycloak-entrypoint.sh:ro
+      - ./ops/realm-config.json:/opt/keycloak/data/import/realm.json:ro
     networks:
       - refdata-network
 
@@ -126,8 +129,11 @@ services:
   reference-api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile-local
+      target: builder
+    image: refdata-api
     container_name: refdata-api
+    platform: linux/amd64
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/reference_data
@@ -137,12 +143,20 @@ services:
       SPRING_KAFKA_SCHEMA_REGISTRY_URL: http://redpanda:8081
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/reference-data
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8085/realms/reference-data
       SPRING_LIQUIBASE_ENABLED: "true"
-      SPRING_SECURITY_ENABLED: "false"
-      JAVA_OPTS: "-Xms512m -Xmx1024m"
+      SPRING_SECURITY_ENABLED: "true"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "none"
+      KEYCLOAK_ADMIN_SERVER_URL: http://keycloak:8080
+      KEYCLOAK_ADMIN_REALM: reference-data
+      KEYCLOAK_ADMIN_CLIENT_ID: reference-api
+      KEYCLOAK_ADMIN_CLIENT_SECRET: ${KEYCLOAK_ADMIN_CLIENT_SECRET}
+      KEYCLOAK_ADMIN_GRANT_TYPE: client_credentials
+      KEYCLOAK_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
     ports:
       - "8083:8080"
+      - "5005:5005"
     depends_on:
       postgres:
         condition: service_healthy
@@ -152,12 +166,23 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_healthy
+    volumes:
+      - ./pom.xml:/app/pom.xml
+      - ./reference-core:/app/reference-core
+      - ./reference-api:/app/reference-api
+      - ./reference-events:/app/reference-events
+      - ./translation-service:/app/translation-service
+      - ./catalog-integration:/app/catalog-integration
+      - ./reference-loaders:/app/reference-loaders
+      - ./config:/app/config
+      - m2_cache:/root/.m2
+    command: sh -c "mvn install -DskipTests && mvn spring-boot:run -pl reference-api -Dspring-boot.run.jvmArguments='-Xms512m -Xmx1024m -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005'"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 200s
     networks:
       - refdata-network
 
@@ -165,8 +190,9 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile-local
     container_name: refdata-frontend
+    platform: linux/amd64
     ports:
       - "4200:80"
     depends_on:
@@ -174,11 +200,10 @@ services:
         condition: service_healthy
     environment:
       API_URL: http://localhost:8083
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
+      KEYCLOAK_URL: http://localhost:8085
+      KEYCLOAK_REALM: reference-data
+      KEYCLOAK_CLIENT_ID: reference-admin-ui
+      REQUIRE_HTTPS: "false"
     networks:
       - refdata-network
 
@@ -199,24 +224,6 @@ services:
     networks:
       - refdata-network
 
-  # Camunda for Workflow (optional, can be enabled when needed)
-  # camunda:
-  #   image: camunda/camunda-bpm-platform:7.20.0
-  #   container_name: refdata-camunda
-  #   ports:
-  #     - "8086:8080"
-  #   environment:
-  #     DB_DRIVER: org.postgresql.Driver
-  #     DB_URL: jdbc:postgresql://postgres:5432/reference_data
-  #     DB_USERNAME: refdata_user
-  #     DB_PASSWORD: ${DB_PASSWORD:-refdata_pass}
-  #     WAIT_FOR: postgres:5432
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   networks:
-  #     - refdata-network
-
 networks:
   refdata-network:
     driver: bridge
@@ -229,3 +236,7 @@ volumes:
     name: refdata-redis-data
   redpanda_data:
     name: refdata-kafka-data
+  m2_cache:
+    name: refdata-m2-cache
+  angular_cache:
+    name: refdata-angular-cache

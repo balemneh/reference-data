@@ -1,10 +1,6 @@
 -- Test seed data for countries
 -- This script provides minimal test data for unit tests (H2 compatible)
-
--- Ensure code systems exist first - using individual INSERT statements with WHERE NOT EXISTS
-INSERT INTO code_system (id, code, name, description, owner, created_at, updated_at, is_active)
-SELECT * FROM (VALUES (CAST('11111111-1111-1111-1111-111111111111' AS UUID), 'ISO3166-1', 'ISO 3166-1 Country Codes', 'ISO standard for country codes', 'ISO', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, true)) AS t(id, code, name, description, owner, created_at, updated_at, is_active)
-WHERE NOT EXISTS (SELECT 1 FROM code_system WHERE code = 'ISO3166-1');
+-- NOTE: Requires code-systems-base.sql to be loaded first
 
 -- Insert test countries using proper UUID casting for H2
 INSERT INTO countries_v (

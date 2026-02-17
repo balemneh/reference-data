@@ -341,10 +341,10 @@ public class IsoCountryLoader extends AbstractLoader<IsoCountryData, Country, Is
     }
     
     @Override
-    protected String createChangeRequest(DiffResult<IsoCountryStaging, Country> diffResult, LoaderContext context) {
+    protected UUID createChangeRequest(DiffResult<IsoCountryStaging, Country> diffResult, LoaderContext context) {
         // This would integrate with the workflow module to create a change request
         // For now, return a mock ID
-        String changeRequestId = "CR-ISO-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        UUID changeRequestId = UUID.randomUUID();
         logger.info("Created change request: {} with {} changes", changeRequestId, diffResult.getTotalChanges());
         return changeRequestId;
     }

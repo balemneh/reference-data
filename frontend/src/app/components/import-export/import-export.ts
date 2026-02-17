@@ -1,19 +1,22 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ApiService, CountryDto, PortDto, AirportDto } from '../../services/api.service';
+import { ApiService, CountryDto, PortDto, AirportDto, ScheduledExport } from '../../services/api.service';
 import { ToastService } from '../../services/toast.service';
-import { debounceTime, distinctUntilChanged, Subject, Observable, of } from 'rxjs';
+import { debounceTime, distinctUntilChanged, Subject, Observable, of, Subscription, interval } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { ChangeRequestService } from '../../services/change-request.service';
+import { OperationHistoryService } from '../../services/operation-history.service';
+import { ScheduleModalComponent } from '../schedule-modal/schedule-modal.component';
 
 export interface ImportExportHistory {
   id: string;
   operationType: 'IMPORT' | 'EXPORT';
   entityType: 'COUNTRIES' | 'PORTS' | 'AIRPORTS' | 'ALL';
   fileName: string;
-  fileSize: number;
-  format: 'CSV' | 'JSON' | 'XML' | 'EXCEL';
-  recordCount: number;
+  fileSize?: number;
+  format: 'CSV' | 'JSON' | 'XML' | 'EXCEL' | 'XLSX';
+  recordCount?: number;
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'PARTIAL';
   startTime: string;
   completedTime?: string;
@@ -24,6 +27,8 @@ export interface ImportExportHistory {
   downloadUrl?: string;
   createdBy: string;
   progress?: number;
+  changeRequestId?: string; // Add this line
+  batchId?: string;
 }
 
 export interface ImportValidation {
@@ -63,33 +68,25 @@ export interface ImportTemplate {
   validationRules: string[];
 }
 
-export interface ScheduledExport {
-  id: string;
-  name: string;
-  entityType: 'COUNTRIES' | 'PORTS' | 'AIRPORTS' | 'ALL';
-  format: 'CSV' | 'JSON' | 'XML' | 'EXCEL';
-  schedule: string; // cron expression
-  enabled: boolean;
-  filters?: any;
-  lastRun?: string;
-  nextRun?: string;
-  createdBy: string;
-  recipients?: string[];
-}
-
 @Component({
   selector: 'app-import-export',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ScheduleModalComponent],
   templateUrl: './import-export.html',
   styleUrl: './import-export.scss'
 })
-export class ImportExportComponent implements OnInit {
+export class ImportExportComponent implements OnInit, OnDestroy {
   @ViewChild('fileInput') fileInput!: ElementRef;
   @ViewChild('dropZone') dropZone!: ElementRef;
   
   // Main navigation
   activeTab: 'import' | 'export' | 'history' | 'scheduled' = 'import';
+
+  setActiveTab(tab: 'import' | 'export' | 'history' | 'scheduled') {
+    this.activeTab = tab;
+    this.cdr.detectChanges();
+  }
+  
   
   // Import functionality
   selectedFile: File | null = null;
@@ -100,12 +97,17 @@ export class ImportExportComponent implements OnInit {
   isUploading = false;
   
   // Import validation and preview
+    previewButtonText = 'Preview';
   showPreview = false;
   previewData: any[] = [];
   validationResults: ImportValidation | null = null;
   columnMappings: ColumnMapping[] = [];
   showMappingModal = false;
   skipFirstRow = true;
+  
+  // Preview pagination
+  currentPage = 1;
+  pageSize = 5;
   
   // Export functionality
   exportFormat: 'CSV' | 'JSON' | 'XML' | 'EXCEL' = 'CSV';
@@ -123,6 +125,7 @@ export class ImportExportComponent implements OnInit {
   
   // History
   operationHistory: ImportExportHistory[] = [];
+  private historySubscription!: Subscription;
   historyLoading = false;
   historyPage = 0;
   historySize = 20;
@@ -134,29 +137,35 @@ export class ImportExportComponent implements OnInit {
   scheduledExports: ScheduledExport[] = [];
   showScheduleModal = false;
   selectedSchedule: ScheduledExport | null = null;
-  scheduleForm: any = {
-    name: '',
-    entityType: 'COUNTRIES',
-    format: 'CSV',
-    schedule: '0 0 * * 1', // Weekly on Monday
-    enabled: true,
-    recipients: []
-  };
+
   
   // General
   loading = false;
   error: string | null = null;
+  scheduleForm: any = {};
+
   
   constructor(
-    private apiService: ApiService, 
-    private toastService: ToastService
+    private apiService: ApiService,
+    private toastService: ToastService,
+    private changeRequestService: ChangeRequestService,
+    private operationHistoryService: OperationHistoryService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
     this.loadImportTemplates();
-    this.loadOperationHistory();
+    this.historySubscription = this.operationHistoryService.history$.subscribe(history => {
+      this.operationHistory = history;
+    });
     this.loadScheduledExports();
     this.initializeHistoryFilterSubscription();
+  }
+
+  ngOnDestroy() {
+    if (this.historySubscription) {
+      this.historySubscription.unsubscribe();
+    }
   }
 
   getEnabledScheduledExportsCount(): number {
@@ -170,9 +179,32 @@ export class ImportExportComponent implements OnInit {
     ).subscribe(filter => {
       this.historyFilter = filter;
       this.historyPage = 0;
-      this.loadOperationHistory();
+      this.operationHistory = this.operationHistoryService.getHistory();
     });
   }
+
+  private addToHistory(operationType: 'IMPORT' | 'EXPORT', status: ImportExportHistory['status'], changeRequestId?: string, batchId?: string, recordCount?: number, fileSize?: number): string {
+    const newOperation: ImportExportHistory = {
+      id: `op_${Date.now()}`,
+      operationType: operationType,
+      entityType: this.entityType,
+      fileName: this.selectedFile?.name || `${this.exportEntityType.toLowerCase()}_export.${this.exportFormat.toLowerCase()}`,
+      fileSize: fileSize || this.selectedFile?.size || 0,
+      format: (operationType === 'IMPORT' ? this.importFormat : this.exportFormat) as 'CSV' | 'JSON' | 'XML' | 'EXCEL' | 'XLSX',
+      recordCount: recordCount || 0,
+      status: status,
+      startTime: '',
+      createdBy: 'current-user',
+      progress: 0,
+      changeRequestId: changeRequestId,
+      batchId: batchId
+    };
+    
+    this.operationHistoryService.addOperation(newOperation);
+    return newOperation.id;
+  }
+
+
 
   // ==================== FILE HANDLING ====================
   
@@ -209,21 +241,18 @@ export class ImportExportComponent implements OnInit {
                          'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
     
     if (!allowedTypes.some(type => file.type === type || file.name.toLowerCase().endsWith(this.getFileExtension(type)))) {
-      this.error = 'Please select a valid file format (CSV, JSON, XML, or Excel)';
-      this.toastService.showError('Invalid file type', this.error);
+      this.toastService.showError('Invalid file type', 'Please select a valid file format (CSV, JSON, XML, or Excel)');
       return;
     }
     
     // Validate file size (max 50MB)
     const maxSize = 50 * 1024 * 1024;
     if (file.size > maxSize) {
-      this.error = 'File size must be less than 50MB';
-      this.toastService.showError('File too large', this.error);
+      this.toastService.showError('File too large', 'File size must be less than 50MB');
       return;
     }
     
     this.selectedFile = file;
-    this.error = null;
     
     // Auto-detect format from file extension
     const extension = file.name.split('.').pop()?.toLowerCase();
@@ -252,7 +281,6 @@ export class ImportExportComponent implements OnInit {
     this.previewData = [];
     this.validationResults = null;
     this.columnMappings = [];
-    this.error = null;
     
     if (this.fileInput) {
       this.fileInput.nativeElement.value = '';
@@ -262,13 +290,17 @@ export class ImportExportComponent implements OnInit {
   // ==================== IMPORT FUNCTIONALITY ====================
   
   previewImport() {
+    if (this.showPreview) {
+      this.showPreview = false;
+      this.previewButtonText = 'Preview';
+      return;
+    }
     if (!this.selectedFile) {
-      this.error = 'Please select a file first';
+      this.toastService.showError('Selection Error', 'Please select a file first');
       return;
     }
     
     this.loading = true;
-    this.error = null;
     
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -277,20 +309,45 @@ export class ImportExportComponent implements OnInit {
         this.parseFileContent(content);
         this.generateColumnMappings();
         this.showPreview = true;
+        this.previewButtonText = 'Hide Preview';
       } catch (error) {
-        this.error = 'Failed to parse file content';
-        this.toastService.showError('Parse error', this.error);
+        this.toastService.showError('Parse error', 'Failed to parse file content');
       } finally {
         this.loading = false;
       }
     };
     
     reader.onerror = () => {
-      this.error = 'Failed to read file';
+      this.toastService.showError('File Read Error', 'Failed to read file');
       this.loading = false;
     };
     
     reader.readAsText(this.selectedFile);
+  }
+  
+  get paginatedPreviewData(): any[] {
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    return this.previewData.slice(startIndex, startIndex + this.pageSize);
+  }
+
+  previousPage() {
+    if (this.hasPreviousPage()) {
+      this.currentPage--;
+    }
+  }
+
+  nextPage() {
+    if (this.hasNextPage()) {
+      this.currentPage++;
+    }
+  }
+
+  hasPreviousPage(): boolean {
+    return this.currentPage > 1;
+  }
+
+  hasNextPage(): boolean {
+    return (this.currentPage * this.pageSize) < this.previewData.length;
   }
   
   private parseFileContent(content: string) {
@@ -428,7 +485,7 @@ export class ImportExportComponent implements OnInit {
   
   validateImport() {
     if (!this.previewData.length || !this.columnMappings.length) {
-      this.error = 'No data to validate';
+      this.toastService.showError('Validation Error', 'No data to validate');
       return;
     }
     
@@ -482,32 +539,76 @@ export class ImportExportComponent implements OnInit {
   }
   
   executeImport() {
-    if (!this.validationResults?.isValid) {
-      this.error = 'Please fix validation errors before importing';
+    if (!this.selectedFile) {
+      this.toastService.showError('Selection Error', 'Please select a file first');
       return;
     }
-    
+
     this.isUploading = true;
     this.uploadProgress = 0;
-    this.error = null;
-    
-    // Simulate import progress
-    const progressInterval = setInterval(() => {
-      this.uploadProgress += Math.random() * 20;
-      if (this.uploadProgress >= 100) {
-        this.uploadProgress = 100;
-        clearInterval(progressInterval);
+
+    const formData = new FormData();
+    formData.append('file', this.selectedFile);
+    formData.append('userId', 'current-user'); 
+    formData.append('dataType', this.entityType);
+    formData.append('sourceSystem', 'IMPORT_EXPORT_PAGE');
+    formData.append('description', `Import of ${this.entityType} data from import/export page`);
+
+    this.apiService.initiateBulkImport(formData).subscribe({
+      next: (response) => {
+        this.isUploading = false;
         
-        setTimeout(() => {
-          this.isUploading = false;
-          this.toastService.showSuccess('Import completed', 
-            `${this.validationResults!.validRecords} records imported successfully`);
-          this.addToHistory('IMPORT', 'COMPLETED');
-          this.clearSelectedFile();
-          this.showPreview = false;
-        }, 500);
+        let message = `Import process initiated successfully.`;
+        this.toastService.showSuccess('Import Initiated', message);
+        
+        const operationId = this.addToHistory('IMPORT', 'PROCESSING', response.changeRequestId, response.batchId);
+        this.pollForStatus(response.batchId, operationId);
+
+        this.clearSelectedFile();
+        this.showPreview = false;
+        this.changeRequestService.notifyChangeRequestCreated();
+      },
+      error: (error) => {
+        this.isUploading = false;
+        this.toastService.showError('Import Error', 'Failed to initiate import process');
+        console.error(error);
+        this.addToHistory('IMPORT', 'FAILED');
       }
-    }, 200);
+    });
+  }
+
+  private pollForStatus(batchId: string, operationId: string) {
+    const poll = interval(2000).subscribe(() => {
+      this.apiService.getBulkImportStatus(batchId).subscribe({
+        next: (status) => {
+          if (status.status === 'COMPLETED' || status.status === 'FAILED' || status.status === 'PARTIAL') {
+            poll.unsubscribe();
+            console.log('Updating operation history with final status:', status);
+            this.operationHistoryService.updateOperation(operationId, {
+              status: status.status as 'COMPLETED' | 'FAILED' | 'PARTIAL',
+              completedTime: new Date().toISOString(),
+              recordCount: status.totalRecords,
+              successCount: status.recordsProcessed,
+              errorCount: status.failedCount,
+              warnings: status.warningCount,
+              progress: 100
+            });
+          } else {
+            this.operationHistoryService.updateOperation(operationId, {
+              progress: status.progressPercentage
+            });
+          }
+        },
+        error: (error) => {
+          console.error(`Error polling for status of batch ${batchId}`, error);
+          poll.unsubscribe();
+          this.operationHistoryService.updateOperation(operationId, {
+            status: 'FAILED',
+            errorDetails: 'Failed to get import status.'
+          });
+        }
+      });
+    });
   }
 
   // ==================== EXPORT FUNCTIONALITY ====================
@@ -515,31 +616,60 @@ export class ImportExportComponent implements OnInit {
   exportData() {
     this.isExporting = true;
     this.exportProgress = 0;
-    this.error = null;
-    
-    const exportParams = {
-      entityType: this.exportEntityType,
-      format: this.exportFormat,
-      includeInactive: this.includeInactive,
-      dateFrom: this.dateRangeFrom,
-      dateTo: this.dateRangeTo,
-      filters: this.exportFilters
-    };
-    
-    // Simulate export progress
-    const progressInterval = setInterval(() => {
-      this.exportProgress += Math.random() * 15;
-      if (this.exportProgress >= 100) {
-        this.exportProgress = 100;
-        clearInterval(progressInterval);
-        
-        setTimeout(() => {
-          this.isExporting = false;
-          this.downloadExportFile();
-          this.addToHistory('EXPORT', 'COMPLETED');
-        }, 500);
+    const startTime = new Date().toISOString();
+
+    this.apiService.exportData(this.exportEntityType, this.exportFormat).subscribe({
+      next: (blob) => {
+        this.isExporting = false;
+        const completedTime = new Date().toISOString();
+        const timestamp = new Date().getTime();
+        const filename = `${this.exportEntityType.toLowerCase()}_export_${timestamp}.${this.exportFormat.toLowerCase()}`;
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        this.toastService.showSuccess('Export completed', `Successfully downloaded export: ${filename}`);
+        this.getRecordCountFromBlob(blob).then(recordCount => {
+          const operationId = this.addToHistory('EXPORT', 'COMPLETED', undefined, undefined, recordCount, blob.size);
+          this.operationHistoryService.updateOperation(operationId, {
+            startTime: startTime,
+            completedTime: completedTime
+          });
+        });
+      },
+      error: (error) => {
+        this.isExporting = false;
+        this.toastService.showError('Export Error', 'Failed to export data');
+        console.error(error);
+        this.addToHistory('EXPORT', 'FAILED');
       }
-    }, 300);
+    });
+  }
+  
+  private getRecordCountFromBlob(blob: Blob): Promise<number> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const content = reader.result as string;
+        let recordCount = 0;
+        if (this.exportFormat === 'CSV') {
+          // Assuming there is always a header row
+          recordCount = content.split('\n').filter(line => line.trim() !== '').length - 1;
+        } else if (this.exportFormat === 'JSON') {
+          const data = JSON.parse(content);
+          recordCount = data.length;
+        } else if (this.exportFormat === 'XML') {
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(content, 'text/xml');
+          recordCount = xmlDoc.getElementsByTagName('record').length;
+        }
+        resolve(recordCount);
+      };
+      reader.onerror = reject;
+      reader.readAsText(blob);
+    });
   }
   
   private downloadExportFile() {
@@ -548,7 +678,7 @@ export class ImportExportComponent implements OnInit {
     
     // Generate sample export data
     let data = '';
-    const recordCount = Math.floor(Math.random() * 1000) + 100;
+    const recordCount = 100;
     
     switch (this.exportFormat) {
       case 'CSV':
@@ -574,6 +704,9 @@ export class ImportExportComponent implements OnInit {
     window.URL.revokeObjectURL(url);
     
     this.toastService.showSuccess('Export completed', `${recordCount} records exported to ${filename}`);
+    this.getRecordCountFromBlob(blob).then(recordCount => {
+      console.log('recordCount from generated data', recordCount);
+    });
   }
   
   private generateCSVExport(recordCount: number): string {
@@ -634,7 +767,7 @@ export class ImportExportComponent implements OnInit {
   
   downloadTemplate() {
     if (!this.selectedTemplate) {
-      this.error = 'Please select a template first';
+      this.toastService.showError('Selection Error', 'Please select a template first');
       return;
     }
     
@@ -762,72 +895,22 @@ export class ImportExportComponent implements OnInit {
   
   private loadOperationHistory() {
     this.historyLoading = true;
-    
-    // Mock history data - in production, this would call the API
-    setTimeout(() => {
-      this.operationHistory = this.generateMockHistory();
-      this.historyTotal = 50; // Mock total
-      this.historyLoading = false;
-    }, 500);
-  }
-  
-  private generateMockHistory(): ImportExportHistory[] {
-    const operations: ImportExportHistory[] = [];
-    const statuses: ImportExportHistory['status'][] = ['COMPLETED', 'FAILED', 'PARTIAL', 'PROCESSING'];
-    const entityTypes: ImportExportHistory['entityType'][] = ['COUNTRIES', 'PORTS', 'AIRPORTS'];
-    const formats: ImportExportHistory['format'][] = ['CSV', 'JSON', 'XML', 'EXCEL'];
-    
-    for (let i = 0; i < 20; i++) {
-      const isImport = Math.random() > 0.5;
-      const status = statuses[Math.floor(Math.random() * statuses.length)];
-      const entityType = entityTypes[Math.floor(Math.random() * entityTypes.length)];
-      const format = formats[Math.floor(Math.random() * formats.length)];
-      const recordCount = Math.floor(Math.random() * 1000) + 10;
-      const errorCount = status === 'FAILED' ? recordCount : Math.floor(Math.random() * 10);
-      const successCount = recordCount - errorCount;
-      
-      operations.push({
-        id: `op_${i + 1}`,
-        operationType: isImport ? 'IMPORT' : 'EXPORT',
-        entityType: entityType,
-        fileName: `${entityType.toLowerCase()}_data_${Date.now() - i * 86400000}.${format.toLowerCase()}`,
-        fileSize: Math.floor(Math.random() * 10000000) + 1000,
-        format: format,
-        recordCount: recordCount,
-        status: status,
-        startTime: new Date(Date.now() - i * 86400000).toISOString(),
-        completedTime: status === 'PROCESSING' ? undefined : new Date(Date.now() - i * 86400000 + 300000).toISOString(),
-        successCount: successCount,
-        errorCount: errorCount,
-        warnings: Math.floor(Math.random() * 5),
-        createdBy: 'system',
-        progress: status === 'PROCESSING' ? Math.floor(Math.random() * 90) + 10 : 100
-      });
-    }
-    
-    return operations;
-  }
-  
-  private addToHistory(operationType: 'IMPORT' | 'EXPORT', status: ImportExportHistory['status']) {
-    const newOperation: ImportExportHistory = {
-      id: `op_${Date.now()}`,
-      operationType: operationType,
-      entityType: this.entityType,
-      fileName: this.selectedFile?.name || `${this.exportEntityType.toLowerCase()}_export.${this.exportFormat.toLowerCase()}`,
-      fileSize: this.selectedFile?.size || 0,
-      format: operationType === 'IMPORT' ? this.importFormat : this.exportFormat,
-      recordCount: this.validationResults?.validRecords || Math.floor(Math.random() * 1000),
-      status: status,
-      startTime: new Date().toISOString(),
-      completedTime: new Date().toISOString(),
-      successCount: this.validationResults?.validRecords || Math.floor(Math.random() * 1000),
-      errorCount: 0,
-      warnings: 0,
-      createdBy: 'current-user',
-      progress: 100
-    };
-    
-    this.operationHistory.unshift(newOperation);
+    this.apiService.getOperationHistory({
+      page: this.historyPage,
+      size: this.historySize,
+      filter: this.historyFilter
+    }).subscribe({
+      next: (response) => {
+        this.operationHistory = response.content;
+        this.historyTotal = response.totalElements;
+        this.historyLoading = false;
+      },
+      error: (error) => {
+        this.toastService.showError('Error', 'Failed to load operation history');
+        this.historyLoading = false;
+        console.error(error);
+      }
+    });
   }
   
   onHistoryFilterInput(event: Event) {
@@ -841,104 +924,119 @@ export class ImportExportComponent implements OnInit {
   }
   
   downloadOperationFile(operation: ImportExportHistory) {
-    this.toastService.showSuccess('Download started', `Downloading ${operation.fileName}`);
-    // In production, this would download the file from the server
+    if (!operation.batchId) {
+      this.toastService.showError('Download failed', 'Batch ID is missing.');
+      return;
+    }
+
+    this.apiService.downloadImportedFile(operation.batchId).subscribe({
+      next: (blob) => {
+        console.log('Received blob:', blob);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = operation.fileName;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        this.toastService.showSuccess('Download started', `Downloading ${operation.fileName}`);
+      },
+      error: (error) => {
+        console.error('Download error:', error);
+        this.toastService.showError('Download failed', 'Could not download the file. See console for details.');
+      }
+    });
   }
 
   // ==================== SCHEDULED EXPORTS ====================
   
   private loadScheduledExports() {
-    // Mock scheduled exports
-    this.scheduledExports = [
-      {
-        id: 'sch_1',
-        name: 'Weekly Countries Export',
-        entityType: 'COUNTRIES',
-        format: 'CSV',
-        schedule: '0 0 * * 1',
-        enabled: true,
-        lastRun: new Date(Date.now() - 86400000).toISOString(),
-        nextRun: new Date(Date.now() + 6 * 86400000).toISOString(),
-        createdBy: 'admin',
-        recipients: ['admin@example.com']
-      },
-      {
-        id: 'sch_2',
-        name: 'Daily Ports Backup',
-        entityType: 'PORTS',
-        format: 'JSON',
-        schedule: '0 2 * * *',
-        enabled: false,
-        lastRun: new Date(Date.now() - 2 * 86400000).toISOString(),
-        nextRun: new Date(Date.now() + 86400000).toISOString(),
-        createdBy: 'system',
-        recipients: []
-      }
-    ];
+    this.apiService.getScheduledExports().subscribe({
+        next: (response) => {
+            this.scheduledExports = response;
+        },
+        error: (error) => {
+            this.toastService.showError('Error loading scheduled exports', 'Could not load scheduled exports. See console for details.');
+            console.error('Error loading scheduled exports:', error);
+        }
+    });
   }
   
   openScheduleModal(schedule?: ScheduledExport) {
-    if (schedule) {
-      this.selectedSchedule = schedule;
-      this.scheduleForm = { ...schedule };
-    } else {
-      this.selectedSchedule = null;
-      this.scheduleForm = {
-        name: '',
-        entityType: 'COUNTRIES',
-        format: 'CSV',
-        schedule: '0 0 * * 1',
-        enabled: true,
-        recipients: []
-      };
-    }
+    this.selectedSchedule = schedule || null;
     this.showScheduleModal = true;
-  }
-  
-  saveScheduledExport() {
-    if (!this.scheduleForm.name.trim()) {
-      this.error = 'Schedule name is required';
-      return;
-    }
-    
-    if (this.selectedSchedule) {
-      // Update existing schedule
-      const index = this.scheduledExports.findIndex(s => s.id === this.selectedSchedule!.id);
-      if (index >= 0) {
-        this.scheduledExports[index] = { ...this.scheduleForm, id: this.selectedSchedule.id };
-      }
-      this.toastService.showSuccess('Schedule updated', 'Scheduled export updated successfully');
-    } else {
-      // Create new schedule
-      const newSchedule: ScheduledExport = {
-        ...this.scheduleForm,
-        id: `sch_${Date.now()}`,
-        createdBy: 'current-user'
-      };
-      this.scheduledExports.unshift(newSchedule);
-      this.toastService.showSuccess('Schedule created', 'New scheduled export created successfully');
-    }
-    
-    this.closeScheduleModal();
-  }
-  
-  deleteScheduledExport(schedule: ScheduledExport) {
-    if (confirm(`Are you sure you want to delete the schedule "${schedule.name}"?`)) {
-      this.scheduledExports = this.scheduledExports.filter(s => s.id !== schedule.id);
-      this.toastService.showSuccess('Schedule deleted', 'Scheduled export deleted successfully');
-    }
-  }
-  
-  toggleScheduleEnabled(schedule: ScheduledExport) {
-    schedule.enabled = !schedule.enabled;
-    this.toastService.showSuccess('Schedule updated', 
-      `Schedule ${schedule.enabled ? 'enabled' : 'disabled'}`);
   }
   
   closeScheduleModal() {
     this.showScheduleModal = false;
     this.selectedSchedule = null;
-    this.error = null;
+  }
+
+
+
+  handleScheduleSaved(schedule: ScheduledExport) {
+    this.loadScheduledExports();
+    this.closeScheduleModal();
+  }
+
+  handleScheduleDeleted(schedule: ScheduledExport) {
+    this.scheduledExports = this.scheduledExports.filter(s => s.id !== schedule.id);
+  }
+
+  deleteScheduledExport(schedule: ScheduledExport) {
+    if (confirm(`Are you sure you want to delete the schedule "${schedule.name}"?`)) {
+      this.apiService.deleteScheduledExport(schedule.id).subscribe({
+        next: () => {
+          this.handleScheduleDeleted(schedule);
+          this.toastService.showSuccess('Schedule deleted', 'Scheduled export deleted successfully');
+        },
+        error: (error) => {
+          this.toastService.showError('Error deleting schedule', 'Could not delete scheduled export. See console for details.');
+          console.error('Error deleting schedule:', error);
+        }
+      });
+    }
+  }
+
+  saveScheduledExport() {
+    if (this.selectedSchedule) {
+      this.apiService.updateScheduledExport(this.selectedSchedule.id, this.scheduleForm).subscribe({
+        next: (response) => {
+          this.handleScheduleSaved(response);
+          this.toastService.showSuccess('Schedule updated', 'Scheduled export updated successfully');
+        },
+        error: (error) => {
+          this.error = 'Could not update scheduled export. See console for details.';
+          console.error('Error updating schedule:', error);
+        }
+      });
+    } else {
+      this.apiService.createScheduledExport(this.scheduleForm).subscribe({
+        next: (response) => {
+          this.handleScheduleSaved(response);
+          this.toastService.showSuccess('Schedule created', 'Scheduled export created successfully');
+        },
+        error: (error) => {
+          this.error = 'Could not create scheduled export. See console for details.';
+          console.error('Error creating schedule:', error);
+        }
+      });
+    }
+  }
+
+  toggleScheduleEnabled(schedule: ScheduledExport) {
+    const updatedSchedule = { ...schedule, enabled: !schedule.enabled };
+    this.apiService.updateScheduledExport(schedule.id, updatedSchedule).subscribe({
+      next: (response) => {
+        schedule.enabled = response.enabled;
+        this.toastService.showSuccess('Schedule updated', `Schedule set to ${response.enabled ? 'enabled' : 'disabled'}`);
+      },
+      error: (error) => {
+        this.toastService.showError('Error updating schedule', 'Could not update schedule status. See console for details.');
+        console.error('Error updating schedule status:', error);
+      }
+    });
   }
 
   // ==================== UTILITY METHODS ====================
@@ -990,11 +1088,12 @@ export class ImportExportComponent implements OnInit {
   
   getCronDescription(cron: string): string {
     const descriptions: { [key: string]: string } = {
-      '0 0 * * *': 'Daily at midnight',
-      '0 0 * * 1': 'Weekly on Monday',
-      '0 0 1 * *': 'Monthly on 1st',
-      '0 2 * * *': 'Daily at 2 AM',
-      '0 0 * * 0': 'Weekly on Sunday'
+      '0 * * * * *': 'Every minute',
+      '0 0 0 * * *': 'Daily at midnight',
+      '0 0 0 * * 1': 'Weekly on Monday',
+      '0 0 0 1 * *': 'Monthly on 1st',
+      '0 0 2 * * *': 'Daily at 2 AM',
+      '0 0 0 * * 0': 'Weekly on Sunday'
     };
     return descriptions[cron] || cron;
   }

@@ -11,6 +11,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -180,19 +181,39 @@ public class GlobalExceptionHandler {
                 .body(problem);
     }
     
+    @ExceptionHandler(org.springframework.security.authorization.AuthorizationDeniedException.class)
+    public ResponseEntity<ProblemDetail> handleAuthorizationDenied(
+            org.springframework.security.authorization.AuthorizationDeniedException ex, HttpServletRequest request) {
+
+        ProblemDetail problem = new ProblemDetail(
+                "Forbidden",
+                HttpStatus.FORBIDDEN.value(),
+                "You are not authorized to perform this action."
+        );
+        problem.setInstance(request.getRequestURI());
+        problem.setTraceId(getOrGenerateTraceId());
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(problem);
+    }
+    
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleGenericException(
             Exception ex, HttpServletRequest request) {
-        
+
         String traceId = getOrGenerateTraceId();
-        logger.error("Unhandled exception [traceId={}]", traceId, ex);
-        
+        // Always log the full exception with stack trace
+        logger.error("Unhandled exception [traceId={}] at {} {}: {} - {}",
+            traceId, request.getMethod(), request.getRequestURI(),
+            ex.getClass().getName(), ex.getMessage(), ex);
+
         ProblemDetail problem = ProblemDetail.internalServerError(
                 "An unexpected error occurred. Please contact support with trace ID: " + traceId
         );
         problem.setInstance(request.getRequestURI());
         problem.setTraceId(traceId);
-        
+
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .contentType(MediaType.APPLICATION_PROBLEM_JSON)
                 .body(problem);

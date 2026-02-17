@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -252,8 +253,8 @@ class AbstractLoaderIntegrationTest {
         }
         
         @Override
-        protected String createChangeRequest(DiffResult<TestStagingEntity, TestProductionEntity> diffResult, LoaderContext context) {
-            return "CR-TEST-" + System.currentTimeMillis();
+        protected UUID createChangeRequest(DiffResult<TestStagingEntity, TestProductionEntity> diffResult, LoaderContext context) {
+            return UUID.randomUUID();
         }
         
         @Override

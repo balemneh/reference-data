@@ -7,6 +7,7 @@ import org.ff4j.springjdbc.store.FeatureStoreSpringJdbc;
 import org.ff4j.springjdbc.store.PropertyStoreSpringJdbc;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -14,6 +15,7 @@ import javax.sql.DataSource;
 
 @Configuration
 @ConditionalOnClass(FF4j.class)
+@ConditionalOnProperty(name = "ff4j.enabled", havingValue = "true", matchIfMissing = true)
 public class FF4JConfig {
 
     @Autowired
@@ -23,26 +25,29 @@ public class FF4JConfig {
     public FF4j ff4j() {
         FF4j ff4j = new FF4j();
 
-        // Configure feature store (database persistence)
-        FeatureStoreSpringJdbc featureStore = new FeatureStoreSpringJdbc();
-        featureStore.setDataSource(dataSource);
-        featureStore.createSchema(); // Create tables if they don't exist
-        ff4j.setFeatureStore(featureStore);
+        // Only configure persistence if DataSource is available
+        if (dataSource != null) {
+            // Configure feature store (database persistence)
+            FeatureStoreSpringJdbc featureStore = new FeatureStoreSpringJdbc();
+            featureStore.setDataSource(dataSource);
+            featureStore.createSchema(); // Create tables if they don't exist
+            ff4j.setFeatureStore(featureStore);
 
-        // Configure property store
-        PropertyStoreSpringJdbc propertyStore = new PropertyStoreSpringJdbc();
-        propertyStore.setDataSource(dataSource);
-        propertyStore.createSchema();
-        ff4j.setPropertiesStore(propertyStore);
+            // Configure property store
+            PropertyStoreSpringJdbc propertyStore = new PropertyStoreSpringJdbc();
+            propertyStore.setDataSource(dataSource);
+            propertyStore.createSchema();
+            ff4j.setPropertiesStore(propertyStore);
 
-        // Configure event store
-        EventRepositorySpringJdbc eventStore = new EventRepositorySpringJdbc();
-        eventStore.setDataSource(dataSource);
-        eventStore.createSchema();
-        ff4j.setEventRepository(eventStore);
+            // Configure event store
+            EventRepositorySpringJdbc eventStore = new EventRepositorySpringJdbc();
+            eventStore.setDataSource(dataSource);
+            eventStore.createSchema();
+            ff4j.setEventRepository(eventStore);
 
-        // Enable audit
-        ff4j.audit(true);
+            // Enable audit
+            ff4j.audit(true);
+        }
 
         // Initialize default features if they don't exist
         initializeDefaultFeatures(ff4j);
@@ -60,22 +65,17 @@ public class FF4JConfig {
         createFeatureIfNotExists(ff4j, "languages", "Enable Languages Reference Data", true);
 
         // System Features
-        createFeatureIfNotExists(ff4j, "changeRequests", "Enable Change Requests", true);
-        createFeatureIfNotExists(ff4j, "analytics", "Enable Analytics", true);
-        createFeatureIfNotExists(ff4j, "export", "Enable Export Functionality", true);
-        createFeatureIfNotExists(ff4j, "import", "Enable Import Functionality", true);
-        createFeatureIfNotExists(ff4j, "bulkOperations", "Enable Bulk Operations", true);
-        createFeatureIfNotExists(ff4j, "advancedSearch", "Enable Advanced Search", true);
-        createFeatureIfNotExists(ff4j, "apiAccess", "Enable API Access", true);
-        createFeatureIfNotExists(ff4j, "webhooks", "Enable Webhooks", false);
+        createFeatureIfNotExists(ff4j, "features.changeRequests", "Enable Change Requests", true);
+        createFeatureIfNotExists(ff4j, "features.analytics", "Enable Analytics", true);
+        createFeatureIfNotExists(ff4j, "features.export", "Enable Export Functionality", true);
+        createFeatureIfNotExists(ff4j, "features.import", "Enable Import Functionality", true);
+        createFeatureIfNotExists(ff4j, "features.bulkOperations", "Enable Bulk Operations", true);
+        createFeatureIfNotExists(ff4j, "features.advancedSearch", "Enable Advanced Search", true);
+        createFeatureIfNotExists(ff4j, "features.apiAccess", "Enable API Access", true);
+        createFeatureIfNotExists(ff4j, "features.webhooks", "Enable Webhooks", false);
+        createFeatureIfNotExists(ff4j, "features.activityLog", "Enable Activity Log", true);
 
         // Dashboard Features
-        createFeatureIfNotExists(ff4j, "dashboard.showCountries", "Show Countries Card on Dashboard", true);
-        createFeatureIfNotExists(ff4j, "dashboard.showPorts", "Show Ports Card on Dashboard", true);
-        createFeatureIfNotExists(ff4j, "dashboard.showAirports", "Show Airports Card on Dashboard", true);
-        createFeatureIfNotExists(ff4j, "dashboard.showCarriers", "Show Carriers Card on Dashboard", true);
-        createFeatureIfNotExists(ff4j, "dashboard.showChangeRequests", "Show Change Requests on Dashboard", true);
-        createFeatureIfNotExists(ff4j, "dashboard.showAnalytics", "Show Analytics on Dashboard", true);
         createFeatureIfNotExists(ff4j, "dashboard.showRecentActivity", "Show Recent Activity on Dashboard", true);
         createFeatureIfNotExists(ff4j, "dashboard.showSystemHealth", "Show System Health on Dashboard", true);
 
@@ -84,6 +84,9 @@ public class FF4JConfig {
         createFeatureIfNotExists(ff4j, "experimental.graphView", "Graph View (Experimental)", false);
         createFeatureIfNotExists(ff4j, "experimental.realtimeSync", "Real-time Sync (Experimental)", false);
         createFeatureIfNotExists(ff4j, "experimental.collaboration", "Collaboration Features (Experimental)", false);
+
+        // Admin features
+        createFeatureIfNotExists(ff4j, "admin.admin", "Enable Admin Features", true);
     }
 
     private void createFeatureIfNotExists(FF4j ff4j, String featureId, String description, boolean enabled) {

@@ -384,9 +384,9 @@ public class GencLoader extends AbstractLoader<GencData, Country, GencEntityStag
     }
 
     @Override
-    protected String createChangeRequest(DiffResult<GencEntityStaging, Country> diffResult, LoaderContext context) {
+    protected UUID createChangeRequest(DiffResult<GencEntityStaging, Country> diffResult, LoaderContext context) {
         // In a real implementation, would create a change request in workflow system
-        String changeRequestId = UUID.randomUUID().toString();
+        UUID changeRequestId = UUID.randomUUID();
         logger.info("Created change request: {} with {} changes", changeRequestId, diffResult.getTotalChanges());
         return changeRequestId;
     }

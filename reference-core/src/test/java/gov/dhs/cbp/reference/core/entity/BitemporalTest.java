@@ -69,7 +69,7 @@ class BitemporalTest {
 
     @Test
     void testChangeRequestId() {
-        String changeRequestId = UUID.randomUUID().toString();
+        UUID changeRequestId = UUID.randomUUID();
         entity.setChangeRequestId(changeRequestId);
         assertEquals(changeRequestId, entity.getChangeRequestId());
     }

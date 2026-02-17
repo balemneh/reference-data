@@ -52,17 +52,15 @@ public class OutboxPublisher {
                     event.getPayload()
             );
             
-            future.whenComplete((result, ex) -> {
-                if (ex == null) {
-                    event.setStatus(OutboxEvent.EventStatus.PROCESSED);
-                    event.setProcessedAt(LocalDateTime.now());
-                    outboxEventRepository.save(event);
-                    logger.info("Successfully published event {} for aggregate {}", 
-                            event.getEventType(), event.getAggregateId());
-                } else {
-                    handleFailure(event, ex);
-                }
-            });
+            // Block and wait for the result so status update happens within the current transaction
+            future.get(); // This will throw an exception if the send fails.
+            
+            event.setStatus(OutboxEvent.EventStatus.PROCESSED);
+            event.setProcessedAt(LocalDateTime.now());
+            outboxEventRepository.save(event);
+            logger.info("Successfully published event {} for aggregate {}", 
+                    event.getEventType(), event.getAggregateId());
+
         } catch (Exception e) {
             handleFailure(event, e);
         }
@@ -89,7 +87,6 @@ public class OutboxPublisher {
     public void createEvent(String aggregateId, String aggregateType, 
                            String eventType, String payload) {
         OutboxEvent event = new OutboxEvent();
-        event.setId(UUID.randomUUID());
         event.setAggregateId(aggregateId);
         event.setAggregateType(aggregateType);
         event.setEventType(eventType);

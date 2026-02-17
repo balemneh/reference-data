@@ -3,7 +3,11 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { filter, takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
+import { Observable } from 'rxjs';
 import { FeatureFlagsService, FeatureFlagsConfig } from '../../services/feature-flags.service';
+import { ChangeRequestService } from '../../services/change-request.service';
+import { OAuthService } from 'angular-oauth2-oidc';
+import { ReferenceDataService } from '../../services/reference-data.service';
 
 export interface NavigationItem {
   id: string;
@@ -12,7 +16,7 @@ export interface NavigationItem {
   path?: string;
   badge?: number;
   type: 'navigation' | 'category';
-  permission?: string;
+  permission?: string | string[];
   children?: NavigationItem[];
   expanded?: boolean;
   featureFlag?: string;
@@ -33,7 +37,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   currentRoute = '';
   expandedSections: Set<string> = new Set(['reference-data']);
-  featureFlags: FeatureFlagsConfig | null = null;
+  featureFlags$: Observable<FeatureFlagsConfig>;
 
   // Hierarchical sidebar navigation items
   navigationItems: NavigationItem[] = [
@@ -83,6 +87,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
       icon: 'build',
       type: 'category',
       expanded: false,
+      permission: ['admin', 'data-steward'],
       children: [
         {
           id: 'change-requests',
@@ -90,21 +95,23 @@ export class SidebarComponent implements OnInit, OnDestroy {
           icon: 'edit',
           path: '/change-requests',
           type: 'navigation',
-          badge: 0
+          featureFlag: 'changeRequests'
         },
         {
           id: 'activity-log',
           label: 'Activity Log',
           icon: 'history',
           path: '/activity-log',
-          type: 'navigation'
+          type: 'navigation',
+          featureFlag: 'activityLog'
         },
         {
           id: 'import-export',
           label: 'Import/Export',
           icon: 'file_upload',
           path: '/import-export',
-          type: 'navigation'
+          type: 'navigation',
+          featureFlag: 'import'
         }
       ]
     },
@@ -114,20 +121,23 @@ export class SidebarComponent implements OnInit, OnDestroy {
       icon: 'assessment',
       type: 'category',
       expanded: false,
+      permission: ['admin', 'data-steward'],
       children: [
         {
           id: 'reports',
           label: 'Reports',
           icon: 'report',
           path: '/reports',
-          type: 'navigation'
+          type: 'navigation',
+          featureFlag: 'analytics'
         },
         {
           id: 'analytics',
           label: 'Analytics',
           icon: 'trending_up',
           path: '/analytics',
-          type: 'navigation'
+          type: 'navigation',
+          featureFlag: 'analytics'
         }
       ]
     },
@@ -136,6 +146,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
       label: 'Administration',
       icon: 'security',
       type: 'category',
+      permission: 'admin',
       expanded: false,
       children: [
         {
@@ -143,21 +154,24 @@ export class SidebarComponent implements OnInit, OnDestroy {
           label: 'Settings',
           icon: 'settings',
           path: '/settings',
-          type: 'navigation'
+          type: 'navigation',
+          featureFlag: 'admin'
         },
         {
           id: 'user-management',
           label: 'User Management',
           icon: 'groups',
           path: '/users',
-          type: 'navigation'
+          type: 'navigation',
+          featureFlag: 'admin'
         },
         {
           id: 'system-config',
           label: 'System Configuration',
           icon: 'settings',
           path: '/system-config',
-          type: 'navigation'
+          type: 'navigation',
+          featureFlag: 'admin'
         }
       ]
     }
@@ -165,16 +179,14 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   constructor(
     private router: Router,
-    private featureFlagsService: FeatureFlagsService
-  ) {}
+    private featureFlagsService: FeatureFlagsService,
+    private changeRequestService: ChangeRequestService,
+    private oauthService: OAuthService
+  ) {
+    this.featureFlags$ = this.featureFlagsService.flags$;
+  }
 
   ngOnInit() {
-    // Subscribe to feature flags
-    this.featureFlagsService.flags$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(flags => {
-        this.featureFlags = flags;
-      });
 
     // Track current route for active states
     this.router.events
@@ -187,8 +199,28 @@ export class SidebarComponent implements OnInit, OnDestroy {
     console.log('Navigation Items:', this.navigationItems);
     console.log('Expanded Sections:', this.expandedSections);
 
+    // Subscribe to pending change requests count
+    this.changeRequestService.pendingRequestsCount$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(count => {
+        const operationsCategory = this.navigationItems.find(item => item.id === 'operations');
+        if (operationsCategory && operationsCategory.children) {
+          const changeRequestItem = operationsCategory.children.find(item => item.id === 'change-requests');
+          if (changeRequestItem) {
+            changeRequestItem.badge = count;
+          }
+        }
+      });
     // Load initial data
-    this.loadPendingRequestsCount();
+    this.changeRequestService.pendingRequestsCount$.pipe(takeUntil(this.destroy$)).subscribe(count => {
+      const operationsCategory = this.navigationItems.find(item => item.id === 'operations');
+      if (operationsCategory && operationsCategory.children){
+        const changeRequestItem = operationsCategory.children.find(item => item.id === 'change-requests');
+        if (changeRequestItem) {
+          changeRequestItem.badge = count;
+        }
+      }
+    });
   }
 
   onItemClick(item: NavigationItem) {
@@ -243,33 +275,50 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  isItemVisible(item: NavigationItem): boolean {
-    if (!item.featureFlag || !this.featureFlags) {
-      return true; // Show if no feature flag required or flags not loaded
+  isItemVisible(item: NavigationItem, flags: FeatureFlagsConfig | null): boolean {
+    if (!item.featureFlag) {
+      return true; // Always show if no feature flag is required
+    }
+    if (!flags) {
+      return false; // Hide if flags are not loaded yet
     }
 
-    // Check if the feature is enabled in reference data
-    if ((this.featureFlags.referenceData as any)[item.featureFlag] !== undefined) {
-      return (this.featureFlags.referenceData as any)[item.featureFlag];
-    }
+    const flagName = item.featureFlag;
 
-    // Check if it's a feature flag
-    if ((this.featureFlags.features as any)[item.featureFlag] !== undefined) {
-      return (this.featureFlags.features as any)[item.featureFlag];
+    // Check in all relevant categories
+    if (flags.referenceData.hasOwnProperty(flagName)) {
+      return flags.referenceData[flagName];
     }
-
-    return true; // Default to showing if flag not found
+    if (flags.features.hasOwnProperty(flagName)) {
+      return flags.features[flagName];
+    }
+    if (flags.experimental.hasOwnProperty(flagName)) {
+      return flags.experimental[flagName];
+    }
+    if (flags.dashboard.hasOwnProperty(flagName)) {
+      return flags.dashboard[flagName];
+    }
+    if (flags.admin.hasOwnProperty(flagName)) {
+        return flags.admin[flagName];
+    }
+    
+    // If a feature flag is specified but not found in any category, hide the item.
+    return false;
   }
 
-  getVisibleChildren(category: NavigationItem): NavigationItem[] {
+  getVisibleChildren(category: NavigationItem, flags: FeatureFlagsConfig | null): NavigationItem[] {
     if (!category.children) return [];
-    return category.children.filter(child => this.isItemVisible(child));
+    return category.children.filter(child => this.isItemVisible(child, flags));
   }
 
-  isCategoryVisible(category: NavigationItem): boolean {
-    if (!category.children) return true;
-    // Hide category if all children are hidden
-    return this.getVisibleChildren(category).length > 0;
+  isCategoryVisible(category: NavigationItem, flags: FeatureFlagsConfig | null): boolean {
+    if (category.permission && !this.hasRequiredRole(category.permission)) {
+      return false;
+    }
+    if (category.children && this.getVisibleChildren(category, flags).length === 0) {
+      return false;
+    }
+    return true;
   }
 
   isCategoryActive(category: NavigationItem): boolean {
@@ -277,15 +326,20 @@ export class SidebarComponent implements OnInit, OnDestroy {
     return category.children.some(child => this.isItemActive(child));
   }
 
-  loadPendingRequestsCount() {
-    // This would typically call an API service
-    // Find change-requests in the operations category
-    const operationsCategory = this.navigationItems.find(item => item.id === 'operations');
-    if (operationsCategory && operationsCategory.children) {
-      const changeRequestItem = operationsCategory.children.find(item => item.id === 'change-requests');
-      if (changeRequestItem) {
-        changeRequestItem.badge = 3; // Mock value - replace with API call
-      }
+  hasRequiredRole(role: string | string[]): boolean {
+    const claims = this.oauthService.getIdentityClaims();
+    if (!claims) {
+      return false;
     }
+
+    const realmAccess = (claims as any).realm_access;
+    if (realmAccess && realmAccess.roles) {
+      if (Array.isArray(role)) {
+        return role.some(r => realmAccess.roles.includes(r));
+      }
+      return realmAccess.roles.includes(role as string);
+    }
+
+    return false;
   }
 }

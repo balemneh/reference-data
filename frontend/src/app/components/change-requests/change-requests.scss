@@ -1298,3 +1298,51 @@
     opacity: 1;
   }
 }
+
+.cbp-three-column-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr; /* Field | Old Value | New Value */
+  gap: var(--cbp-space-lg);
+  margin-top: 1rem;
+  overflow: hidden;
+
+  .cbp-comparison-header-row,
+  .cbp-comparison-row {
+    display: contents; /* Allows grid items to be children of grid */
+  }
+
+  .cbp-comparison-header-row {
+    font-weight: bold;
+    background-color: var(--cbp-neutral-100);
+    
+    span {
+      padding: var(--cbp-space-md) var(--cbp-space-lg);
+      border-bottom: 1px solid var(--cbp-neutral-200);
+      &:last-child {
+        border-right: none;
+      }
+    }
+  }
+
+  .cbp-comparison-row {
+    border-bottom: 1px solid var(--cbp-neutral-100);
+    &:last-child {
+      border-bottom: none;
+    }
+
+    span {
+      padding: var(--cbp-space-md) var(--cbp-space-lg);
+      
+      &:first-child {
+        font-weight: 500;
+        color: var(--cbp-neutral-700);
+      }
+    }
+  }
+}
+
+.cbp-highlight-change {
+  background-color: #fff3cd; /* Soft yellow for highlighting changes */
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}

@@ -1,18 +1,26 @@
-import { Component, OnInit, ViewChild, ElementRef, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, ChangeRequestDto, PagedResponse } from '../../services/api.service';
-import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, Subject, Subscription } from 'rxjs';
 import { ToastService } from '../../services/toast.service';
+import { ChangeRequestService } from '../../services/change-request.service';
+import { OperationHistoryService } from '../../services/operation-history.service';
+import { PendingRequestsTrackerComponent } from '../pending-requests-tracker/pending-requests-tracker';
+import { StewardListModalComponent } from '../data-ownership/steward-list-modal.component';
+import { PermissionEditorModalComponent } from '../data-ownership/permission-editor-modal.component';
+import { UserDto } from '../../services/user-management.service';
+import { UserManagementService } from '../../services/user-management.service';
+import { KeycloakService } from 'keycloak-angular';
 
 @Component({
   selector: 'app-change-requests',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PendingRequestsTrackerComponent, StewardListModalComponent, PermissionEditorModalComponent],
   templateUrl: './change-requests.html',
   styleUrl: './change-requests.scss'
 })
-export class ChangeRequestsComponent implements OnInit {
+export class ChangeRequestsComponent implements OnInit, OnDestroy {
   @ViewChild('searchInput') searchInput!: ElementRef;
   
   changeRequests: ChangeRequestDto[] = [];
@@ -29,9 +37,9 @@ export class ChangeRequestsComponent implements OnInit {
   // Search and filtering
   searchTerm = '';
   searchSubject = new Subject<string>();
-  filterStatus: string | null = null;
+  filterStatus: string | undefined = undefined;
   availableStatuses = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'];
-  filterEntityType: string | null = null;
+  filterEntityType: string | undefined = undefined;
   availableEntityTypes = ['COUNTRY', 'PORT', 'AIRPORT'];
   
   // Modal and details
@@ -44,6 +52,8 @@ export class ChangeRequestsComponent implements OnInit {
 
   // JSON accordion toggle in details modal
   showJson = false;
+  parsedProposedChanges: any = null;
+  parsedCurrentValues: any = null;
   
   // Sorting
   sortField: keyof ChangeRequestDto = 'createdAt';
@@ -53,33 +63,72 @@ export class ChangeRequestsComponent implements OnInit {
   selectedRequests = new Set<string>();
   selectAll = false;
 
-  constructor(private apiService: ApiService, private toastService: ToastService) {}
+  // Steward and permission modals
+  isStewardModalOpen = false;
+  isPermissionModalOpen = false;
+  allDataStewards: UserDto[] = [];
+  selectedStewardForOwnership: UserDto | null = null;
+
+  comparisonFields: string[] = ['countryName', 'countryCode', 'iso2Code', 'iso3Code', 'numericCode'];
+
+  getObjectKeys(obj: any): string[] {
+    return Object.keys(obj);
+  }
+
+  isChanged(key: string): boolean {
+    if (!this.parsedCurrentValues || !this.parsedProposedChanges) {
+      return false;
+    }
+    return this.parsedCurrentValues[key] !== this.parsedProposedChanges[key];
+  }
+
+  // Computed properties
+  get pendingRequests(): ChangeRequestDto[] {
+    return this.changeRequests.filter(r => r.status === 'PENDING');
+  }
+
+  get hasSelectedItems(): boolean {
+    return this.selectedRequests.size > 0;
+  }
+
+  private subscriptions: Subscription[] = [];
+
+  constructor(
+    private apiService: ApiService, 
+    private toastService: ToastService,
+    private changeRequestService: ChangeRequestService,
+    private keycloakService: KeycloakService,
+    private userManagementService: UserManagementService,
+    private cdr: ChangeDetectorRef,
+    private operationHistoryService: OperationHistoryService
+  ) {
+    console.log('User roles:', this.keycloakService.getUserRoles());
+  }
   
   private initializeSearchSubscription() {
-    this.searchSubject.pipe(
+    const searchSubscription = this.searchSubject.pipe(
       debounceTime(300),
       distinctUntilChanged()
     ).subscribe(searchTerm => {
       this.searchTerm = searchTerm;
       this.currentPage = 0;
-      // Only reload if we have a search term or if it was cleared (not initial load)
       if (searchTerm !== '' || this.changeRequests.length === 0) {
         this.loadChangeRequests();
       }
     });
+    this.subscriptions.push(searchSubscription);
   }
 
   ngOnInit() {
-    console.log('===== ChangeRequestsComponent ngOnInit =====');
-    console.log('Component initialized');
     this.initializeSearchSubscription();
-    
-    // Load initial data
     this.loadInitialData();
   }
 
+  ngOnDestroy() {
+    this.subscriptions.forEach(sub => sub.unsubscribe());
+  }
+
   private loadInitialData() {
-    // Load data from API
     this.loadChangeRequests();
   }
 
@@ -91,7 +140,9 @@ export class ChangeRequestsComponent implements OnInit {
     
     const params: any = {
       page: this.currentPage,
-      size: this.pageSize
+      size: this.pageSize,
+      sortBy: this.sortField,
+      sortDirection: this.sortDirection
     };
     
     if (this.filterStatus) {
@@ -104,9 +155,6 @@ export class ChangeRequestsComponent implements OnInit {
     
     this.apiService.getChangeRequests(params).subscribe({
       next: (response: PagedResponse<ChangeRequestDto>) => {
-        console.log('Change requests loaded:', response);
-        console.log('Response content array:', response.content);
-        console.log('Content length:', response.content?.length);
         this.changeRequests = response.content || [];
         this.totalElements = response.totalElements || 0;
         this.totalPages = response.totalPages || 0;
@@ -117,27 +165,62 @@ export class ChangeRequestsComponent implements OnInit {
           loading: this.loading,
           totalElements: this.totalElements
         });
+
+        this.changeRequestService.updatePendingRequestsCount(this.pendingRequests.length);
         
         // Apply client-side search if needed
         if (this.searchTerm && this.searchTerm.trim()) {
           this.applySearch();
-          // Recompute pagination locally to avoid mismatch
           this.totalElements = this.changeRequests.length;
           this.totalPages = this.totalElements > 0 ? 1 : 0;
           this.currentPage = 0;
         }
         
-        // Apply sorting
         this.sortChangeRequests();
+        this.cdr.detectChanges(); // Force UI update
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Failed to load change requests from API:', error);
         this.loading = false;
         this.error = `Failed to connect to API (${error.status || 'Network Error'}). Please check if the backend service is running.`;
-        // Load mock data as fallback
-        
+        this.cdr.detectChanges(); // Force UI update on error
       }
     });
+  }
+
+  isAdmin(): boolean {
+    return this.keycloakService.getUserRoles().includes('ADMIN');
+  }
+
+  openStewardModal(): void {
+    this.userManagementService.getStewards().subscribe(
+      (stewards: UserDto[]) => {
+        this.allDataStewards = stewards;
+        this.isStewardModalOpen = true;
+      },
+      (error: any) => {
+        this.toastService.showError('Error', 'Failed to load data stewards.');
+        console.error('Failed to load data stewards:', error);
+      }
+    );
+  }
+
+  closeStewardModal(): void {
+    this.isStewardModalOpen = false;
+  }
+
+  openPermissionModal(steward: UserDto): void {
+    this.selectedStewardForOwnership = steward;
+    this.isPermissionModalOpen = true;
+    this.isStewardModalOpen = false; // Close the steward list modal
+  }
+
+  onPermissionModalClose(needsRefresh: boolean): void {
+    this.isPermissionModalOpen = false;
+    this.selectedStewardForOwnership = null;
+    if (needsRefresh) {
+      // Optionally, you might want to refresh the steward list if permissions change
+    }
   }
 
   private applySearch() {
@@ -165,13 +248,13 @@ export class ChangeRequestsComponent implements OnInit {
   }
   
   onStatusFilterChange(value: string) {
-    this.filterStatus = value === 'all' ? null : value;
+    this.filterStatus = value === 'all' ? undefined : value;
     this.currentPage = 0;
     this.loadChangeRequests();
   }
   
   onEntityTypeFilterChange(value: string) {
-    this.filterEntityType = value === 'all' ? null : value;
+    this.filterEntityType = value === 'all' ? undefined : value;
     this.currentPage = 0;
     this.loadChangeRequests();
   }
@@ -208,6 +291,33 @@ export class ChangeRequestsComponent implements OnInit {
 
   viewRequest(request: ChangeRequestDto) {
     this.selectedRequest = { ...request };
+    
+    try {
+      if (typeof this.selectedRequest.proposedChanges === 'string') {
+        this.parsedProposedChanges = JSON.parse(this.selectedRequest.proposedChanges);
+        this.selectedRequest.proposedChanges = this.parsedProposedChanges; // Update selectedRequest
+      } else {
+        this.parsedProposedChanges = this.selectedRequest.proposedChanges;
+      }
+    } catch (e) {
+      console.error('Error parsing proposedChanges:', e);
+      this.parsedProposedChanges = {};
+      this.selectedRequest.proposedChanges = {}; // Update selectedRequest
+    }
+
+    try {
+      if (typeof this.selectedRequest.currentValues === 'string') {
+        this.parsedCurrentValues = JSON.parse(this.selectedRequest.currentValues);
+        this.selectedRequest.currentValues = this.parsedCurrentValues; // Update selectedRequest
+      } else {
+        this.parsedCurrentValues = this.selectedRequest.currentValues;
+      }
+    } catch (e) {
+      console.error('Error parsing currentValues:', e);
+      this.parsedCurrentValues = {};
+      this.selectedRequest.currentValues = {}; // Update selectedRequest
+    }
+    
     this.showModal = true;
   }
   
@@ -230,16 +340,12 @@ export class ChangeRequestsComponent implements OnInit {
   confirmApproval() {
     if (!this.selectedRequest) return;
     
-    const taskVariables = {
-      approved: true,
-    };
-    
-    // Use the approve endpoint
     this.apiService.approveChangeRequest(this.selectedRequest.id, this.approvalNotes).subscribe({
       next: () => {
         this.successMessage = 'Change request approved successfully';
         this.closeApprovalDialog();
         this.loadChangeRequests();
+        this.operationHistoryService.removeOperationByChangeRequestId(this.selectedRequest!.id);
         
         setTimeout(() => {
           this.successMessage = null;
@@ -255,16 +361,12 @@ export class ChangeRequestsComponent implements OnInit {
   confirmRejection() {
     if (!this.selectedRequest) return;
     
-    const taskVariables = {
-      approved: false,
-    };
-    
-    // Use the reject endpoint
     this.apiService.rejectChangeRequest(this.selectedRequest.id, this.rejectionNotes).subscribe({
       next: () => {
         this.successMessage = 'Change request rejected';
         this.closeApprovalDialog();
         this.loadChangeRequests();
+        this.operationHistoryService.removeOperationByChangeRequestId(this.selectedRequest!.id);
         
         setTimeout(() => {
           this.successMessage = null;
@@ -295,6 +397,33 @@ export class ChangeRequestsComponent implements OnInit {
 
   viewDetails(request: ChangeRequestDto) {
     this.selectedRequest = request;
+    
+    try {
+      if (typeof this.selectedRequest.proposedChanges === 'string') {
+        this.parsedProposedChanges = JSON.parse(this.selectedRequest.proposedChanges);
+        this.selectedRequest.proposedChanges = this.parsedProposedChanges; // Update selectedRequest
+      } else {
+        this.parsedProposedChanges = this.selectedRequest.proposedChanges;
+      }
+    } catch (e) {
+      console.error('Error parsing proposedChanges:', e);
+      this.parsedProposedChanges = {};
+      this.selectedRequest.proposedChanges = {}; // Update selectedRequest
+    }
+
+    try {
+      if (typeof this.selectedRequest.currentValues === 'string') {
+        this.parsedCurrentValues = JSON.parse(this.selectedRequest.currentValues);
+        this.selectedRequest.currentValues = this.parsedCurrentValues; // Update selectedRequest
+      } else {
+        this.parsedCurrentValues = this.selectedRequest.currentValues;
+      }
+    } catch (e) {
+      console.error('Error parsing currentValues:', e);
+      this.parsedCurrentValues = {};
+      this.selectedRequest.currentValues = {}; // Update selectedRequest
+    }
+    
     this.showModal = true;
   }
 
@@ -337,7 +466,6 @@ export class ChangeRequestsComponent implements OnInit {
     this.mode = null;
   }
   
-  // Bulk operations
   toggleSelectAll() {
     if (this.selectAll) {
       this.changeRequests.forEach(r => this.selectedRequests.add(r.id));
@@ -360,25 +488,25 @@ export class ChangeRequestsComponent implements OnInit {
   isSelected(requestId: string | undefined): boolean {
     return requestId ? this.selectedRequests.has(requestId) : false;
   }
-  
+
   bulkApprove() {
     const selectedData = this.changeRequests.filter(r => this.selectedRequests.has(r.id));
     if (selectedData.length === 0) return;
     this.toastService.showInfo('Bulk action', `${selectedData.length} items will be approved (mock).`);
   }
-  
+
   bulkReject() {
     const selectedData = this.changeRequests.filter(r => this.selectedRequests.has(r.id));
     if (selectedData.length === 0) return;
     this.toastService.showInfo('Bulk action', `${selectedData.length} items will be rejected (mock).`);
   }
-  
+
   exportSelected() {
     const selectedData = this.changeRequests.filter(r => this.selectedRequests.has(r.id));
     const csv = this.convertToCSV(selectedData);
     this.downloadCSV(csv, `change_requests_export_${new Date().getTime()}.csv`);
   }
-  
+
   private convertToCSV(data: ChangeRequestDto[]): string {
     if (!data.length) return '';
     
@@ -418,23 +546,15 @@ export class ChangeRequestsComponent implements OnInit {
     let start = Math.max(0, this.currentPage - halfVisible);
     let end = Math.min(this.totalPages - 1, start + maxVisible - 1);
     
-    if (end - start < maxVisible - 1) {
+    if (end - start < maxVisible) {
       start = Math.max(0, end - maxVisible + 1);
     }
     
-    for (let i = start; i <= end; i++) {
-      pages.push(i);
+    for (let i = start; i < end; i++) {
+      pages.push(i + 1);
     }
     
     return pages;
-  }
-  
-  get hasSelectedItems(): boolean {
-    return this.selectedRequests.size > 0;
-  }
-  
-  get pendingRequests(): ChangeRequestDto[] {
-    return this.changeRequests.filter(r => r.status === 'PENDING');
   }
   
   formatDate(date: string | undefined): string {
@@ -459,7 +579,6 @@ export class ChangeRequestsComponent implements OnInit {
   }
   
   getEntityTypeIcon(entityType: string | undefined): string {
-    // Return USWDS sprite id
     if (!entityType) return 'assignment';
     switch (entityType) {
       case 'COUNTRY': return 'public';
@@ -486,7 +605,6 @@ export class ChangeRequestsComponent implements OnInit {
     return Math.min(a, b);
   }
 
-  // Close modals with Escape
   @HostListener('document:keydown.escape')
   onEscape() {
     if (this.showApprovalDialog) this.closeApprovalDialog();

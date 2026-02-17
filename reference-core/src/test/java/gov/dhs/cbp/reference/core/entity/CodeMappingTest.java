@@ -138,7 +138,7 @@ class CodeMappingTest {
         String recordedBy = "test-user";
         Long version = 1L;
         Boolean isCorrection = true;
-        String changeRequestId = "CR-12345";
+        UUID changeRequestId = UUID.randomUUID();
         String metadata = "{\"source\": \"manual mapping\"}";
 
         codeMapping.setId(id);

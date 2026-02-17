@@ -11,6 +11,7 @@ import java.util.UUID;
 public interface CodeSystemRepository extends JpaRepository<CodeSystem, UUID> {
     
     Optional<CodeSystem> findByCode(String code);
+    Optional<CodeSystem> findByName(String name);
     
     boolean existsByCode(String code);
 }

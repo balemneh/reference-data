@@ -3,6 +3,7 @@ package gov.dhs.cbp.reference.loader.common;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Context object passed through the loader execution
@@ -11,7 +12,7 @@ public class LoaderContext {
     
     private String executionId;
     private String userId;
-    private String changeRequestId;
+    private UUID changeRequestId;
     private boolean incrementalMode = false;
     private LocalDateTime lastRunTime;
     private Map<String, Object> metadata = new HashMap<>();
@@ -55,14 +56,13 @@ public class LoaderContext {
         this.userId = userId;
     }
     
-    public String getChangeRequestId() {
-        return changeRequestId;
-    }
+        public UUID getChangeRequestId() {
+            return changeRequestId;
+        }
     
-    public void setChangeRequestId(String changeRequestId) {
-        this.changeRequestId = changeRequestId;
-    }
-    
+        public void setChangeRequestId(UUID changeRequestId) {
+            this.changeRequestId = changeRequestId;
+        }    
     public boolean isIncrementalMode() {
         return incrementalMode;
     }

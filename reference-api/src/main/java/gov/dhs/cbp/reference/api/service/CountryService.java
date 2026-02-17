@@ -2,11 +2,14 @@ package gov.dhs.cbp.reference.api.service;
 
 import gov.dhs.cbp.reference.api.dto.CountryDto;
 import gov.dhs.cbp.reference.api.dto.PagedResponse;
+import gov.dhs.cbp.reference.api.exception.BusinessException;
+import gov.dhs.cbp.reference.api.exception.ResourceNotFoundException;
 import gov.dhs.cbp.reference.api.mapper.CountryMapper;
 import gov.dhs.cbp.reference.core.entity.Country;
 import gov.dhs.cbp.reference.core.repository.CountryRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,8 +55,8 @@ public class CountryService {
         return new PagedResponse<>(dtos, page.getNumber(), page.getSize(), page.getTotalElements());
     }
     
-    public PagedResponse<CountryDto> searchByName(String name, PageRequest pageRequest) {
-        Page<Country> page = countryRepository.searchByName(name, pageRequest);
+    public PagedResponse<CountryDto> searchByName(String name, String systemCode, PageRequest pageRequest) {
+        Page<Country> page = countryRepository.searchByName(name, systemCode, pageRequest);
         List<CountryDto> dtos = page.getContent().stream()
                 .map(countryMapper::toDto)
                 .collect(Collectors.toList());
@@ -82,5 +85,193 @@ public class CountryService {
     
     public String getCurrentVersion() {
         return "1.0.0"; // TODO: Implement versioning system
+    }
+
+    // Change Request Workflow Integration Methods
+
+    /**
+     * Creates a new country through the change request workflow.
+     * This method is called by CountryChangeRequestService when applying approved CREATE requests.
+     *
+     * @param countryDto The country data to create
+     * @param recordedBy The user ID who triggered this creation
+     * @return The created country DTO
+     * @throws BusinessException if the country already exists or validation fails
+     */
+    @Transactional
+    public CountryDto createCountryFromChangeRequest(CountryDto countryDto, String recordedBy) {
+        validateCountryData(countryDto);
+        validateUniqueCodes(countryDto, null); // Pass null for ID since it's a new country
+
+        // Set system fields
+        countryDto.setRecordedAt(LocalDateTime.now());
+        countryDto.setRecordedBy(recordedBy);
+        if (countryDto.getValidFrom() == null) {
+            countryDto.setValidFrom(LocalDate.now());
+        }
+        if (countryDto.getIsActive() == null) {
+            countryDto.setIsActive(true);
+        }
+
+        // Convert to entity and save
+        Country country = countryMapper.toEntity(countryDto);
+        Country savedCountry = countryRepository.save(country);
+
+        return countryMapper.toDto(savedCountry);
+    }
+
+    /**
+     * Updates an existing country through the change request workflow.
+     * This method is called by CountryChangeRequestService when applying approved UPDATE requests.
+     *
+     * @param countryDto The updated country data
+     * @param recordedBy The user ID who triggered this update
+     * @return The updated country DTO
+     * @throws ResourceNotFoundException if the country doesn't exist
+     * @throws BusinessException if validation fails
+     */
+    @Transactional
+    public CountryDto updateCountryFromChangeRequest(CountryDto countryDto, String recordedBy) {
+        // Find existing country
+        Country existingCountry = countryRepository.findById(countryDto.getId())
+            .orElseThrow(() -> new ResourceNotFoundException("Country not found with id: " + countryDto.getId()));
+
+        validateCountryData(countryDto);
+        validateUniqueCodes(countryDto, existingCountry.getId());
+
+        // In a bitemporal system, we would create a new version with current time
+        // For now, we'll update the existing record
+        existingCountry.setCountryName(countryDto.getCountryName());
+        existingCountry.setIso2Code(countryDto.getIso2Code());
+        existingCountry.setIso3Code(countryDto.getIso3Code());
+        existingCountry.setNumericCode(countryDto.getNumericCode());
+        existingCountry.setIsActive(countryDto.getIsActive());
+        existingCountry.setValidFrom(countryDto.getValidFrom());
+        existingCountry.setValidTo(countryDto.getValidTo());
+        existingCountry.setRecordedAt(LocalDateTime.now());
+        existingCountry.setRecordedBy(recordedBy);
+
+        Country savedCountry = countryRepository.save(existingCountry);
+        return countryMapper.toDto(savedCountry);
+    }
+
+    /**
+     * Deactivates a country through the change request workflow.
+     * This method is called by CountryChangeRequestService when applying approved DELETE requests.
+     * Note: In a bitemporal system, we don't hard delete - we deactivate or set valid_to date.
+     *
+     * @param countryId The ID of the country to deactivate
+     * @param recordedBy The user ID who triggered this deletion
+     * @return The deactivated country DTO
+     * @throws ResourceNotFoundException if the country doesn't exist
+     */
+    @Transactional
+    public CountryDto deactivateCountryFromChangeRequest(UUID countryId, String recordedBy) {
+        Country existingCountry = countryRepository.findById(countryId)
+            .orElseThrow(() -> new ResourceNotFoundException("Country not found with id: " + countryId));
+
+        // Deactivate the country and set end date
+        existingCountry.setIsActive(false);
+        existingCountry.setValidTo(LocalDate.now());
+        existingCountry.setRecordedAt(LocalDateTime.now());
+        existingCountry.setRecordedBy(recordedBy);
+
+        Country savedCountry = countryRepository.save(existingCountry);
+        return countryMapper.toDto(savedCountry);
+    }
+
+    private void validateUniqueCodes(CountryDto countryDto, UUID currentId) {
+        final String finalCountryCode = (countryDto.getCountryCode() != null) ? countryDto.getCountryCode().trim().toUpperCase() : null;
+        final String finalCodeSystem = countryDto.getCodeSystem(); // codeSystem is not modified, so it's already effectively final
+        final String finalIso2Code = (countryDto.getIso2Code() != null) ? countryDto.getIso2Code().trim().toUpperCase() : null;
+        final String finalIso3Code = (countryDto.getIso3Code() != null) ? countryDto.getIso3Code().trim().toUpperCase() : null;
+        final String finalNumericCode = (countryDto.getNumericCode() != null) ? countryDto.getNumericCode().trim() : null; // Numeric code should just be trimmed
+
+        // Check Country Code within its Code System
+        if (finalCountryCode != null && !finalCountryCode.isBlank() && finalCodeSystem != null && !finalCodeSystem.isBlank()) {
+            countryRepository.findCurrentByCodeAndSystemCode(finalCountryCode, finalCodeSystem)
+                .ifPresent(c -> {
+                    if (currentId == null || !c.getId().equals(currentId)) {
+                        throw new BusinessException("Country with code '" + finalCountryCode + "' in system '" + finalCodeSystem + "' already exists.", HttpStatus.CONFLICT);
+                    }
+                });
+        }
+
+        // ISO2, ISO3, and Numeric should be unique across all systems.
+        // Check ISO2 Code
+        if (finalIso2Code != null && !finalIso2Code.isBlank()) {
+            countryRepository.findCurrentByIso2Code(finalIso2Code).stream()
+                .filter(c -> currentId == null || !c.getId().equals(currentId))
+                .findAny()
+                .ifPresent(c -> {
+                    throw new BusinessException("Country with ISO2 code '" + finalIso2Code + "' already exists.", HttpStatus.CONFLICT);
+                });
+        }
+
+        // Check ISO3Code
+        if (finalIso3Code != null && !finalIso3Code.isBlank()) {
+            countryRepository.findCurrentByIso3Code(finalIso3Code).stream()
+                .filter(c -> currentId == null || !c.getId().equals(currentId))
+                .findAny()
+                .ifPresent(c -> {
+                    throw new BusinessException("Country with ISO3 code '" + finalIso3Code + "' already exists.", HttpStatus.CONFLICT);
+                });
+        }
+
+        // Check Numeric Code
+        if (finalNumericCode != null && !finalNumericCode.isBlank()) {
+            countryRepository.findCurrentByNumericCode(finalNumericCode).stream()
+                .filter(c -> currentId == null || !c.getId().equals(currentId))
+                .findAny()
+                .ifPresent(c -> {
+                    throw new BusinessException("Country with numeric code '" + finalNumericCode + "' already exists.", HttpStatus.CONFLICT);
+                });
+        }
+    }
+
+    /**
+     * Validates that a country DTO has all required fields for creation/update.
+     *
+     * @param countryDto The country DTO to validate
+     * @throws BusinessException if validation fails
+     */
+    public void validateCountryData(CountryDto countryDto) {
+        if (countryDto.getCountryCode() == null || countryDto.getCountryCode().trim().isEmpty()) {
+            throw new BusinessException("Country code is required", HttpStatus.BAD_REQUEST);
+        }
+        if (!countryDto.getCountryCode().matches("^[A-Z]+$")) {
+            throw new BusinessException("Country code must contain only uppercase letters.", HttpStatus.BAD_REQUEST);
+        }
+
+        if (countryDto.getCountryName() == null || countryDto.getCountryName().trim().isEmpty()) {
+            throw new BusinessException("Country name is required", HttpStatus.BAD_REQUEST);
+        }
+
+        if (countryDto.getCodeSystem() == null || countryDto.getCodeSystem().trim().isEmpty()) {
+            throw new BusinessException("Code system is required", HttpStatus.BAD_REQUEST);
+        }
+
+        // ISO2 Code validation
+        if (countryDto.getIso2Code() == null || countryDto.getIso2Code().trim().isEmpty()) {
+            throw new BusinessException("ISO2 code is required", HttpStatus.BAD_REQUEST);
+        }
+        if (!countryDto.getIso2Code().matches("^[A-Z]{2}$")) {
+            throw new BusinessException("ISO2 code must contain exactly 2 uppercase letters.", HttpStatus.BAD_REQUEST);
+        }
+
+        // ISO3 Code validation
+        if (countryDto.getIso3Code() == null || countryDto.getIso3Code().trim().isEmpty()) {
+            throw new BusinessException("ISO3 code is required", HttpStatus.BAD_REQUEST);
+        }
+        if (!countryDto.getIso3Code().matches("^[A-Z]{3}$")) {
+            throw new BusinessException("ISO3 code must contain exactly 3 uppercase letters.", HttpStatus.BAD_REQUEST);
+        }
+
+        // Numeric Code validation (optional field, but if present, must be numeric and 3 digits)
+        if (countryDto.getNumericCode() != null && !countryDto.getNumericCode().trim().isEmpty()) {
+            if (!countryDto.getNumericCode().matches("^\\d{3}$")) {
+                throw new BusinessException("Numeric code must contain exactly 3 digits.", HttpStatus.BAD_REQUEST);
+            }
+        }
     }
 }

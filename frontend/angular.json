@@ -2,7 +2,8 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "cli": {
-    "packageManager": "npm"
+    "packageManager": "npm",
+    "analytics": "79a7f92d-5c4e-465d-9b96-ed6f92cf2d3f"
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -39,7 +40,7 @@
               {
                 "glob": "**/*",
                 "input": "node_modules/@uswds/uswds/dist/fonts",
-                "output": "assets/fonts/"
+                "output": "assets/uswds/fonts/"
               },
               {
                 "glob": "**/*",
@@ -47,16 +48,24 @@
                 "output": "assets/uswds/img/"
               }
             ],
-            "styles": [
-              "node_modules/@uswds/uswds/dist/css/uswds.min.css",
-              "src/styles.scss"
-            ],
+            "styles": ["src/styles.scss"],
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "node_modules",
+                "node_modules/@uswds/uswds/packages"
+              ]
+            },
             "scripts": [
               "node_modules/@uswds/uswds/dist/js/uswds.min.js"
             ]
           },
           "configurations": {
             "production": {
+              "optimization": {
+                "fonts": {
+                  "inline": false
+                }
+              },
               "budgets": [
                 {
                   "type": "initial",
@@ -83,10 +92,11 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "admin-ui:build:production"
+              "buildTarget": "frontend:build:production"
             },
             "development": {
-              "buildTarget": "admin-ui:build:development"
+              "buildTarget": "frontend:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"
@@ -97,6 +107,7 @@
         "test": {
           "builder": "@angular/build:karma",
           "options": {
+            "karmaConfig": "karma.conf.js",
             "polyfills": [
               "zone.js",
               "zone.js/testing"
@@ -116,7 +127,7 @@
               {
                 "glob": "**/*",
                 "input": "node_modules/@uswds/uswds/dist/fonts",
-                "output": "assets/fonts/"
+                "output": "assets/uswds/fonts/"
               },
               {
                 "glob": "**/*",
@@ -124,10 +135,13 @@
                 "output": "assets/uswds/img/"
               }
             ],
-            "styles": [
-              "node_modules/@uswds/uswds/dist/css/uswds.min.css",
-              "src/styles.scss"
-            ],
+            "styles": ["src/styles.scss"],
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "node_modules",
+                "node_modules/@uswds/uswds/packages"
+              ]
+            },
             "scripts": [
               "node_modules/@uswds/uswds/dist/js/uswds.min.js"
             ]
